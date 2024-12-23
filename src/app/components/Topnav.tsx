@@ -4,7 +4,7 @@ export default function Topnav() {
     <>
       <div>
         {/* Top Nav */}
-        <div className="flex justify-center space-x-96 px-2 py-2 bg-purple-950">
+        <div className="flex justify-center space-x-96 px-2 py-2" style={{ backgroundColor: '#201d38' }}>
 
           {/* Logo and Title of Compiler */}
           <div className="flex gap-x-2 items-center ">

@@ -46,14 +46,14 @@ export default function Lexeme() {
   }, []); // Empty dependency array ensures this effect runs only once
 
   return (
-    <div className="flex h-screen bg-purple-900 p-4">
+    <div className="flex h-screen p-4" style={{backgroundColor: '#18162d'}}>
       {/* Container */}
       <div className="flex flex-grow border rounded-lg overflow-hidden shadow-lg">
         {/* Line Numbers */}
         <div
           ref={lineNumbersRef}  // Attach ref here
-          className="bg-purple-900 text-white text-right py-2 px-4 select-none overflow-y-hidden"
-          style={{ minWidth: "40px", lineHeight: "1.5rem", maxHeight: "100%" }}
+          className="text-white text-right py-2 px-4 select-none overflow-y-hidden"
+          style={{ minWidth: "40px", lineHeight: "1.5rem", maxHeight: "100%", backgroundColor: "#232146"}}
         >
           {[...Array(lineCount)].map((_, i) => (
             <div key={i} className="h-6">
@@ -66,8 +66,8 @@ export default function Lexeme() {
         <div className="flex-grow relative">
           <textarea
             ref={textareaRef}  // Attach ref here
-            className="w-full h-full bg-purple-900 text-white text-sm font-mono py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            style={{ resize: "none", lineHeight: "1.5rem" }}
+            className="w-full h-full text-white text-sm font-mono py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            style={{ resize: "none", lineHeight: "1.5rem", backgroundColor: '#232146' }}
             placeholder="Coding.."
             onChange={handleTextChange}
           ></textarea>
@@ -76,7 +76,7 @@ export default function Lexeme() {
 
       {/* Output Table for Lexeme, Tokens, Attributes */}
       <div className="mt-4 overflow-x-auto">
-        <table className="min-w-full bg-purple-900 text-white border-collapse">
+        <table className="min-w-full text-white border-collapse" style={{backgroundColor: '#232146'}}>
           <thead>
             <tr>
               <th className="py-2 px-4 border-b">Lexeme</th>
