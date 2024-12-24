@@ -1,4 +1,54 @@
-An IDE for the DOM Compiler.
+An IDE for the DOM Compiler. **Online Deployment SOOOOON!**
+
+<h1> To run the IDE </h1>
+
+Make sure you have the following installed on your system:
+    <br>1. Git
+    <br>2. Node.js and npm
+    <br>3. Python (with pip for managing Python packages)
+
+<h2> Clone the Repository </h2>
+
+```bash
+git clone https://github.com/IEMDomain04/DOM-IDE.git
+```
+
+<h2> Install Dependencies </h2>
+This will install the needed Node.js dependencies for the frontend.
+
+```bash
+npm install
+```
+<br>
+
+This will install Flask, the lightweight Python web framework used for the backend.
+```bash
+pip install flask
+```
+```bash
+pip install flask-cors
+```
+<br>
+
+Axios is used in the React frontend for making HTTP requests.
+```bash
+npm install axios
+```
+
+<h2> Run the Backend Server </h2>
+
+```bash
+python server.py
+```
+
+<h2> Run the Web App </h2>
+
+```bash
+npm run dev
+```
+Press the http://localhost:3000 or just type localhost:3000
+
+
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
