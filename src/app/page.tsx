@@ -31,12 +31,21 @@ export default function Lexeme() {
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
         const value = textarea.value;
+  
+        // Modify the textarea value to include a tab character
         textarea.value = value.substring(0, start) + '\t' + value.substring(end);
+  
+        // Update the selection to be after the tab character
         textarea.selectionStart = textarea.selectionEnd = start + 1;
-        handleTextChange(e as any); // Update line count
+  
+        // Create a synthetic change event to pass to handleTextChange
+        const event = new Event('input', { bubbles: true }) as unknown as React.ChangeEvent<HTMLTextAreaElement>;
+        Object.defineProperty(event, 'target', { value: textarea, writable: false });
+        handleTextChange(event); // Pass the synthetic event
       }
     }
   };
+  
 
   // Function to handle the run button click
   const handleRunClick = async () => {
