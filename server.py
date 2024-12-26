@@ -5,16 +5,13 @@ from lexer import run
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-@app.route('/')
-def index():
-    return "Hello, World!"
-
-@app.route('/run', methods=['POST'])
+@app.route('/api/run', methods=['POST'])
 def run_lexer():
     data = request.json
     text = data.get('text', '')
     tokens, error = run(text)  # Call run with text and default fn
     if error:
+        print(f"Error: {error}")  # Print the error for debugging
         return jsonify({'error': str(error)}), 400
     token_list = [{'type': token.type, 'value': token.value} for token in tokens]
     return jsonify({'tokens': token_list})

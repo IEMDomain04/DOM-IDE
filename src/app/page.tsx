@@ -16,6 +16,13 @@ export default function Lexeme() {
   const textareaRef = useRef<HTMLTextAreaElement>(null); // Create reference for the textarea
   const lineNumbersRef = useRef<HTMLDivElement>(null); // Create a reference for the line numbers container
 
+  // Initial code snippet
+  const initialCode = `expansion;
+
+curse domain(){
+    invoke("Hello, World!");
+}`;
+
   // Handle text change and update line count based on text area's line breaks
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const lines = e.target.value.split("\n").length;
@@ -52,8 +59,10 @@ export default function Lexeme() {
     const textarea = textareaRef.current;
     if (textarea) {
       const text = textarea.value;
+      console.log('Sending request to /api/run with text:', text); // Add logging
       try {
-        const response = await axios.post('http://127.0.0.1:5000/run', { text });
+        const response = await axios.post('/api/run', { text }); // Use relative URL
+        console.log('Response from /api/run:', response.data); // Add logging
         const { tokens } = response.data;
         const newOutputData = tokens.map((token: { type: string; value: string }) => ({
           lexeme: token.value,
@@ -81,6 +90,8 @@ export default function Lexeme() {
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.addEventListener("scroll", handleScroll);
+      textarea.value = initialCode; // Set initial code
+      handleTextChange({ target: textarea } as React.ChangeEvent<HTMLTextAreaElement>); // Update line count
     }
 
     return () => {

@@ -66,6 +66,8 @@ delim_map = {
 ##############
 # ERRORS
 ##############
+# ERRORS
+##############
 class Error:
     def __init__(self, pos_start, pos_end, error_name, details):
         self.pos_start = pos_start
@@ -78,6 +80,9 @@ class Error:
         result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}\n'
         result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
         return result
+
+    def __str__(self):
+        return self.as_string()
 
 class LexicalError(Error):
     def __init__(self, pos_start, pos_end, details):
