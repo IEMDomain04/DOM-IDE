@@ -127,21 +127,21 @@ export default function Lexeme() {
 
         {/* Output Table for Lexeme, Tokens, Attributes */}
         <div className="flex flex-col w-1/3">
-          <div className="overflow-x-auto table-container" style={{ maxHeight: "calc(100vh - 100px)", borderRadius: "9px"  }}>
-            <table className="min-w-full text-white border-collapse" style={{backgroundColor: '#232146', borderRadius: "9px"}}>
+          <div className="overflow-x-auto table-container" style={{ maxHeight: "calc(100vh - 100px)"  }}>
+            <table className="min-w-full text-white" style={{backgroundColor: '#232146', borderRadius: "9px"}}>
               <thead style={{ backgroundColor: '#232146' }}>
                 <tr>
-                  <th className="py-2 px-4 border-b">Lexeme</th>
-                  <th className="py-2 px-4 border-b">Tokens</th>
-                  <th className="py-2 px-4 border-b">Attributes</th>
+                  <th className="py-2 px-4 border">Lexeme</th>
+                  <th className="py-2 px-4 border">Tokens</th>
+                  <th className="py-2 px-4 border">Attributes</th>
                 </tr>
               </thead>
               <tbody>
                 {outputData.map((item, index) => (
                   <tr key={index}>
-                    <td className="py-2 px-4 border-b">{item.lexeme}</td>
-                    <td className="py-2 px-4 border-b">{item.token}</td>
-                    <td className="py-2 px-4 border-b">{item.attribute}</td>
+                    <td className="py-2 px-4 border">{item.lexeme}</td>
+                    <td className="py-2 px-4 border">{item.token}</td>
+                    <td className="py-2 px-4 border">{item.attribute}</td>
                   </tr>
                 ))}
               </tbody>

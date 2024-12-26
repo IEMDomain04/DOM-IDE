@@ -8,7 +8,7 @@ export default function Topnav({ onRunClick }: TopnavProps) {
   return (
     <div>
       {/* Top Nav */}
-      <div className="flex justify-center space-x-96 px-2 py-2" style={{ backgroundColor: '#201d38' }}>
+      <div className="flex space-x-20 px-10 py-2" style={{ backgroundColor: '#201d38' }}>
         {/* Logo and Title of Compiler */}
         <div className="flex gap-x-2 items-center">
           <img src="/dom-icon.svg" width={30} height={30} alt="Dom icon" />
@@ -17,17 +17,7 @@ export default function Topnav({ onRunClick }: TopnavProps) {
 
         {/* Saves and runs */}
         <div className="flex gap-x-12">
-          <div className="flex w-auto gap-x-2 px-3 py-3 rounded cursor-pointer hover:bg-purple-500/20">
-            <img src={`/saveas-icon.svg`} alt="" />
-            <h1>SAVE AS</h1>
-          </div>
-
-          <div className="flex w-auto gap-x-2 px-3 py-3 rounded cursor-pointer hover:bg-purple-500/20">
-            <img src={`/open-icon.svg`} alt="" />
-            <h1>OPEN</h1>
-          </div>
-
-          <div className="flex w-auto gap-x-2 px-3 py-3 rounded cursor-pointer hover:bg-purple-500/20" onClick={onRunClick}>
+          <div className="flex w-auto gap-x-2 px-3 py-3 rounded cursor-pointer duration-100 bg-purple-500/10 hover:bg-purple-500/50 hover:scale-110" onClick={onRunClick}>
             <img src={`/run-icon.svg`} alt="" />
             <h1>RUN</h1>
           </div>

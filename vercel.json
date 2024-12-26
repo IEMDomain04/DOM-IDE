@@ -11,5 +11,6 @@
       "src": "/(.*)",
       "dest": "server.py"
     }
-  ]
+  ],
+  "regions": ["hnd1", "sin1"]
 }
