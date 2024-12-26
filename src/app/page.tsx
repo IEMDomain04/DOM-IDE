@@ -100,45 +100,78 @@ curse domain(){
   }, []); 
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{backgroundColor: '#18162d'}}>
+    <div
+      className="flex flex-col h-screen overflow-hidden"
+      style={{ backgroundColor: '#18162d' }}
+    >
+      {/* Top Navigation */}
       <Topnav onRunClick={handleRunClick} />
+  
       <div className="flex flex-grow p-4">
-        {/* Text Area Container */}
-        <div className="flex flex-grow border rounded-lg overflow-hidden shadow-lg mr-4">
-          {/* Line Numbers and Text Area */}
-          <div className="flex flex-grow overflow-hidden">
-            {/* Line Numbers */}
+        {/* Main Content */}
+        <div className="flex flex-col w-2/3 mr-4">
+          {/* Text Area Container */}
+          <div className="flex-grow border rounded-lg shadow-lg overflow-hidden bg-purple-900">
+            {/* Scrollable Container */}
             <div
-              ref={lineNumbersRef} 
-              className="text-white text-right py-2 px-4 select-none overflow-hidden"
-              style={{ minWidth: "40px", lineHeight: "1.5rem", backgroundColor: "#232146"}}
+              className="flex overflow-auto"
+              style={{ maxHeight: '550px' }}
             >
-              {[...Array(lineCount)].map((_, i) => (
-                <div key={i} className="h-6">
-                  {i + 1}
-                </div>
-              ))}
-            </div>
-
-            {/* Text Area */}
-            <div className="flex-grow relative overflow-hidden">
+              {/* Line Numbers */}
+              <div
+                ref={lineNumbersRef}
+                className="text-white text-right py-2 px-3 select-none bg-purple-900"
+                style={{
+                  minWidth: '40px',
+                  lineHeight: '1.5rem',
+                  borderRight: '1px solid #3a2e59',
+                }}
+              >
+                {[...Array(lineCount)].map((_, i) => (
+                  <div key={i} className="h-6">
+                    {i + 1}
+                  </div>
+                ))}
+              </div>
+  
+              {/* Text Area */}
               <textarea
-                ref={textareaRef}  
-                className="w-full h-full text-white text-sm font-mono py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 overflow-auto" 
-                style={{ resize: "none", lineHeight: "1.5rem", backgroundColor: '#232146' }}
-                placeholder="Coding.."
+                ref={textareaRef}
+                className="flex-grow text-white text-sm font-mono py-2 px-4 bg-purple-900 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{ lineHeight: '1.5rem' }}
+                placeholder="Coding..."
                 onChange={handleTextChange}
                 onKeyDown={handleKeyDown}
               ></textarea>
             </div>
           </div>
+  
+          {/* Terminal Section */}
+          <div
+            className="mt-4 p-4 bg-purple-900 text-white text-sm font-mono rounded-lg border border-white"
+            style={{ minHeight: '150px' }}
+          >
+            <div>Terminal Output:</div>
+            <div className="overflow-auto" style={{ maxHeight: '120px' }}>
+              <pre>{`Your terminal output will appear here...`}</pre>
+            </div>
+          </div>
         </div>
-
-        {/* Output Table for Lexeme, Tokens*/}
+  
+        {/* Output Table for Lexeme, Tokens */}
         <div className="flex flex-col w-1/3">
-          <div className="overflow-x-auto table-container" style={{ maxHeight: "calc(100vh - 100px)"  }}>
-            <table className="min-w-full text-white" style={{backgroundColor: '#232146', borderRadius: "9px"}}>
-              <thead style={{ backgroundColor: '#232146' }}>
+          <div
+            className="overflow-x-auto table-container"
+            style={{ maxHeight: 'calc(100vh - 100px)' }}
+          >
+            <table
+              className="min-w-full text-white"
+              style={{
+                backgroundColor: '#232146',
+                borderRadius: '9px',
+              }}
+            >
+              <thead className="bg-fuchsia-900">
                 <tr>
                   <th className="py-2 px-4 border">Lexeme</th>
                   <th className="py-2 px-4 border">Tokens</th>
@@ -158,4 +191,9 @@ curse domain(){
       </div>
     </div>
   );
+  
+  
+  
+  
+
 }
