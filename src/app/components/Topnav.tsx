@@ -8,7 +8,7 @@ export default function Topnav({ onRunClick }: TopnavProps) {
   return (
     <div>
       {/* Top Nav */}
-      <div className="flex justify-around px-10 py-2 bg-purple-950">
+      <div className="flex justify-around px-10 py-3" style={{backgroundColor: '#232146'}}>
         {/* Logo and Title of Compiler */}
         <div className="flex gap-x-2 items-center">
           <img src="/dom-icon.svg" width={20} height={20} alt="Dom icon" />

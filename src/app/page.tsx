@@ -148,8 +148,8 @@ curse domain(){
   
           {/* Terminal Section */}
           <div
-            className="mt-4 p-4 bg-purple-900 text-white text-sm font-mono rounded-lg border border-white"
-            style={{ minHeight: '150px' }}
+            className="mt-2 p-4 text-white text-sm font-mono rounded-lg border border-white"
+            style={{ minHeight: '150px', backgroundColor: '#232146' }}
           >
             <div>Terminal Output:</div>
             <div className="overflow-auto" style={{ maxHeight: '120px' }}>
@@ -171,7 +171,9 @@ curse domain(){
                 borderRadius: '9px',
               }}
             >
-              <thead className="bg-fuchsia-900">
+              <thead style={{
+                backgroundColor: '#232146'
+              }}>
                 <tr>
                   <th className="py-2 px-4 border">Lexeme</th>
                   <th className="py-2 px-4 border">Tokens</th>
