@@ -7,7 +7,6 @@ import Topnav from "./components/Topnav";
 interface Token {
   lexeme: string;
   token: string;
-  attribute: string;
 }
 
 export default function Lexeme() {
@@ -67,7 +66,6 @@ curse domain(){
         const newOutputData = tokens.map((token: { type: string; value: string }) => ({
           lexeme: token.value,
           token: token.type,
-          attribute: token.value
         }));
         setOutputData(newOutputData);
       } catch (error) {
@@ -136,7 +134,7 @@ curse domain(){
           </div>
         </div>
 
-        {/* Output Table for Lexeme, Tokens, Attributes */}
+        {/* Output Table for Lexeme, Tokens*/}
         <div className="flex flex-col w-1/3">
           <div className="overflow-x-auto table-container" style={{ maxHeight: "calc(100vh - 100px)"  }}>
             <table className="min-w-full text-white" style={{backgroundColor: '#232146', borderRadius: "9px"}}>
@@ -144,7 +142,6 @@ curse domain(){
                 <tr>
                   <th className="py-2 px-4 border">Lexeme</th>
                   <th className="py-2 px-4 border">Tokens</th>
-                  <th className="py-2 px-4 border">Attributes</th>
                 </tr>
               </thead>
               <tbody>
@@ -152,7 +149,6 @@ curse domain(){
                   <tr key={index}>
                     <td className="py-2 px-4 border">{item.lexeme}</td>
                     <td className="py-2 px-4 border">{item.token}</td>
-                    <td className="py-2 px-4 border">{item.attribute}</td>
                   </tr>
                 ))}
               </tbody>
