@@ -11,8 +11,8 @@ def run_lexer():
     text = data.get('text', '')
     tokens, error = run(text)  # Call run with text and default fn
     if error:
-        print(f"Error: {error}")  # Print the error for debugging
-        return jsonify({'error': str(error)}), 400
+        print(f"Error: {error.as_string()}")  # Print the error for debugging
+        return jsonify({'error': error.as_string()}), 400
     token_list = [{'type': token.type, 'value': token.value} for token in tokens]
     return jsonify({'tokens': token_list})
 

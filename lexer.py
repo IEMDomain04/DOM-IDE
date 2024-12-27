@@ -22,7 +22,7 @@ ALL_OPERATOR = ARITH_OP + RELATION_OP
 keywords = [
     "domain", "expansion", "null", "int", "float", "string", "bool",
     "restrict", "invoke", "capture", "true", "false",
-    "vow", "else vow", "else", "boogie", "woogie",
+    "vow", "else", "boogie", "woogie",
     "default", "cycle", "sustain", "perform",
     "dismiss", "hop", "recall", "cleave",
     "dismantle", "len", "curse"
@@ -66,8 +66,6 @@ delim_map = {
 ##############
 # ERRORS
 ##############
-# ERRORS
-##############
 class Error:
     def __init__(self, pos_start, pos_end, error_name, details):
         self.pos_start = pos_start
@@ -80,9 +78,6 @@ class Error:
         result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}\n'
         result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
         return result
-
-    def __str__(self):
-        return self.as_string()
 
 class LexicalError(Error):
     def __init__(self, pos_start, pos_end, details):
@@ -121,55 +116,89 @@ class Position:
 # TOKENS
 #############
 
-TT_INT      = 'INT'     # Whole Numbers '3'
-TT_FLOAT    = 'FLOAT'   # Decimal Numbers '3.14'
-TT_STRING   = 'STRING'  # Strings 
+# General Keywords
+TT_BOOGIE   = 'boogie'
+TT_CAPTURE  = 'capture'
+TT_CLEAVE   = 'cleave'
+TT_CURSE    = 'curse'
+TT_CYCLE    = 'cycle'
+TT_DEFAULT  = 'default'
+TT_DISMISS  = 'dismiss'
+TT_DISMANTLE = 'dismantle'
+TT_DOMAIN   = 'domain'
+TT_ELSE     = 'else'
+TT_EXPANSION = 'expansion'
+TT_FALSE    = 'false'
+TT_HOP      = 'hop'
+TT_INVOKE   = 'invoke'
+TT_LEN      = 'len'
+TT_NULL     = 'null'
+TT_PERFORM  = 'perform'
+TT_RECALL   = 'recall'
+TT_RESTRICT = 'restrict'
+TT_SUSTAIN  = 'sustain'
+TT_TRUE     = 'true'
+TT_VOW      = 'vow'
+TT_WOOGIE   = 'woogie'
 
-TT_PLUS     = 'PLUS'    # '+'
-TT_MINUS    = 'MINUS'   # '-'
-TT_MUL      = 'MUL'     # '*'
-TT_DIV      = 'DIV'     # '/'
-TT_MOD      = 'MODULO'  # '%'
-TT_ASSIGN   = 'ASSIGN'  # '='
+# Data Types
+TT_INT      = 'int'     # Whole Numbers '3'
+TT_FLOAT    = 'float'   # Decimal Numbers '3.14'
+TT_STRING   = 'string'  # Strings 
+TT_BOOL     = 'bool'    # True or False
 
-TT_EQ       = 'EQ'      # '=='  
-TT_NE       = 'NE'      # '!='
-TT_PLUSEQ   = 'PLUSEQ'   # '+='  
-TT_MINUSEQ  = 'MINUSEQ' # '-='
-TT_MULEQ    = 'MULEQ'   # '*='
-TT_DIVEQ    = 'DIVEQ'   # '/='
-TT_MODEQ    = 'MODEQ'   # '%='
+# Literals  
+TT_NULLLIT  = 'null_literal'    # TT_NULL
+TT_INTLIT   = 'int_literal'     # TT_INT
+TT_FLOATLIT = 'float_literal'   # TT_FLOAT    
+TT_STRLIT   = 'string_literal'  # TT_STRING
+TT_BOOLLIT  = 'bool_literal'    # TT_BOOL
 
-TT_NOT      = 'NOT'     # '!'
-TT_AND      = 'AND'     # '&&'
-TT_OR       = 'OR'      # '||'
-TT_LT       = 'LT'      # '<'
-TT_GT       = 'GT'      # '>'
-TT_LTE      = 'LTE'     # '<='
-TT_GTE      = 'GTE'     # '>='
+TT_IDENTIFIER = 'id'    # Identifiers
+TT_SPACE    = 'space'   # Space ' '
 
-TT_POW      = 'POW'     # '**'
-TT_UNARY    = 'UNARY'   # '++', '--'
-TT_ELLIPSIS = 'ELLIPSIS'# '...'
+TT_PLUS     = '+'       # '+'
+TT_MINUS    = '-'       # '-'
+TT_MUL      = '*'       # '*'
+TT_DIV      = '/'       # '/'
+TT_MOD      = '%'       # '%'
+TT_ASSIGN   = '='       # '='
 
-TT_LPAREN   = 'LPAREN'  # '('
-TT_RPAREN   = 'RPAREN'  # ')'
-TT_LSQUARE  = 'LSQUARE' # '['
-TT_RSQUARE  = 'RSQUARE' # ']'
-TT_LBRACE   = 'LBRACE'  # '{'
-TT_RBRACE   = 'RBRACE'  # '}'
-TT_SEMICOL  = 'SEMICOL' # ';'
-TT_COL      = 'COLON'   # ':'
-TT_COMMA    = 'COMMA'   # ','
+TT_EQ       = '=='      # '=='  
+TT_NE       = '!='      # '!='
+TT_PLUSEQ   = '+='      # '+='  
+TT_MINUSEQ  = '-='      # '-='
+TT_MULEQ    = '*='      # '*='
+TT_DIVEQ    = '/='      # '/='
+TT_MODEQ    = '%='      # '%='
+
+TT_NOT      = '!'       # '!'
+TT_AND      = '&&'      # '&&'
+TT_OR       = '||'      # '||'
+TT_LT       = '<'       # '<'
+TT_GT       = '>'       # '>'
+TT_LTE      = '<='      # '<='
+TT_GTE      = '>='      # '>='
+
+TT_POW      = '**'      # '**'
+TT_INCR     = '++'      # '++'
+TT_DECR     = '--'      # '--'
+
+TT_ELLIPSIS = '...'     # '...'
+
+TT_LPAREN   = '('       # '('
+TT_RPAREN   = ')'       # ')'
+TT_LSQUARE  = '['       # '['
+TT_RSQUARE  = ']'       # ']'
+TT_LBRACE   = '{'       # '{'
+TT_RBRACE   = '}'       # '}'
+TT_SEMICOL  = ';'       # ';'
+TT_COL      = ':'       # ':'
+TT_COMMA    = ','       # ','
 
 TT_EOF      = 'EOF'     # End of File
-TT_SPACE    = 'SPACE'   # Space ' '
-TT_TAB      = 'TAB'     # Newline '\n'
-TT_NEWLINE  = 'NEWLINE' # Tab '\t'
-
-
-TT_KEYWORD  = 'KEYWORD' # Keywords
-TT_IDENTIFIER = 'IDENTIFIER' # Identifiers
+TT_TAB      = '\\n'     # Newline '\n'
+TT_NEWLINE  = '\\t'     # Tab '\t'
 
 class Token:
     def __init__(self, type_, value=None, pos_start=None, pos_end=None):
@@ -204,6 +233,7 @@ class Lexer:
         self.current_char = self.text[self.pos.idx] if self.pos.idx < len(self.text) else None
         
     def make_tokens(self):
+        ident_num = 0
         tokens = []
         states = []
 
@@ -237,7 +267,7 @@ class Lexer:
                                 self.advance()
                                 if self.current_char in delim_map['kword_delim']:
                                     states.append(5)
-                                    tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                    tokens.append(Token(TT_BOOL, ident_str, pos_start=pos_start, pos_end=self.pos))
                                     continue 
                                 elif self.current_char not in delim_map['kword_delim'] and self.current_char in ALPHA + '_':
                                     pass
@@ -261,7 +291,7 @@ class Lexer:
                                         self.advance()
                                         if self.current_char in delim_map['boogie_delim']:
                                             states.append(9)
-                                            tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                            tokens.append(Token(TT_BOOGIE, ident_str, pos_start=pos_start, pos_end=self.pos))
                                             continue
                                         elif self.current_char not in delim_map['boogie_delim'] and self.current_char in ALPHA + '_':
                                             pass
@@ -269,7 +299,7 @@ class Lexer:
                                             return tokens, LexicalError(pos_start, self.pos, f"Invalid delimiter '{self.current_char}' after keyword '{ident_str}'")
                                 
                 
-                                
+               
                 elif self.current_char == "c":
                     states.append(10)
                     ident_str += self.current_char
@@ -307,7 +337,7 @@ class Lexer:
                                             self.advance() 
                                             if self.current_char in delim_map['para_delim']:
                                                 states.append(17)
-                                                tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                                tokens.append(Token(TT_CAPTURE, ident_str, pos_start=pos_start, pos_end=self.pos))
                                                 continue 
                                             elif self.current_char not in delim_map['para_delim'] and self.current_char in ALPHA + '_':
                                                 pass
@@ -340,7 +370,7 @@ class Lexer:
                                         self.advance() 
                                         if self.current_char in delim_map['para_delim']:
                                             states.append(23)
-                                            tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                            tokens.append(Token(TT_CLEAVE, ident_str, pos_start=pos_start, pos_end=self.pos))
                                             continue
                                         elif self.current_char not in delim_map['para_delim'] and self.current_char in ALPHA + '_':
                                             pass
@@ -368,7 +398,7 @@ class Lexer:
                                     self.advance()
                                     if self.current_char in delim_map['white_delim']:
                                         states.append(28)
-                                        tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos)) 
+                                        tokens.append(Token(TT_CURSE, ident_str, pos_start=pos_start, pos_end=self.pos)) 
                                         continue
                                     if self.current_char not in delim_map['white_delim'] and self.current_char in ALPHA + '_':
                                         pass
@@ -396,7 +426,7 @@ class Lexer:
                                     self.advance()
                                     if self.current_char in delim_map['para_delim']:
                                         states.append(33)
-                                        tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                        tokens.append(Token(TT_CYCLE, ident_str, pos_start=pos_start, pos_end=self.pos))
                                         continue 
                                     if self.current_char not in delim_map['para_delim'] and self.current_char in ALPHA + '_':
                                         pass
@@ -439,7 +469,7 @@ class Lexer:
                                             self.advance()  
                                             if self.current_char in delim_map['default_delim']:
                                                 states.append(41)
-                                                tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                                tokens.append(Token(TT_DEFAULT, ident_str, pos_start=pos_start, pos_end=self.pos))
                                                 continue
                                             elif self.current_char not in delim_map['default_delim'] and self.current_char in ALPHA + '_':
                                                 pass
@@ -487,7 +517,7 @@ class Lexer:
                                                     self.advance()  
                                                     if self.current_char in delim_map['para_delim']:
                                                         states.append(50)
-                                                        tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                                        tokens.append(Token(TT_DISMANTLE, ident_str, pos_start=pos_start, pos_end=self.pos))
                                                         continue
                                                     elif self.current_char not in delim_map['para_delim'] and self.current_char in ALPHA + '_':
                                                         pass
@@ -510,7 +540,7 @@ class Lexer:
                                             self.advance()
                                             if self.current_char in delim_map['ex_delim']:
                                                 states.append(54)
-                                                tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                                tokens.append(Token(TT_DISMISS, ident_str, pos_start=pos_start, pos_end=self.pos))
                                                 continue
                                             elif self.current_char not in delim_map['ex_delim'] and self.current_char in ALPHA + '_':
                                                 pass
@@ -543,7 +573,7 @@ class Lexer:
                                         self.advance()  
                                         if self.current_char in delim_map['para_delim']:
                                             states.append(60)
-                                            tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                            tokens.append(Token(TT_DOMAIN, ident_str, pos_start=pos_start, pos_end=self.pos))
                                             continue
                                         elif self.current_char not in delim_map['para_delim'] and self.current_char in ALPHA + '_':
                                             pass
@@ -572,7 +602,7 @@ class Lexer:
                                 self.advance()
                                 if self.current_char in delim_map['codeblk_delim']: 
                                     states.append(65)
-                                    tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                    tokens.append(Token(TT_ELSE, ident_str, pos_start=pos_start, pos_end=self.pos))
                                     continue
                                 elif self.current_char not in delim_map['codeblk_delim'] and self.current_char in ALPHA + '_':
                                     pass
@@ -621,7 +651,7 @@ class Lexer:
                                                     self.advance()  
                                                     if self.current_char in delim_map['ex_delim']:
                                                         states.append(74)
-                                                        tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                                        tokens.append(Token(TT_EXPANSION, ident_str, pos_start=pos_start, pos_end=self.pos))
                                                         continue
                                                     elif self.current_char not in delim_map['ex_delim'] and self.current_char in ALPHA + '_':
                                                         pass
@@ -655,7 +685,7 @@ class Lexer:
                                     self.advance()  
                                     if self.current_char in delim_map['bool_delim']:
                                         states.append(80)
-                                        tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                        tokens.append(Token(TT_BOOLLIT, ident_str, pos_start=pos_start, pos_end=self.pos))
                                         continue
                                     elif self.current_char not in delim_map['bool_delim'] and self.current_char in ALPHA + '_':
                                         pass
@@ -683,7 +713,7 @@ class Lexer:
                                     self.advance()  
                                     if self.current_char in delim_map['kword_delim']:
                                         states.append(85)
-                                        tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                        tokens.append(Token(TT_FLOAT, ident_str, pos_start=pos_start, pos_end=self.pos))
                                         continue
                                     elif self.current_char not in delim_map['kword_delim'] and self.current_char in ALPHA + '_':
                                         pass
@@ -707,7 +737,7 @@ class Lexer:
                             self.advance()  
                             if self.current_char in delim_map['ex_delim']: 
                                 states.append(89)
-                                tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                tokens.append(Token(TT_HOP, ident_str, pos_start=pos_start, pos_end=self.pos))
                                 continue
                             elif self.current_char not in delim_map['ex_delim'] and self.current_char in ALPHA + '_':
                                 pass
@@ -746,7 +776,7 @@ class Lexer:
                                         self.advance()  
                                         if self.current_char in delim_map['para_delim']:
                                             states.append(96)
-                                            tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                            tokens.append(Token(TT_INVOKE, ident_str, pos_start=pos_start, pos_end=self.pos))
                                             continue
                                         elif self.current_char not in delim_map['para_delim'] and self.current_char in ALPHA + '_':
                                             pass
@@ -759,7 +789,7 @@ class Lexer:
                             self.advance()  
                             if self.current_char in delim_map['kword_delim']:
                                 states.append(98)
-                                tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                tokens.append(Token(TT_INT, ident_str, pos_start=pos_start, pos_end=self.pos))
                                 continue
                             elif self.current_char not in delim_map['kword_delim'] and self.current_char in ALPHA + '_':
                                 pass
@@ -782,7 +812,7 @@ class Lexer:
                             ident_count+=1
                             self.advance()  
                             if self.current_char in delim_map['para_delim']:
-                                tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                tokens.append(Token(TT_LEN, ident_str, pos_start=pos_start, pos_end=self.pos))
                                 continue
                             elif self.current_char not in delim_map['para_delim'] and self.current_char in ALPHA + '_':
                                 pass
@@ -811,7 +841,7 @@ class Lexer:
                                 self.advance()  
                                 if self.current_char in delim_map['white_delim']:
                                     states.append(106)
-                                    tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                    tokens.append(Token(TT_NULLLIT, ident_str, pos_start=pos_start, pos_end=self.pos))
                                     continue
                                 elif self.current_char not in delim_map['white_delim'] and self.current_char in ALPHA + '_':
                                     pass
@@ -854,7 +884,7 @@ class Lexer:
                                             self.advance()  
                                             if self.current_char in delim_map['codeblk_delim']:
                                                 states.append(114)
-                                                tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                                tokens.append(Token(TT_PERFORM, ident_str, pos_start=pos_start, pos_end=self.pos))
                                                 continue
                                             elif self.current_char not in delim_map['codeblk_delim'] and self.current_char in ALPHA + '_':
                                                 pass
@@ -893,7 +923,7 @@ class Lexer:
                                         self.advance()  
                                         if self.current_char in delim_map['recall_delim']:
                                             states.append(121)
-                                            tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                            tokens.append(Token(TT_RECALL, ident_str, pos_start=pos_start, pos_end=self.pos))
                                             continue
                                         elif self.current_char not in delim_map['recall_delim'] and self.current_char in ALPHA + '_':
                                             pass
@@ -931,7 +961,7 @@ class Lexer:
                                                 self.advance()  
                                                 if self.current_char in delim_map['kword_delim']:
                                                     states.append(128)
-                                                    tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                                    tokens.append(Token(TT_RESTRICT, ident_str, pos_start=pos_start, pos_end=self.pos))
                                                     continue
                                                 elif self.current_char not in delim_map['kword_delim']:
                                                     pass
@@ -970,7 +1000,7 @@ class Lexer:
                                         self.advance()  
                                         if self.current_char in delim_map['kword_delim']:
                                             states.append(135)
-                                            tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                            tokens.append(Token(TT_STRING, ident_str, pos_start=pos_start, pos_end=self.pos))
                                             continue
                                         elif self.current_char not in delim_map['kword_delim'] and self.current_char in ALPHA + '_':
                                             pass
@@ -1008,7 +1038,7 @@ class Lexer:
                                             self.advance()  
                                             if self.current_char in delim_map['para_delim']:
                                                 states.append(142)
-                                                tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                                tokens.append(Token(TT_SUSTAIN, ident_str, pos_start=pos_start, pos_end=self.pos))
                                                 continue
                                             elif self.current_char not in delim_map['para_delim'] and self.current_char in ALPHA + '_':
                                                 pass
@@ -1037,7 +1067,7 @@ class Lexer:
                                 self.advance()  
                                 if self.current_char in delim_map['bool_delim']:
                                     states.append(147)
-                                    tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                    tokens.append(Token(TT_BOOLLIT, ident_str, pos_start=pos_start, pos_end=self.pos))
                                     continue
                                 elif self.current_char not in delim_map['bool_delim'] and self.current_char in ALPHA + '_':
                                     pass
@@ -1061,7 +1091,7 @@ class Lexer:
                             self.advance()  
                             if self.current_char in delim_map['para_delim']:
                                 states.append(151)
-                                tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                tokens.append(Token(TT_VOW, ident_str, pos_start=pos_start, pos_end=self.pos))
                                 continue
                             elif self.current_char not in delim_map['para_delim'] and self.current_char in ALPHA + '_':
                                 pass
@@ -1100,7 +1130,7 @@ class Lexer:
                                         self.advance()  
                                         if self.current_char in delim_map['woogie_delim']:
                                             states.append(158)
-                                            tokens.append(Token(TT_KEYWORD, ident_str, pos_start=pos_start, pos_end=self.pos))
+                                            tokens.append(Token(TT_WOOGIE, ident_str, pos_start=pos_start, pos_end=self.pos))
                                             continue
                                         elif self.current_char not in delim_map['woogie_delim'] and self.current_char in ALPHA + '_':
                                             pass
@@ -1120,7 +1150,8 @@ class Lexer:
                     return tokens, LexicalError(pos_start, self.pos, f"Invalid delimiter '{self.current_char}' after identifier '{ident_str}'")
                 if ident_count>25:
                     return tokens, LexicalError(pos_start, self.pos, "Identifier exceeded maximum character limit of 25")
-                tokens.append(Token(TT_IDENTIFIER, ident_str, pos_start=pos_start, pos_end=self.pos)) 
+                ident_num+=1
+                tokens.append(Token(TT_IDENTIFIER + str(ident_num), ident_str, pos_start=pos_start, pos_end=self.pos)) 
                 ident_state = 240
                 continue
 
@@ -1159,7 +1190,7 @@ class Lexer:
                     states.append(165)     
                     states.append
                     self.advance()
-                    tok_type = TT_UNARY
+                    tok_type = TT_INCR
                 if self.current_char == '=':        
                     states.append(167)
                     self.advance()
@@ -1172,7 +1203,7 @@ class Lexer:
                         states.append(164)
                         tokens.append(Token(tok_type, '+', pos_start=pos_start, pos_end=self.pos))
                         continue
-                if tok_type == TT_UNARY:
+                if tok_type == TT_INCR:
                     if self.current_char not in delim_map['incdec_delim']:
                         return tokens, LexicalError(pos_start, self.pos, f"Invalid delimiter '{self.current_char}' after operator")
                     else:
@@ -1196,7 +1227,7 @@ class Lexer:
                 if self.current_char == '-':
                     states.append(171)
                     self.advance()
-                    tok_type = TT_UNARY  #  -- operator
+                    tok_type = TT_DECR  #  -- operator
                     if self.current_char not in delim_map['incdec_delim']:
                         return tokens, LexicalError(pos_start, self.pos, f"Invalid delimiter '{self.current_char}' after operator")
                     else:  
@@ -1694,9 +1725,9 @@ class Lexer:
             pos_end = self.pos.copy()
             return [], LexicalError(pos_start, pos_end, f"Multiple period '.' in a float assignment")
         if dot_count == 0:
-            return Token(TT_INT, int(num_str), pos_start, self.pos), None
+            return Token(TT_INTLIT, int(num_str), pos_start, self.pos), None
         else:
-            return Token(TT_FLOAT, float(num_str), pos_start, self.pos), None
+            return Token(TT_FLOATLIT, float(num_str), pos_start, self.pos), None
         
     def make_string(self):
         id_str = ''
@@ -1708,7 +1739,7 @@ class Lexer:
                 self.advance() 
                 if self.current_char not in delim_map['str_delim']:
                     return [], LexicalError(pos_start, self.pos, f"Invalid delimiter '{self.current_char}' after string '{id_str}'")
-                return Token(TT_STRING, id_str, pos_start, self.pos), None
+                return Token(TT_STRLIT, id_str, pos_start, self.pos), None
             id_str += self.current_char
             self.advance()
 
