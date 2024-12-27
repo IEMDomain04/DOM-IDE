@@ -1,5 +1,4 @@
 import React from 'react';
-import { useState, useEffect } from "react";
 
 interface TopnavProps {
   onRunClick: () => void;
@@ -7,10 +6,6 @@ interface TopnavProps {
 
 export default function Topnav({ onRunClick }: TopnavProps) {
   return (
-
-
-
-    
     <div>
       {/* Top Nav */}
       <div className="flex justify-between px-10 py-3" style={{backgroundColor: '#391D1D'}}>
