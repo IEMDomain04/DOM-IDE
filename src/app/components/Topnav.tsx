@@ -1,5 +1,3 @@
-import React, { useState } from 'react';
-
 interface TopnavProps {
   onRunClick: () => void;
   toggleDarkMode: () => void;
