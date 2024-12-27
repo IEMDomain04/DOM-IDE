@@ -3,35 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #c3c6d4; /* Light mode background */
+  --foreground: #242a47; /* Light mode foreground */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #181819; /* Dark mode background */
+  --foreground: #391d1d; /* Dark mode foreground */
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  background: #121213;
+  color: white;
   font-family: Arial, Helvetica, sans-serif;
-}
-
-
-/* Custom scrollbar styling for the table */
-.table-container::-webkit-scrollbar {
-  width: 12px;
-}
-
-.table-container::-webkit-scrollbar-track {
-  background: #18162d;
-}
-
-.table-container::-webkit-scrollbar-thumb {
-  background-color: #232146;
-  border-radius: 6px;
-  border: 3px solid #18162d;
 }

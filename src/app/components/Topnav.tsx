@@ -1,4 +1,5 @@
 import React from 'react';
+import { useState, useEffect } from "react";
 
 interface TopnavProps {
   onRunClick: () => void;
@@ -6,9 +7,13 @@ interface TopnavProps {
 
 export default function Topnav({ onRunClick }: TopnavProps) {
   return (
+
+
+
+    
     <div>
       {/* Top Nav */}
-      <div className="flex justify-around px-10 py-3" style={{backgroundColor: '#232146'}}>
+      <div className="flex justify-between px-10 py-3" style={{backgroundColor: '#391D1D'}}>
         {/* Logo and Title of Compiler */}
         <div className="flex gap-x-2 items-center">
           <img src="/dom-icon.svg" width={20} height={20} alt="Dom icon" />
@@ -43,6 +48,8 @@ export default function Topnav({ onRunClick }: TopnavProps) {
           <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110">
             <h1 className='text-xs'>Semantic</h1>
           </div>
+
+          <img className='px-1 py-1 rounded cursor-pointer hover:bg-purple-500/50 hover:scale-110 ' src="/lightmode-icon.svg" alt="Lightmode-darkmode" />
         </div>
       </div>
     </div>

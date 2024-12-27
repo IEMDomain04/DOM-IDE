@@ -38,13 +38,13 @@ curse domain(){
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
         const value = textarea.value;
-  
+
         // Modify the textarea value to include a tab character
         textarea.value = value.substring(0, start) + '\t' + value.substring(end);
-  
+
         // Update the selection to be after the tab character
         textarea.selectionStart = textarea.selectionEnd = start + 1;
-  
+
         // Create a synthetic change event to pass to handleTextChange
         const event = new Event('input', { bubbles: true }) as unknown as React.ChangeEvent<HTMLTextAreaElement>;
         Object.defineProperty(event, 'target', { value: textarea, writable: false });
@@ -104,100 +104,69 @@ curse domain(){
         textarea.removeEventListener("scroll", handleScroll);
       }
     };
-  }, []); 
+  }, []);
 
   return (
-    <div
-      className="flex flex-col h-screen overflow-hidden"
-      style={{ backgroundColor: '#18162d' }}
-    >
-      {/* Top Navigation */}
-      <Topnav onRunClick={handleRunClick} />
-  
-      <div className="flex flex-grow p-4">
-        {/* Main Content */}
-        <div className="flex flex-col w-2/3 mr-4">
-          {/* Text Area Container */}
-          <div className="flex-grow border rounded-lg shadow-lg overflow-hidden bg-purple-900">
-            {/* Scrollable Container */}
-            <div
-              className="flex overflow-auto"
-              style={{ maxHeight: '550px' }}
-            >
-              {/* Line Numbers */}
-              <div
-                ref={lineNumbersRef}
-                className="text-white text-right py-2 px-3 select-none bg-purple-900"
-                style={{
-                  minWidth: '40px',
-                  lineHeight: '1.5rem',
-                  borderRight: '1px solid #3a2e59',
-                }}
-              >
-                {[...Array(lineCount)].map((_, i) => (
-                  <div key={i} className="h-6">
-                    {i + 1}
-                  </div>
-                ))}
+    <section className="flex">
+      {/*Left Side: Topnav, Textarea, and Terminal */}
+      <div className="flex flex-col w-full h-screen">
+        <Topnav onRunClick={handleRunClick} />
+
+        {/*Text Area and Line of Numbers*/}
+        <div className="flex flex-grow border border-none">
+
+          {/*Line of numbers */}
+          <div ref={lineNumbersRef} className="w-fit text-right py-2 px-5 leading-6 border-r-2 border-black" style={{ background: '#181819' }}>
+            {[...Array(lineCount)].map((_, i) => (
+              <div key={i} className="h-6">
+                {i + 1}
               </div>
-  
-              {/* Text Area */}
-              <textarea
-                ref={textareaRef}
-                className="flex-grow text-white text-sm font-mono py-2 px-4 bg-purple-900 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                style={{ lineHeight: '1.5rem' }}
-                placeholder="Coding..."
-                onChange={handleTextChange}
-                onKeyDown={handleKeyDown}
-              ></textarea>
-            </div>
+            ))}
           </div>
-  
-          {/* Terminal Section */}
-          <div
-            className="mt-2 p-4 text-white text-sm font-mono rounded-lg border border-white"
-            style={{ minHeight: '150px', backgroundColor: '#232146' }}
-          >
-            <div>Terminal Output:</div>
+
+          <textarea
+            ref={textareaRef}
+            className="flex-grow text-sm leading-6 font-mono py-2 px-4 focus:outline-none focus:ring-2 focus:ring-stone-700" 
+            style={{ background: '#181819' }}
+            placeholder="Coding..."
+            onChange={handleTextChange}
+            onKeyDown={handleKeyDown}
+          ></textarea>
+        </div>
+
+        {/* Terminal Section */}
+        <div className="">
+          <h1 className="py-3 px-16" style={{ background: '#391D1D' }}>Output and Errors</h1>
+          <div className="p-4 text-sm font-mono min-h-40" style={{ background: '#181819' }}>
             <div className="overflow-auto" style={{ maxHeight: '120px' }}>
               <pre>{terminalOutput || 'Your terminal output will appear here...'}</pre>
             </div>
           </div>
         </div>
-  
-        {/* Output Table for Lexeme, Tokens */}
-        <div className="flex flex-col w-1/3">
-          <div
-            className="overflow-x-auto table-container"
-            style={{ maxHeight: 'calc(100vh - 100px)' }}
-          >
-            <table
-              className="min-w-full text-white"
-              style={{ 
-                backgroundColor: '#232146', 
-                borderRadius: "9px" 
-            }}
-            >
-              <thead style={{ 
-                backgroundColor: '#232146' 
-                }}>
-                <tr>
-                  <th className="py-2 px-4 border">Lexeme</th>
-                  <th className="py-2 px-4 border">Tokens</th>
-                </tr>
-              </thead>
-              <tbody>
-                {outputData.map((item, index) => (
-                  <tr key={index}>
-                    <td className="py-2 px-4 border">{item.lexeme}</td>
-                    <td className="py-2 px-4 border">{item.token}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+
       </div>
-    </div>
+
+      {/* Output Table for Lexeme, Tokens */}
+      <div className="flex flex-col w-1/3">
+        <table className="min-w-full" style={{ backgroundColor: '#232146'}}>
+          <thead style={{
+            backgroundColor: '#181819'
+          }}>
+            <tr>
+              <th className="py-3 px-4 text-xl">Lexeme</th>
+              <th className="py-3 px-4 text-xl">Tokens</th>
+            </tr>
+          </thead>
+          <tbody>
+            {outputData.map((item, index) => (
+              <tr key={index}>
+                <td className="py-2 px-4 border">{item.lexeme}</td>
+                <td className="py-2 px-4 border">{item.token}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
