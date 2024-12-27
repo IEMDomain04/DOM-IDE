@@ -1628,7 +1628,7 @@ class Lexer:
                     states.append(294)
                     while self.current_char == ' ':
                         self.advance()
-                    if self.current_char not in delim_map['white_delim']:
+                    if self.current_char != None and self.current_char not in delim_map['white_delim']:
                         return tokens, LexicalError(pos_start, self.pos, f"Invalid delimiter '{self.current_char}' after space")
                     else:
                         states.append(295)
@@ -1639,7 +1639,7 @@ class Lexer:
                     states.append(296)
                     while self.current_char == '\t':
                         self.advance()
-                    if self.current_char not in delim_map['white_delim']:
+                    if self.current_char != None and self.current_char not in delim_map['white_delim']:
                         return tokens, LexicalError(pos_start, self.pos, f"Invalid delimiter '{self.current_char}' after tab")
                     else:
                         states.append(297)
@@ -1650,7 +1650,7 @@ class Lexer:
                     states.append(298)
                     while self.current_char == '\n':
                         self.advance()
-                    if self.current_char not in delim_map['white_delim']:
+                    if self.current_char != None and self.current_char not in delim_map['white_delim']:
                         return tokens, LexicalError(pos_start, self.pos, f"Invalid delimiter '{self.current_char}' after newline")
                     else:
                         states.append(299)
