@@ -15,6 +15,16 @@ export default function Lexeme() {
   const [terminalOutput, setTerminalOutput] = useState<string>(''); // State for terminal output
   const textareaRef = useRef<HTMLTextAreaElement>(null); // Create reference for the textarea
   const lineNumbersRef = useRef<HTMLDivElement>(null); // Create a reference for the line numbers container
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+    }
+  };
 
   // Initial code snippet
   const initialCode = `expansion;
@@ -107,16 +117,16 @@ curse domain(){
   }, []);
 
   return (
-    <section className="flex">
+    <section className={`flex ${isDarkMode ? 'dark' : ''}`}>
       {/*Left Side: Topnav, Textarea, and Terminal */}
-      <div className="flex flex-col w-full h-screen">
-        <Topnav onRunClick={handleRunClick} />
+      <div className="flex flex-col w-full h-screen overflow-y-auto">
+        <Topnav onRunClick={handleRunClick} toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} />
 
         {/*Text Area and Line of Numbers*/}
         <div className="flex flex-grow border border-none">
 
           {/*Line of numbers */}
-          <div ref={lineNumbersRef} className="w-fit text-right py-2 px-5 leading-6 border-r-2 border-black" style={{ background: '#181819' }}>
+          <div ref={lineNumbersRef} className={`w-fit text-right py-2 px-5 leading-6 border-r-2 border-black ${isDarkMode ? 'bg-dark-background text-white' : 'bg-light-background text-black'}`}>
             {[...Array(lineCount)].map((_, i) => (
               <div key={i} className="h-6">
                 {i + 1}
@@ -126,8 +136,7 @@ curse domain(){
 
           <textarea
             ref={textareaRef}
-            className="flex-grow text-sm leading-6 font-mono py-2 px-4 focus:outline-none focus:ring-2 focus:ring-stone-700" 
-            style={{ background: '#181819' }}
+            className={`flex-grow text-sm leading-6 font-mono py-2 px-4 focus:outline-none focus:ring-2 focus:ring-stone-700 ${isDarkMode ? 'bg-dark-background text-white' : 'bg-light-background text-black'}`}
             placeholder="Coding..."
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}
@@ -135,9 +144,9 @@ curse domain(){
         </div>
 
         {/* Terminal Section */}
-        <div className="">
-          <h1 className="py-3 px-16" style={{ background: '#391D1D' }}>Output and Errors</h1>
-          <div className="p-4 text-sm font-mono min-h-40" style={{ background: '#181819' }}>
+        <div className="flex flex-col fixed bottom-0 w-full">
+          <h1 className={`py-3 px-16 ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground'}`}>Output and Errors</h1>
+          <div className={`p-4 text-sm font-mono min-h-40 ${isDarkMode ? 'bg-dark-background text-white' : 'bg-light-background text-black'}`}>
             <div className="overflow-auto" style={{ maxHeight: '120px' }}>
               <pre>{terminalOutput || 'Your terminal output will appear here...'}</pre>
             </div>
@@ -147,11 +156,9 @@ curse domain(){
       </div>
 
       {/* Output Table for Lexeme, Tokens */}
-      <div className="flex flex-col w-1/3">
-        <table className="min-w-full" style={{ backgroundColor: '#232146'}}>
-          <thead style={{
-            backgroundColor: '#181819'
-          }}>
+      <div className="flex flex-col w-5/12 mx-1">
+        <table className={`min-w-full table-fixed ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
+          <thead className={`${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
             <tr>
               <th className="py-3 px-4 text-xl">Lexeme</th>
               <th className="py-3 px-4 text-xl">Tokens</th>

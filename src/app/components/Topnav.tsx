@@ -1,18 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface TopnavProps {
   onRunClick: () => void;
+  toggleDarkMode: () => void;
+  isDarkMode: boolean;
 }
 
-export default function Topnav({ onRunClick }: TopnavProps) {
+export default function Topnav({ onRunClick, toggleDarkMode, isDarkMode }: TopnavProps) {
   return (
     <div>
       {/* Top Nav */}
-      <div className="flex justify-between px-10 py-3" style={{backgroundColor: '#391D1D'}}>
+      <div className={`flex justify-between px-10 py-3 ${isDarkMode ? 'bg-dark-foreground' : 'bg-light-foreground'}`}>
         {/* Logo and Title of Compiler */}
         <div className="flex gap-x-2 items-center">
           <img src="/dom-icon.svg" width={20} height={20} alt="Dom icon" />
-          <h1 className='text-xsfont-bold'>DOM COMPILER</h1>
+          <h1 className='text-xs font-bold'>DOM COMPILER</h1>
         </div>
 
         {/* Saves and runs */}
@@ -44,7 +46,12 @@ export default function Topnav({ onRunClick }: TopnavProps) {
             <h1 className='text-xs'>Semantic</h1>
           </div>
 
-          <img className='px-1 py-1 rounded cursor-pointer hover:bg-purple-500/50 hover:scale-110 ' src="/lightmode-icon.svg" alt="Lightmode-darkmode" />
+          <img
+            className='px-1 py-1 rounded cursor-pointer hover:bg-purple-500/50 hover:scale-110'
+            src={isDarkMode ? "/lightmode-icon.svg" : "/darkmode-icon.svg"}
+            alt="Lightmode-darkmode"
+            onClick={toggleDarkMode}
+          />
         </div>
       </div>
     </div>
