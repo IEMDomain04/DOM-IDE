@@ -47,7 +47,7 @@ export default function Topnav({ onRunClick, toggleDarkMode, isDarkMode }: Topna
           <img
             className='px-1 py-1 rounded cursor-pointer hover:bg-purple-500/50 hover:scale-110'
             src={isDarkMode ? "/lightmode-icon.svg" : "/darkmode-icon.svg"}
-            alt="Lightmode-darkmode"
+            alt="light-dark icon"
             onClick={toggleDarkMode}
           />
         </div>

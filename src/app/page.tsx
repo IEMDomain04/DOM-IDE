@@ -124,27 +124,30 @@ curse domain(){
 
         {/*Text Area and Line of Numbers*/}
         <div className="flex flex-grow border border-none">
+          {/* Line of numbers and Textarea */}
+          <div className="flex flex-grow overflow-hidden">
+            {/* Line of numbers */}
+            <div ref={lineNumbersRef} className={`w-fit text-right py-2 px-5 leading-6 border-r-2 border-black ${isDarkMode ? 'bg-dark-background text-white' : 'bg-light-background text-black'}`}>
+              {[...Array(lineCount)].map((_, i) => (
+                <div key={i} className="h-6">
+                  {i + 1}
+                </div>
+              ))}
+            </div>
 
-          {/*Line of numbers */}
-          <div ref={lineNumbersRef} className={`w-fit text-right py-2 px-5 leading-6 border-r-2 border-black ${isDarkMode ? 'bg-dark-background text-white' : 'bg-light-background text-black'}`}>
-            {[...Array(lineCount)].map((_, i) => (
-              <div key={i} className="h-6">
-                {i + 1}
-              </div>
-            ))}
+            {/* Textarea */}
+            <textarea
+              ref={textareaRef}
+              className={`flex-grow text-sm leading-6 font-mono py-2 px-4 focus:outline-none focus:ring-2 focus:ring-stone-700 ${isDarkMode ? 'bg-dark-background text-white' : 'bg-light-background text-black'}`}
+              placeholder="Coding..."
+              onChange={handleTextChange}
+              onKeyDown={handleKeyDown}
+            ></textarea>
           </div>
-
-          <textarea
-            ref={textareaRef}
-            className={`flex-grow text-sm leading-6 font-mono py-2 px-4 focus:outline-none focus:ring-2 focus:ring-stone-700 ${isDarkMode ? 'bg-dark-background text-white' : 'bg-light-background text-black'}`}
-            placeholder="Coding..."
-            onChange={handleTextChange}
-            onKeyDown={handleKeyDown}
-          ></textarea>
         </div>
 
         {/* Terminal Section */}
-        <div className="flex flex-col fixed bottom-0 w-full">
+        <div className="">
           <h1 className={`py-3 px-16 ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground'}`}>Output and Errors</h1>
           <div className={`p-4 text-sm font-mono min-h-40 ${isDarkMode ? 'bg-dark-background text-white' : 'bg-light-background text-black'}`}>
             <div className="overflow-auto" style={{ maxHeight: '120px' }}>
@@ -156,7 +159,7 @@ curse domain(){
       </div>
 
       {/* Output Table for Lexeme, Tokens */}
-      <div className="flex flex-col w-5/12 mx-1 overflow-y-auto">
+      <div className="flex flex-col w-5/12 mx-1">
         <table className={`min-w-full table-fixed ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
           <thead className={`${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
             <tr>
