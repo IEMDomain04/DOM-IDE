@@ -197,8 +197,8 @@ TT_COL      = ':'       # ':'
 TT_COMMA    = ','       # ','
 
 TT_EOF      = 'EOF'     # End of File
-TT_TAB      = '\\n'     # Newline '\n'
-TT_NEWLINE  = '\\t'     # Tab '\t'
+TT_NEWLINE  = '\\n'     # Newline '\n'
+TT_TAB      = '\\t'     # Tab '\t'
 
 class Token:
     def __init__(self, type_, value=None, pos_start=None, pos_end=None):
