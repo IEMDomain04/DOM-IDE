@@ -159,7 +159,7 @@ curse domain(){
       </div>
 
       {/* Output Table for Lexeme, Tokens */}
-      <div className="flex flex-col w-5/12 mx-1">
+      <div className="flex flex-col w-5/12">
         <table className={`min-w-full table-fixed ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
           <thead className={`${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
             <tr>
