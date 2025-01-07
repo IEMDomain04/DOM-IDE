@@ -13,7 +13,7 @@ export default function Lexeme() {
   const [lineCount, setLineCount] = useState(1);
   const [outputData, setOutputData] = useState<Token[]>([]); // State for table output
   const [terminalOutput, setTerminalOutput] = useState<string>(''); // State for terminal output
-  const textareaRef = useRef<HTMLTextAreaElement>(null); // Create reference for the textarea
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null); // Create a reference for the line numbers container
   const [isDarkMode, setIsDarkMode] = useState(true);
 

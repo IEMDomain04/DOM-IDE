@@ -4,7 +4,7 @@ interface TopnavProps {
   onRunClick: () => void;
   toggleDarkMode: () => void;
   isDarkMode: boolean;
-  textareaRef: React.RefObject<HTMLTextAreaElement>; // Added textareaRef prop
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 export default function Topnav({ onRunClick, toggleDarkMode, isDarkMode, textareaRef }: TopnavProps) {
