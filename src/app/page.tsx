@@ -120,7 +120,7 @@ curse domain(){
     <section className={`flex ${isDarkMode ? 'dark' : ''}`}>
       {/*Left Side: Topnav, Textarea, and Terminal */}
       <div className="flex flex-col w-full h-screen overflow-y-auto">
-        <Topnav onRunClick={handleRunClick} toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} />
+        <Topnav onRunClick={handleRunClick} toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} textareaRef={textareaRef} /> {/* Pass textareaRef to Topnav */}
 
         {/*Text Area and Line of Numbers*/}
         <div className="flex flex-grow border border-none">
