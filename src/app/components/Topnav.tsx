@@ -65,7 +65,7 @@ const handleOpenClick = () => {
         {/* Saves and runs */}
         <div className="flex gap-x-5">
           <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110" onClick={handleSaveAsClick}>
-            <h1 className='text-xs'>Save as...</h1>
+            <h1 className='text-xs'>Save</h1>
           </div>
 
           <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110" onClick={handleOpenClick}>
