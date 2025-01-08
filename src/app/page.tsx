@@ -117,7 +117,7 @@ curse domain(){
   }, []);
 
   return (
-    <section className={`flex ${isDarkMode ? 'dark' : ''}`}>
+    <section className={`flex w-screen h-screen ${isDarkMode ? 'dark' : ''}`} style={{ backgroundImage: `url(${isDarkMode ? '/bg-dark.png' : '/bg-light.png'})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat' }}>
       {/*Left Side: Topnav, Textarea, and Terminal */}
       <div className="flex flex-col w-full h-screen">
         <Topnav onRunClick={handleRunClick} toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} textareaRef={textareaRef} /> {/* Pass textareaRef to Topnav */}
@@ -127,7 +127,7 @@ curse domain(){
           {/* Line of numbers and Textarea */}
           <div className="flex flex-grow overflow-hidden">
         {/* Line of numbers */}
-        <div ref={lineNumbersRef} className={`w-fit text-right py-2 px-5 leading-6 border-r-2 border-black ${isDarkMode ? 'bg-dark-background text-white' : 'bg-light-background text-black'}`} style={{ overflow: 'hidden' }}>
+        <div ref={lineNumbersRef} className={`w-fit text-right py-2 px-5 leading-6 border-r-2 border-black ${isDarkMode ? 'text-white' : 'text-black'}`} style={{ overflow: 'hidden' }}>
           {[...Array(lineCount)].map((_, i) => (
             <div key={i} className="h-6">
           {i + 1}
@@ -138,19 +138,19 @@ curse domain(){
         {/* Textarea */}
         <textarea
           ref={textareaRef}
-          className={`flex-grow text-sm leading-6 font-mono py-2 px-4 focus:outline-none focus:ring-2 focus:ring-stone-700 ${isDarkMode ? 'bg-dark-background text-white' : 'bg-light-background text-black'}`}
+          className={`flex-grow text-sm leading-6 font-mono py-2 px-4 focus:outline-none focus:ring-2 focus:ring-stone-700 ${isDarkMode ? 'text-white bg-transparent' : 'text-black bg-transparent'}`}
           placeholder="Coding..."
           onChange={handleTextChange}
           onKeyDown={handleKeyDown}
-          style={{ resize: 'none' }}
+          style={{ resize: 'none', borderRight: '2px solid #131314' }}
         ></textarea>
           </div>
         </div>
 
         {/* Terminal Section */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0" style={{ resize: 'none', borderRight: '2px solid #131314' }}>
           <h1 className={`py-3 px-16 ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground'}`}>Output and Errors</h1>
-          <div className={`p-4 text-sm font-mono min-h-40 ${isDarkMode ? 'bg-dark-background text-white' : 'bg-light-background text-black'}`}>
+          <div className={`p-4 text-sm font-mono min-h-40 ${isDarkMode ? 'text-white' : 'text-black'}`}>
         <div className="overflow-auto" style={{ maxHeight: '120px' }}>
           <pre>{terminalOutput || 'Your terminal output will appear here...'}</pre>
         </div>
@@ -170,8 +170,8 @@ curse domain(){
           <tbody>
             {outputData.map((item, index) => (
               <tr key={index}>
-                <td className="py-2 px-4 border">{item.lexeme}</td>
-                <td className="py-2 px-4 border">{item.token}</td>
+                <td className="py-2 px-4 border-0">{item.lexeme}</td>
+                <td className="py-2 px-4 border-0">{item.token}</td>
               </tr>
             ))}
           </tbody>
