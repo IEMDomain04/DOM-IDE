@@ -161,17 +161,17 @@ curse domain(){
       {/* Output Table for Lexeme, Tokens */}
       <div className="flex flex-col w-5/12 overflow-auto" style={{ maxHeight: '100vh' }}>
         <table className={`min-w-full table-fixed ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
-          <thead className={`${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
+          <thead className={`${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`} style={{ position: 'sticky', top: 0, zIndex: 1 }}>
             <tr>
-              <th className="py-3 px-4 text-xl">Lexeme</th>
-              <th className="py-3 px-4 text-xl">Tokens</th>
+              <th className="py-3 px-4 text-l">Lexeme</th>
+              <th className="py-3 px-4 text-l">Tokens</th>
             </tr>
           </thead>
           <tbody>
             {outputData.map((item, index) => (
               <tr key={index}>
-                <td className="py-2 px-4 border-0">{item.lexeme}</td>
-                <td className="py-2 px-4 border-0">{item.token}</td>
+                <td className="py-2 px-4 border-1">{item.lexeme}</td>
+                <td className="py-2 px-4 border-1">{item.token}</td>
               </tr>
             ))}
           </tbody>
