@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "Jujutsu";
+  src: url("/font/jujutsu.ttf") format("truetype");
+}
+
 :root {
   --background: #c3c6d4; /* Light mode background */
   --foreground: #242a47; /* Light mode foreground */

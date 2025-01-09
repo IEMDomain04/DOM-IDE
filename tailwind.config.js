@@ -17,6 +17,9 @@ module.exports = {
         "dark-background": "#181819",   // Dark mode background
         "dark-foreground": "#391d1d",   // Dark mode text color
       },
+      fontFamily: {
+        jujutsu: ['Jujutsu'],
+      },
     },
   },
   plugins: [],
