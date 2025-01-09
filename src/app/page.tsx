@@ -71,17 +71,22 @@ curse domain(){
       console.log('Sending request to /api/run with text:', text); // Add logging
       try {
         const response = await axios.post('http://127.0.0.1:5000/run', { text }); 
-        const { tokens } = response.data;
-        const newOutputData = tokens.map((token: { type: string; value: string }) => ({
-          lexeme: token.value,
-          token: token.type,
-        }));
-        setOutputData(newOutputData);
-        setTerminalOutput(''); // Clear terminal output if no error
+        const { tokens, errors } = response.data;
+        if (errors) {
+          setTerminalOutput(errors.join('\n')); // Display errors in terminal output
+          setOutputData([]); // Clear output data if there are errors
+        } else {
+          const newOutputData = tokens.map((token: { type: string; value: string }) => ({
+            lexeme: token.value,
+            token: token.type,
+          }));
+          setOutputData(newOutputData);
+          setTerminalOutput(''); // Clear terminal output if no error
+        }
       } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
-          console.error('Error:', error.response.data.error);
-          setTerminalOutput(error.response.data.error); // Set terminal output to error message
+          console.error('Error:', error.response.data.errors);
+          setTerminalOutput(error.response.data.errors.join('\n')); // Set terminal output to error messages
         } else {
           console.error('Error:', error);
           setTerminalOutput('An unexpected error occurred.');
@@ -149,7 +154,7 @@ curse domain(){
         {/* Terminal Section */}
         <div className="flex-shrink-0" style={{ resize: 'none', borderRight: '2px solid #131314' }}>
           <h1 className={`py-3 px-16 ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground'}`}>Output and Errors</h1>
-          <div className={`p-4 text-sm font-mono min-h-40 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+          <div className={`pl-4 py-2 pr-0 text-sm font-mono min-h-40 ${isDarkMode ? 'text-white' : 'text-black'}`}>
         <div className="overflow-auto" style={{ maxHeight: '120px' }}>
           <pre>{terminalOutput || 'Your terminal output will appear here...'}</pre>
         </div>
