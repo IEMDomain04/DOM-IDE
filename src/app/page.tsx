@@ -70,8 +70,7 @@ curse domain(){
       const text = textarea.value;
       console.log('Sending request to /api/run with text:', text); // Add logging
       try {
-        const response = await axios.post('/api/run', { text }); // Use relative URL
-        console.log('Response from /api/run:', response.data); // Add logging
+        const response = await axios.post('http://127.0.0.1:5000/run', { text }); 
         const { tokens } = response.data;
         const newOutputData = tokens.map((token: { type: string; value: string }) => ({
           lexeme: token.value,
