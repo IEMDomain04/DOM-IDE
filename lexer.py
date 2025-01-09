@@ -44,7 +44,7 @@ delim_map = {
     'comp_delim':       set(ALPHA_NUMERIC + '"' + "'" + '(' + '-' + ' '),
     'default_delim':    {' ', ':'},
     'ex_delim':         {' ', ';', '\n','\t'},
-    'ident_delim':      {'+', '-', '*', '/', '%', '!', '=', '<', '>', '(', ')', ',', '[', ']', '\n', ' ', ';', '&', '|'},
+    'ident_delim':      {'+', '-', '*', '/', '%', '!', '=', '<', '>', '(', ')', ',', '[', ']', ' ', ';', '&', '|'},
     'incdec_delim':     set(ALPHA_NUMERIC + ')' + ' ' + ';'),
     'kword_delim':      {' ', '\t'},
     'lend_delim':       set(ALPHA_NUMERIC + '#' + '#$' + '\n' + '\t' + ' ' + '}'),
@@ -1138,22 +1138,24 @@ class Lexer:
                                         else: 
                                             errors.append(LexicalError(pos_start, self.pos, f"Invalid delimiter '{self.current_char}' after keyword '{ident_str}'"))
                  
-                while self.current_char != None and self.current_char in ALPHA_NUMERIC + '_':
+                while self.current_char is not None and self.current_char in ALPHA_NUMERIC + '_':
                     states.append(ident_state)
-                    ident_str+=self.current_char
-                    ident_count+=1
-                    ident_state+=1
+                    ident_str += self.current_char
+                    ident_count += 1
+                    ident_state += 1
+                    pos_end = self.pos.copy()
                     self.advance()
+
                 ident_lower = ident_str.lower()
                 if ident_lower in keywords:
-                    errors.append(LexicalError(pos_start, self.pos, f"Keyword '{ident_str}' cannot be used as identifier regardless of letter-casing"))
+                    errors.append(LexicalError(pos_start, pos_end, f"Keyword '{ident_str}' cannot be used as identifier regardless of letter-casing"))
                 elif self.current_char not in delim_map['ident_delim']:
-                    errors.append(LexicalError(pos_start, self.pos, f"Invalid delimiter '{self.current_char}' after identifier '{ident_str}'"))
-                elif ident_count>25:
-                    errors.append(LexicalError(pos_start, self.pos, "Identifier exceeded maximum character limit of 25"))
+                    errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after identifier '{ident_str}'"))
+                elif ident_count > 25:
+                    errors.append(LexicalError(pos_start, pos_end, "Identifier exceeded maximum character limit of 25"))
                 else:
-                    tokens.append(Token(TT_IDENTIFIER + str(ident_num), ident_str, pos_start=pos_start, pos_end=self.pos)) 
-                    ident_num+=1
+                    tokens.append(Token(TT_IDENTIFIER, ident_str, pos_start=pos_start, pos_end=self.pos))
+                    ident_num += 1
                     ident_state = 240
                     continue
 
@@ -1740,6 +1742,7 @@ class Lexer:
         self.advance()
 
         while self.current_char is not None and self.current_char in ASCII:
+            pos_end = self.pos.copy()
             if self.current_char == '"':
                 self.advance()
                 if self.current_char not in delim_map['str_delim']:
@@ -1747,7 +1750,6 @@ class Lexer:
                 else:
                     return Token(TT_STRLIT, id_str, pos_start, self.pos), None
             if self.current_char == '\n':
-                pos_end = self.pos.copy()
                 return [], LexicalError(pos_start, pos_end, 'String not properly closed with double quotes (")')
             id_str += self.current_char
             self.advance()
