@@ -70,19 +70,23 @@ curse domain(){
       const text = textarea.value;
       console.log('Sending request to /api/run with text:', text); // Add logging
       try {
-        const response = await axios.post('/api/run', { text }); // Use relative URL
-        console.log('Response from /api/run:', response.data); // Add logging
-        const { tokens } = response.data;
-        const newOutputData = tokens.map((token: { type: string; value: string }) => ({
-          lexeme: token.value,
-          token: token.type,
-        }));
-        setOutputData(newOutputData);
-        setTerminalOutput(''); // Clear terminal output if no error
+        const response = await axios.post('http://127.0.0.1:5000/run', { text }); 
+        const { tokens, errors } = response.data;
+        if (errors) {
+          setTerminalOutput(errors.join('\n')); // Display errors in terminal output
+          setOutputData([]); // Clear output data if there are errors
+        } else {
+          const newOutputData = tokens.map((token: { type: string; value: string }) => ({
+            lexeme: token.value,
+            token: token.type,
+          }));
+          setOutputData(newOutputData);
+          setTerminalOutput(''); // Clear terminal output if no error
+        }
       } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
-          console.error('Error:', error.response.data.error);
-          setTerminalOutput(error.response.data.error); // Set terminal output to error message
+          console.error('Error:', error.response.data.errors);
+          setTerminalOutput(error.response.data.errors.join('\n')); // Set terminal output to error messages
         } else {
           console.error('Error:', error);
           setTerminalOutput('An unexpected error occurred.');
@@ -117,64 +121,66 @@ curse domain(){
   }, []);
 
   return (
-    <section className={`flex ${isDarkMode ? 'dark' : ''}`}>
+    <section className={`flex w-screen h-screen ${isDarkMode ? 'dark' : ''}`} style={{ backgroundImage: `url(${isDarkMode ? '/bg-dark.png' : '/bg-light.png'})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat' }}>
       {/*Left Side: Topnav, Textarea, and Terminal */}
-      <div className="flex flex-col w-full h-screen overflow-y-auto">
+      <div className="flex flex-col w-full h-screen">
         <Topnav onRunClick={handleRunClick} toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} textareaRef={textareaRef} /> {/* Pass textareaRef to Topnav */}
 
         {/*Text Area and Line of Numbers*/}
-        <div className="flex flex-grow border border-none">
+        <div className="flex flex-grow border border-none overflow-hidden">
           {/* Line of numbers and Textarea */}
           <div className="flex flex-grow overflow-hidden">
-            {/* Line of numbers */}
-            <div ref={lineNumbersRef} className={`w-fit text-right py-2 px-5 leading-6 border-r-2 border-black ${isDarkMode ? 'bg-dark-background text-white' : 'bg-light-background text-black'}`}>
-              {[...Array(lineCount)].map((_, i) => (
-                <div key={i} className="h-6">
-                  {i + 1}
-                </div>
-              ))}
+        {/* Line of numbers */}
+        <div ref={lineNumbersRef} className={`w-fit text-right py-2 px-5 leading-6 border-r-2 border-black ${isDarkMode ? 'text-white' : 'text-black'}`} style={{ overflow: 'hidden' }}>
+          {[...Array(lineCount)].map((_, i) => (
+            <div key={i} className="h-6">
+          {i + 1}
             </div>
+          ))}
+        </div>
 
-            {/* Textarea */}
-            <textarea
-              ref={textareaRef}
-              className={`flex-grow text-sm leading-6 font-mono py-2 px-4 focus:outline-none focus:ring-2 focus:ring-stone-700 ${isDarkMode ? 'bg-dark-background text-white' : 'bg-light-background text-black'}`}
-              placeholder="Coding..."
-              onChange={handleTextChange}
-              onKeyDown={handleKeyDown}
-            ></textarea>
+        {/* Textarea */}
+        <textarea
+          ref={textareaRef}
+          className={`flex-grow text-sm leading-6 font-mono py-2 px-4 focus:outline-none focus:ring-2 focus:ring-stone-700 ${isDarkMode ? 'text-white bg-transparent' : 'text-black bg-transparent'}`}
+          placeholder="Coding..."
+          onChange={handleTextChange}
+          onKeyDown={handleKeyDown}
+          style={{ resize: 'none', borderRight: '2px solid #131314' }}
+        ></textarea>
           </div>
         </div>
 
         {/* Terminal Section */}
-        <div className="">
+        <div className="flex-shrink-0" style={{ resize: 'none', borderRight: '2px solid #131314' }}>
           <h1 className={`py-3 px-16 ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground'}`}>Output and Errors</h1>
-          <div className={`p-4 text-sm font-mono min-h-40 ${isDarkMode ? 'bg-dark-background text-white' : 'bg-light-background text-black'}`}>
-            <div className="overflow-auto" style={{ maxHeight: '120px' }}>
-              <pre>{terminalOutput || 'Your terminal output will appear here...'}</pre>
-            </div>
+          <div className={`pl-4 py-2 pr-0 text-sm font-mono min-h-40 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+        <div className="overflow-auto" style={{ maxHeight: '120px' }}>
+          <pre>{terminalOutput || 'Your terminal output will appear here...'}</pre>
+        </div>
           </div>
         </div>
-
       </div>
 
       {/* Output Table for Lexeme, Tokens */}
-      <div className="flex flex-col w-5/12">
+      <div className="flex flex-col w-5/12 overflow-auto" style={{ maxHeight: '100vh' }}>
         <table className={`min-w-full table-fixed ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
-          <thead className={`${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
+          <thead className={`${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`} style={{ position: 'sticky', top: 0, zIndex: 1 }}>
             <tr>
-              <th className="py-3 px-4 text-xl">Lexeme</th>
-              <th className="py-3 px-4 text-xl">Tokens</th>
+                <th className={`py-3 px-4 text-xl border-b-2 ${isDarkMode ? 'border-[#391d1d]' : 'border-[#242a47]'}`}>Lexeme</th>
+                <th className={`py-3 px-4 text-xl border-b-2 ${isDarkMode ? 'border-[#391d1d]' : 'border-[#242a47]'}`}>Tokens</th>
             </tr>
           </thead>
-          <tbody>
+            <tbody>
             {outputData.map((item, index) => (
               <tr key={index}>
-                <td className="py-2 px-4 border">{item.lexeme}</td>
-                <td className="py-2 px-4 border">{item.token}</td>
+                <td className={`py-2 px-4 border-b-2 ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`} title={item.lexeme}>
+                {item.lexeme && item.lexeme.length > 20 ? item.lexeme.substring(0, 17) + '...' : item.lexeme}
+                </td>
+              <td className={`py-2 px-4 border-b-2  ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`}>{item.token}</td>
               </tr>
             ))}
-          </tbody>
+            </tbody>
         </table>
       </div>
     </section>
