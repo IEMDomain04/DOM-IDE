@@ -163,15 +163,15 @@ curse domain(){
         <table className={`min-w-full table-fixed ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
           <thead className={`${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`} style={{ position: 'sticky', top: 0, zIndex: 1 }}>
             <tr>
-              <th className="py-3 px-4 text-xl border-b-2 border-[#391d1d]">Lexeme</th>
-              <th className="py-3 px-4 text-xl border-b-2 border-[#391d1d]">Tokens</th>
+                <th className={`py-3 px-4 text-xl border-b-2 ${isDarkMode ? 'border-[#391d1d]' : 'border-[#242a47]'}`}>Lexeme</th>
+                <th className={`py-3 px-4 text-xl border-b-2 ${isDarkMode ? 'border-[#391d1d]' : 'border-[#242a47]'}`}>Tokens</th>
             </tr>
           </thead>
           <tbody>
             {outputData.map((item, index) => (
               <tr key={index}>
-                <td className="py-2 px-4 border-b-2 border-[#2f1919]">{item.lexeme}</td>
-                <td className="py-2 px-4 border-b-2 border-[#2f1919]">{item.token}</td>
+                <td className={`py-2 px-4 border-b-2 ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`}>{item.lexeme}</td>
+                <td className={`py-2 px-4 border-b-2 ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`}>{item.token}</td>
               </tr>
             ))}
           </tbody>
