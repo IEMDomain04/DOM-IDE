@@ -5,7 +5,7 @@ from lexer import run
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-@app.route('api/run', methods=['POST'])
+@app.route('/api/run', methods=['POST'])
 def run_lexer():
     data = request.json
     text = data.get('text', '')
