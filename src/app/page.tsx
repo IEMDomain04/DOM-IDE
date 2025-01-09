@@ -70,7 +70,8 @@ curse domain(){
       const text = textarea.value;
       console.log('Sending request to /run with text:', text); // Add logging
       try {
-        const response = await axios.post('/api/run', { text });
+        const url = window.location.hostname === 'localhost' ? 'http://127.0.0.1:5000/run' : '/api/run';
+        const response = await axios.post(url, { text });
         const { tokens, errors } = response.data;
         if (errors) {
           setTerminalOutput(errors.join('\n')); // Display errors in terminal output
