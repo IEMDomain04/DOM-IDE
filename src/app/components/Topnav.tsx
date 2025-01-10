@@ -62,37 +62,37 @@ const handleOpenClick = () => {
         {/* Logo and Title of Compiler */}
         <div className="flex gap-x-2 items-center">
           <img src="/dom-icon.svg" width={20} height={20} alt="Dom icon" />
-          <h1 className='text-xs font-bold pr-5'>DOM COMPILER</h1>
+          <h1 className='text-xl font-jujutsu pr-5'>DOM COMPILER</h1>
         {/* Saves and runs */}
-          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110" onClick={handleSaveAsClick}>
+          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950" onClick={handleSaveAsClick}>
             <h1 className='text-xs'>Save</h1>
           </div>
 
-          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110" onClick={handleOpenClick}>
+          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950" onClick={handleOpenClick}>
             <h1 className='text-xs'>Open</h1>
           </div>
           
-          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110" onClick={onRunClick}>
+          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950" onClick={onRunClick}>
             <img className='h-auto w-3' src={`/run-icon.svg`} alt="" />
             <h1 className='text-xs'>Run</h1>
           </div>
         </div>
 
         <div className="flex gap-x-5">
-          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110" onClick={onTokenizerClick}>
+          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950" onClick={onTokenizerClick}>
             <h1 className='text-xs'>Tokenizer</h1>
           </div>
 
-          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110" onClick={onSyntaxClick}>
+          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950" onClick={onSyntaxClick}>
             <h1 className='text-xs'>Syntax</h1>
           </div>
           
-          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110" onClick={onSemanticClick}>
+          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950" onClick={onSemanticClick}>
             <h1 className='text-xs'>Semantic</h1>
           </div>
 
           <img
-            className='px-1 py-1 rounded cursor-pointer hover:bg-purple-500/50 hover:scale-110'
+            className='px-1 py-1 rounded cursor-pointer hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950'
             src={isDarkMode ? "/lightmode-icon.svg" : "/darkmode-icon.svg"}
             alt="light-dark icon"
             onClick={toggleDarkMode}
