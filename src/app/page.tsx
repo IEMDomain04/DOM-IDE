@@ -65,6 +65,12 @@ curse domain(){
 
   // Function to handle the run button click
   const handleRunClick = async () => {
+    setOutputData([]);
+    setTerminalOutput("\n============= COMING SOON ==============");
+  }
+
+  // Function to handle the tokenizer button click
+  const handleTokenizerClick = async () => {
     const textarea = textareaRef.current;
     if (textarea) {
       const text = textarea.value;
@@ -96,6 +102,18 @@ curse domain(){
     }
   };
 
+   // Function to handle the run button click
+   const handleSyntaxClick = async () => {
+    setOutputData([]);
+    setTerminalOutput("\n============= COMING SOON ==============");
+  }
+
+   // Function to handle the run button click
+   const handleSemanticClick = async () => {
+    setOutputData([]);
+    setTerminalOutput("\n============= COMING SOON ==============");
+  }
+
   // Sync the scroll position between the textarea and line numbers container
   const handleScroll = () => {
     const textarea = textareaRef.current;
@@ -125,14 +143,14 @@ curse domain(){
     <section className={`flex w-screen h-screen ${isDarkMode ? 'dark' : ''}`} style={{ backgroundImage: `url(${isDarkMode ? '/bg-dark.png' : '/bg-light.png'})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat' }}>
       {/*Left Side: Topnav, Textarea, and Terminal */}
       <div className="flex flex-col w-full h-screen">
-        <Topnav onRunClick={handleRunClick} toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} textareaRef={textareaRef} /> {/* Pass textareaRef to Topnav */}
+        <Topnav onRunClick={handleRunClick} onTokenizerClick={handleTokenizerClick} onSyntaxClick={handleSyntaxClick} onSemanticClick={handleSemanticClick} toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} textareaRef={textareaRef} /> {/* Pass textareaRef to Topnav */}
 
         {/*Text Area and Line of Numbers*/}
         <div className="flex flex-grow border border-none overflow-hidden">
           {/* Line of numbers and Textarea */}
           <div className="flex flex-grow overflow-hidden">
         {/* Line of numbers */}
-        <div ref={lineNumbersRef} className={`w-fit text-right py-2 px-5 leading-6 border-r-2 border-black ${isDarkMode ? 'text-white' : 'text-black'}`} style={{ overflow: 'hidden' }}>
+        <div ref={lineNumbersRef} className={`w-fit text-right py-2 px-5 leading-6   border-r-2 border-black ${isDarkMode ? 'text-white' : 'text-black'}`} style={{ overflow: 'hidden' }}>
           {[...Array(lineCount)].map((_, i) => (
             <div key={i} className="h-6">
           {i + 1}
@@ -153,37 +171,44 @@ curse domain(){
         </div>
 
         {/* Terminal Section */}
-        <div className="flex-shrink-0" style={{ resize: 'none', borderRight: '2px solid #131314' }}>
-          <h1 className={`py-3 px-16 ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground'}`}>Output and Errors</h1>
-          <div className={`pl-4 py-2 pr-0 text-sm font-mono min-h-40 ${isDarkMode ? 'text-white' : 'text-black'}`}>
-        <div className="overflow-auto" style={{ maxHeight: '120px' }}>
-          <pre>{terminalOutput || 'Your terminal output will appear here...'}</pre>
-        </div>
+        {terminalOutput && (
+          <div className="flex-shrink-0" style={{ resize: 'none', borderRight: '2px solid #131314' }}>
+            <h1 className={`py-3 px-16 ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground'}`}>Output and Errors</h1>
+            <div className={`pl-4 py-2 pr-0 text-sm font-mono min-h-40 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+              <div className="overflow-auto" style={{ maxHeight: '120px' }}>
+          <pre>{terminalOutput}</pre>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Output Table for Lexeme, Tokens */}
-      <div className="flex flex-col w-5/12 overflow-auto" style={{ maxHeight: '100vh' }}>
-        <table className={`min-w-full table-fixed ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
-          <thead className={`${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`} style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-            <tr>
+      {outputData.length > 0 && (
+        <div className="flex flex-col w-5/12 overflow-auto" style={{ maxHeight: '100vh', position: 'relative' }}>
+          <table className={`min-w-full table-fixed ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
+            <thead className={`${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`} style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+              <tr>
                 <th className={`py-3 px-4 text-xl border-b-2 ${isDarkMode ? 'border-[#391d1d]' : 'border-[#242a47]'}`}>Lexeme</th>
                 <th className={`py-3 px-4 text-xl border-b-2 ${isDarkMode ? 'border-[#391d1d]' : 'border-[#242a47]'}`}>Tokens</th>
-            </tr>
-          </thead>
-            <tbody>
-            {outputData.map((item, index) => (
-              <tr key={index}>
-                <td className={`py-2 px-4 border-b-2 ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`} title={item.lexeme}>
-                {item.lexeme && item.lexeme.length > 20 ? item.lexeme.substring(0, 17) + '...' : item.lexeme}
-                </td>
-              <td className={`py-2 px-4 border-b-2  ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`}>{item.token}</td>
               </tr>
-            ))}
+            </thead>
+            <tbody>
+                {outputData.map((item, index) => (
+                <tr key={index}>
+                  <td className={`py-2 px-4 border-b-2 ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`} title={item.lexeme}>
+                  {item.lexeme && item.lexeme.length > 20 ? item.lexeme.substring(0, 17) + '...' : item.lexeme}
+                  </td>
+                <td className={`py-2 px-4 border-b-2  ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`}>{item.token}</td>
+              </tr>
+              ))}
             </tbody>
-        </table>
-      </div>
+          </table>
+            <button onClick={() => setOutputData([])} className="fixed right-5 bottom-0 mb-4 ml-4 w-12 h-12  bg-purple-300/10 text-white rounded-full shadow-lg flex items-center justify-center">
+              <img src="/eye.svg" alt="Hide Table" className="w-6 h-6" style={{ filter: 'invert(1)' }} />
+            </button>
+        </div>
+      )}
     </section>
   );
 }
