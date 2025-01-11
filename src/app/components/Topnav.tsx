@@ -2,12 +2,15 @@ import React from 'react';
 
 interface TopnavProps {
   onRunClick: () => void;
+  onTokenizerClick: () => void;
+  onSyntaxClick: () => void;
+  onSemanticClick: () => void;
   toggleDarkMode: () => void;
   isDarkMode: boolean;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
-export default function Topnav({ onRunClick, toggleDarkMode, isDarkMode, textareaRef }: TopnavProps) {
+export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, onSemanticClick, toggleDarkMode, isDarkMode, textareaRef }: TopnavProps) {
   
   // Function to handle "Save As.." button click
   const handleSaveAsClick = () => {
@@ -59,11 +62,8 @@ const handleOpenClick = () => {
         {/* Logo and Title of Compiler */}
         <div className="flex gap-x-2 items-center">
           <img src="/dom-icon.svg" width={20} height={20} alt="Dom icon" />
-          <h1 className='text-xl font-jujutsu'>DOM COMPILER</h1>
-        </div>
-
+          <h1 className='text-xl font-jujutsu pr-5'>DOM COMPILER</h1>
         {/* Saves and runs */}
-        <div className="flex gap-x-5">
           <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950" onClick={handleSaveAsClick}>
             <h1 className='text-xs'>Save</h1>
           </div>
@@ -79,15 +79,15 @@ const handleOpenClick = () => {
         </div>
 
         <div className="flex gap-x-5">
-          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950">
+          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950" onClick={onTokenizerClick}>
             <h1 className='text-xs'>Tokenizer</h1>
           </div>
 
-          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950">
+          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950" onClick={onSyntaxClick}>
             <h1 className='text-xs'>Syntax</h1>
           </div>
           
-          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950">
+          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950" onClick={onSemanticClick}>
             <h1 className='text-xs'>Semantic</h1>
           </div>
 
