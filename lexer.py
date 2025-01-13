@@ -1200,12 +1200,18 @@ class Lexer:
                     self.advance()
 
                 ident_lower = ident_str.lower()
+                pos_end = self.pos.copy()
                 if ident_lower in keywords:
                     errors.append(LexicalError(pos_start, pos_end, f"Keyword '{ident_str}' cannot be used as identifier regardless of letter-casing"))
                     self.advance()
                     continue
                 elif self.current_char not in delim_map['ident_delim']:
-                    errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after identifier '{ident_str}'"))
+                    if self.current_char == '\n':
+                        errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\n' after identifier '{ident_str}'"))
+                    elif self.current_char == '\t':
+                        errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\t' after identifier '{ident_str}'"))
+                    else:
+                        errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after identifier '{ident_str}'"))
                     self.advance()
                     continue
                 elif ident_count > 25:
