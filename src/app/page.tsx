@@ -69,7 +69,7 @@ curse domain(){
   // Function to handle the run button click
   const handleRunClick = async () => {
     setOutputData([]);
-    setTerminalOutput("\n============= COMING SOON ==============");
+    setTerminalOutput("\n============= COMPILER COMING SOON ==============");
   }
 
    // Function to handle the tokenizer button click - Enhancement: in-memory cache for quick response time
@@ -84,15 +84,14 @@ curse domain(){
         const cachedResponse = cache.get(cacheKey);
         if (cachedResponse) {
           const { tokens, errors } = cachedResponse;
+          const newOutputData = tokens.map((token) => ({
+            lexeme: token.lexeme,
+            token: token.token,
+          }));
+          setOutputData(newOutputData);
           if (errors && errors.length > 0) {
             setTerminalOutput(errors.join('\n'));
-            setOutputData([]);
           } else {
-            const newOutputData = tokens.map((token) => ({
-              lexeme: token.lexeme,
-              token: token.token,
-            }));
-            setOutputData(newOutputData);
             setTerminalOutput('');
           }
           return;
@@ -104,16 +103,16 @@ curse domain(){
         const url = window.location.hostname === 'localhost' ? 'http://127.0.0.1:5000/api/run' : '/api/run';
         const response = await axios.post(url, { text });
         const { tokens, errors } = response.data;
+        const newOutputData = tokens.map((token: { type: string; value: string }) => ({
+          lexeme: token.value,
+          token: token.type,
+        }));
         if (errors) {
           setTerminalOutput(errors.join('\n'));
-          setOutputData([]);
+          setOutputData(newOutputData);
           // Store the error response in cache
-          cache.set(cacheKey, { tokens: [], errors });
+          cache.set(cacheKey, { tokens: newOutputData, errors });
         } else {
-          const newOutputData = tokens.map((token: { type: string; value: string }) => ({
-            lexeme: token.value,
-            token: token.type,
-          }));
           setOutputData(newOutputData);
           setTerminalOutput('');
           // Store the successful response in cache
@@ -136,13 +135,13 @@ curse domain(){
    // Function to handle the run button click
    const handleSyntaxClick = async () => {
     setOutputData([]);
-    setTerminalOutput("\n============= COMING SOON ==============");
+    setTerminalOutput("\n============== SYNTAX COMING SOON ===============");
   }
 
    // Function to handle the run button click
    const handleSemanticClick = async () => {
     setOutputData([]);
-    setTerminalOutput("\n============= COMING SOON ==============");
+    setTerminalOutput("\n============= SEMANTIC COMING SOON ==============");
   }
 
   // Sync the scroll position between the textarea and line numbers container
@@ -184,7 +183,7 @@ curse domain(){
         <div ref={lineNumbersRef} className={`w-fit text-right py-2 px-5 leading-6   border-r-2 border-black ${isDarkMode ? 'text-white' : 'text-black'}`} style={{ overflow: 'hidden' }}>
           {[...Array(lineCount)].map((_, i) => (
             <div key={i} className="h-6">
-          {i + 1}
+              {i + 1}
             </div>
           ))}
         </div>
@@ -207,7 +206,7 @@ curse domain(){
             <h1 className={`py-3 px-16 ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground'}`}>Output and Errors</h1>
             <div className={`pl-4 py-2 pr-0 text-sm font-mono min-h-40 ${isDarkMode ? 'text-white' : 'text-black'}`}>
               <div className="overflow-auto" style={{ maxHeight: '120px' }}>
-          <pre>{terminalOutput}</pre>
+                <pre>{terminalOutput}</pre>
               </div>
             </div>
           </div>
@@ -228,7 +227,7 @@ curse domain(){
                 {outputData.map((item, index) => (
                 <tr key={index}>
                   <td className={`py-2 px-4 border-b-2 ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`} title={item.lexeme}>
-                  {item.lexeme && item.lexeme.length > 20 ? item.lexeme.substring(0, 17) + '...' : item.lexeme}
+                  {item.lexeme && item.lexeme.length > 15 ? item.lexeme.substring(0, 12) + '...' : item.lexeme}
                   </td>
                 <td className={`py-2 px-4 border-b-2  ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`}>{item.token}</td>
               </tr>

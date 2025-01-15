@@ -10,10 +10,11 @@ def run_lexer():
     data = request.json
     text = data.get('text', '')
     tokens, errors = run(text)  # Call run with text and default fn
-    if errors:
+    if errors:  
         error_messages = [f"Error {i+1}: {error.as_string()}" for i, error in enumerate(errors)]
         print(f"{error_messages}\n\n")  # Print the errors for debugging
-        return jsonify({'errors': error_messages}), 400
+        token_list = [{'type': token.type, 'value': token.value} for token in tokens]
+        return jsonify({'tokens': token_list, 'errors': error_messages})
     token_list = [{'type': token.type, 'value': token.value} for token in tokens]
     return jsonify({'tokens': token_list})
 
