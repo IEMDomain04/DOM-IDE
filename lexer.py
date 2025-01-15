@@ -55,11 +55,11 @@ delim_map = {
     'opnparen_delim':   set(ALPHA_NUMERIC + '"' + "'" + '-' + '(' + ')' + '\n' + '\t' + ' '),
     'opnsquare_delim':  set(ALPHA_NUMERIC + '"' + "'" + '-' + '(' + '[' + ']' + ' ' + '\n' + '\t'),
     'plus_delim':       set(ALPHA_NUMERIC + '"' + "'" + '-' + '(' + ',' + ' '),
-    'para_delim':       {'(', ' ', '\n', '\t'},
+    'para_delim':       {'(', ' ', '\t'},
     'recall_delim':     set(ALPHA + ' ' + ';'), 
     'str_delim':        {'+', ')', ']', '\n', '\t', ',', ';', ' ', ':', '}'},
     'white_delim':      set(ASCII + ALL_OPERATOR + ' ' + '\n' + '\t' + '\0'),
-    'woogie_delim':     set(NUMERIC + '(' + ' ')
+    'woogie_delim':     set(NUMERIC + '(' + ' ' + '\t'),
 }
 
 
@@ -184,7 +184,7 @@ TT_POW      = '**'      # '**'
 TT_INCR     = '++'      # '++'
 TT_DECR     = '--'      # '--'
 
-TT_ELLIPSIS = '...'     # '...'
+TT_ELLIPSIS = '[...]'     # '...'
 
 TT_LPAREN   = '('       # '('
 TT_RPAREN   = ')'       # ')'
@@ -346,9 +346,9 @@ class Lexer:
                                         states.append(15)
                                         ident_str += self.current_char
                                         ident_count+=1
-                                        self.advance()  
-                                        if self.current_char == "e":
-                                            states.append(16)
+                                        self.advance()   
+                                        if self.current_char == "e":            
+                                            states.append(16) 
                                             ident_str += self.current_char
                                             ident_count+=1
                                             self.advance() 
@@ -398,6 +398,8 @@ class Lexer:
                                             tokens.append(Token(TT_CLEAVE, ident_str, pos_start=pos_start, pos_end=self.pos))
                                             continue
                                         elif self.current_char != None and self.current_char not in delim_map['para_delim'] and self.current_char in ALPHA + '_':
+                                            pass
+                                        elif self.current_char != None and self.current_char not in delim_map['para_delim']:
                                             pos_end = self.pos.copy()
                                             if self.current_char == '\n':
                                                 errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\n' after keyword '{ident_str}'"))
@@ -1807,7 +1809,8 @@ class Lexer:
                                 self.advance()
                                 continue
                             elif self.current_char == ']':
-                                tokens.append(Token(TT_ELLIPSIS, '...', pos_start=pos_start, pos_end=self.pos))
+                                tokens.append(Token(TT_ELLIPSIS, '[...]', pos_start=pos_start, pos_end=self.pos))
+                                self.advance()
                                 continue
                 if self.current_char != None and self.current_char not in delim_map['opnsquare_delim']:
                     errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after brackets"))
