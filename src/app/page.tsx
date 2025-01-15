@@ -9,6 +9,9 @@ interface Token {
   token: string;
 }
 
+// Added: In-memory cache to store responses
+const cache = new Map<string, { tokens: Token[]; errors: string[] }>();
+
 export default function Lexeme() {
   const [lineCount, setLineCount] = useState(1);
   const [outputData, setOutputData] = useState<Token[]>([]); // State for table output
@@ -69,31 +72,59 @@ curse domain(){
     setTerminalOutput("\n============= COMING SOON ==============");
   }
 
-  // Function to handle the tokenizer button click
-  const handleTokenizerClick = async () => {
+   // Function to handle the tokenizer button click - Enhancement: in-memory cache for quick response time
+   const handleTokenizerClick = async () => {
     const textarea = textareaRef.current;
     if (textarea) {
       const text = textarea.value;
-      console.log('Sending request to /run with text:', text); // Add logging
+      const cacheKey = text;
+
+      // Check if the response is already in the cache
+      if (cache.has(cacheKey)) {
+        const cachedResponse = cache.get(cacheKey);
+        if (cachedResponse) {
+          const { tokens, errors } = cachedResponse;
+          if (errors && errors.length > 0) {
+            setTerminalOutput(errors.join('\n'));
+            setOutputData([]);
+          } else {
+            const newOutputData = tokens.map((token) => ({
+              lexeme: token.lexeme,
+              token: token.token,
+            }));
+            setOutputData(newOutputData);
+            setTerminalOutput('');
+          }
+          return;
+        }
+      }
+
+      console.log('Sending request to /run with text:', text);
       try {
         const url = window.location.hostname === 'localhost' ? 'http://127.0.0.1:5000/api/run' : '/api/run';
         const response = await axios.post(url, { text });
         const { tokens, errors } = response.data;
         if (errors) {
-          setTerminalOutput(errors.join('\n')); // Display errors in terminal output
-          setOutputData([]); // Clear output data if there are errors
+          setTerminalOutput(errors.join('\n'));
+          setOutputData([]);
+          // Store the error response in cache
+          cache.set(cacheKey, { tokens: [], errors });
         } else {
           const newOutputData = tokens.map((token: { type: string; value: string }) => ({
             lexeme: token.value,
             token: token.type,
           }));
           setOutputData(newOutputData);
-          setTerminalOutput(''); // Clear terminal output if no error
+          setTerminalOutput('');
+          // Store the successful response in cache
+          cache.set(cacheKey, { tokens: newOutputData, errors: [] });
         }
       } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
           console.error('Error:', error.response.data.errors);
-          setTerminalOutput(error.response.data.errors.join('\n')); // Set terminal output to error messages
+          setTerminalOutput(error.response.data.errors.join('\n'));
+          // Store the error response in cache
+          cache.set(cacheKey, { tokens: [], errors: error.response.data.errors });
         } else {
           console.error('Error:', error);
           setTerminalOutput('An unexpected error occurred.');
