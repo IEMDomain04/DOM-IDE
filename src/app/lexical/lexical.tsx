@@ -39,7 +39,7 @@ export const handleTokenizerClick = async (
 
     console.log('Sending request to /run with text:', text);
     try {
-      const url = window.location.hostname === 'localhost' ? 'http://127.0.0.1:5000/api/run' : '/api/run';
+      const url = window.location.hostname === 'localhost' ? 'http://127.0.0.1:5000/api/lexer' : '/api/lexer';
       const response = await axios.post(url, { text });
       const { tokens, errors } = response.data;
       const newOutputData = tokens.map((token: { type: string; value: string }) => ({

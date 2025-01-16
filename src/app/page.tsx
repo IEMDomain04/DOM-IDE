@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from "react";
+import axios from 'axios';
 import Topnav from "./components/Topnav";
 import { handleTokenizerClick } from "./lexical/lexical";
+import { handleSyntaxClick } from "./semantic/semantic"; // Import the function
 
 interface Token {
   lexeme: string;
@@ -69,12 +71,6 @@ curse domain(){
     setTerminalOutput("\n============= COMPILER COMING SOON ==============");
   };
 
-  // Function to handle the syntax button click
-  const handleSyntaxClick = async () => {
-    setOutputData([]);
-    setTerminalOutput("\n============== SYNTAX COMING SOON ===============");
-  };
-
   // Function to handle the semantic button click
   const handleSemanticClick = async () => {
     setOutputData([]);
@@ -110,7 +106,10 @@ curse domain(){
     <section className={`flex w-screen h-screen ${isDarkMode ? 'dark' : ''}`} style={{ backgroundImage: `url(${isDarkMode ? '/bg-dark.png' : '/bg-light.png'})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat' }}>
       {/*Left Side: Topnav, Textarea, and Terminal */}
       <div className="flex flex-col w-full h-screen">
-        <Topnav onRunClick={handleRunClick} onTokenizerClick={() => { if (textareaRef.current) handleTokenizerClick(textareaRef as React.RefObject<HTMLTextAreaElement>, setOutputData, setTerminalOutput); }} onSyntaxClick={handleSyntaxClick} onSemanticClick={handleSemanticClick} toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} textareaRef={textareaRef} /> {/* Pass textareaRef to Topnav */}
+        <Topnav onRunClick={handleRunClick} 
+                onTokenizerClick={() => textareaRef.current && handleTokenizerClick(textareaRef as React.RefObject<HTMLTextAreaElement>, setOutputData, setTerminalOutput)} 
+                onSyntaxClick={() => textareaRef.current && handleSyntaxClick(textareaRef as React.RefObject<HTMLTextAreaElement>, setTerminalOutput)} 
+                onSemanticClick={handleSemanticClick} toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} textareaRef={textareaRef} /> 
         {/*Text Area and Line of Numbers*/}
         <div className="flex flex-grow border border-none overflow-hidden">
           {/* Line of numbers and Textarea */}
@@ -162,16 +161,12 @@ curse domain(){
             </thead>
             <tbody>
               {outputData.map((item, index) => (
-              <tr key={index}>
-                <td className={`py-2 pl-4 border-b-2 ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`} 
-                    title={item.lexeme} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }}>
-                {item.lexeme}
-                </td>
-                <td className={`py-2 px-4 border-b-2 ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`} 
-                    style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }}>
-                {item.token}
-                </td>
-              </tr>
+                <tr key={index}>
+                  <td className={`py-2 px-4 border-b-2 ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`} title={item.lexeme}>
+                    {item.lexeme && item.lexeme.length > 15 ? item.lexeme.substring(0, 12) + '...' : item.lexeme}
+                  </td>
+                  <td className={`py-2 px-4 border-b-2  ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`}>{item.token}</td>
+                </tr>
               ))}
             </tbody>
           </table>
