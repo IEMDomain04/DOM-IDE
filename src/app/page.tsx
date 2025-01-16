@@ -1,16 +1,13 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from "react";
-import axios from 'axios';
 import Topnav from "./components/Topnav";
+import { handleTokenizerClick } from "./lexical/lexical";
 
 interface Token {
   lexeme: string;
   token: string;
 }
-
-// Added: In-memory cache to store responses
-const cache = new Map<string, { tokens: Token[]; errors: string[] }>();
 
 export default function Lexeme() {
   const [lineCount, setLineCount] = useState(1);
@@ -69,81 +66,20 @@ curse domain(){
   // Function to handle the run button click
   const handleRunClick = async () => {
     setOutputData([]);
-    setTerminalOutput("\n============= COMING SOON ==============");
-  }
-
-   // Function to handle the tokenizer button click - Enhancement: in-memory cache for quick response time
-   const handleTokenizerClick = async () => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      const text = textarea.value;
-      const cacheKey = text;
-
-      // Check if the response is already in the cache
-      if (cache.has(cacheKey)) {
-        const cachedResponse = cache.get(cacheKey);
-        if (cachedResponse) {
-          const { tokens, errors } = cachedResponse;
-          if (errors && errors.length > 0) {
-            setTerminalOutput(errors.join('\n'));
-            setOutputData([]);
-          } else {
-            const newOutputData = tokens.map((token) => ({
-              lexeme: token.lexeme,
-              token: token.token,
-            }));
-            setOutputData(newOutputData);
-            setTerminalOutput('');
-          }
-          return;
-        }
-      }
-
-      console.log('Sending request to /run with text:', text);
-      try {
-        const url = window.location.hostname === 'localhost' ? 'http://127.0.0.1:5000/api/run' : '/api/run';
-        const response = await axios.post(url, { text });
-        const { tokens, errors } = response.data;
-        if (errors) {
-          setTerminalOutput(errors.join('\n'));
-          setOutputData([]);
-          // Store the error response in cache
-          cache.set(cacheKey, { tokens: [], errors });
-        } else {
-          const newOutputData = tokens.map((token: { type: string; value: string }) => ({
-            lexeme: token.value,
-            token: token.type,
-          }));
-          setOutputData(newOutputData);
-          setTerminalOutput('');
-          // Store the successful response in cache
-          cache.set(cacheKey, { tokens: newOutputData, errors: [] });
-        }
-      } catch (error) {
-        if (axios.isAxiosError(error) && error.response) {
-          console.error('Error:', error.response.data.errors);
-          setTerminalOutput(error.response.data.errors.join('\n'));
-          // Store the error response in cache
-          cache.set(cacheKey, { tokens: [], errors: error.response.data.errors });
-        } else {
-          console.error('Error:', error);
-          setTerminalOutput('An unexpected error occurred.');
-        }
-      }
-    }
+    setTerminalOutput("\n============= COMPILER COMING SOON ==============");
   };
 
-   // Function to handle the run button click
-   const handleSyntaxClick = async () => {
+  // Function to handle the syntax button click
+  const handleSyntaxClick = async () => {
     setOutputData([]);
-    setTerminalOutput("\n============= COMING SOON ==============");
-  }
+    setTerminalOutput("\n============== SYNTAX COMING SOON ===============");
+  };
 
-   // Function to handle the run button click
-   const handleSemanticClick = async () => {
+  // Function to handle the semantic button click
+  const handleSemanticClick = async () => {
     setOutputData([]);
-    setTerminalOutput("\n============= COMING SOON ==============");
-  }
+    setTerminalOutput("\n============= SEMANTIC COMING SOON ==============");
+  };
 
   // Sync the scroll position between the textarea and line numbers container
   const handleScroll = () => {
@@ -174,30 +110,30 @@ curse domain(){
     <section className={`flex w-screen h-screen ${isDarkMode ? 'dark' : ''}`} style={{ backgroundImage: `url(${isDarkMode ? '/bg-dark.png' : '/bg-light.png'})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat' }}>
       {/*Left Side: Topnav, Textarea, and Terminal */}
       <div className="flex flex-col w-full h-screen">
-        <Topnav onRunClick={handleRunClick} onTokenizerClick={handleTokenizerClick} onSyntaxClick={handleSyntaxClick} onSemanticClick={handleSemanticClick} toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} textareaRef={textareaRef} /> {/* Pass textareaRef to Topnav */}
-
+        <Topnav onRunClick={handleRunClick} onTokenizerClick={() => { if (textareaRef.current) handleTokenizerClick(textareaRef as React.RefObject<HTMLTextAreaElement>, setOutputData, setTerminalOutput); }} onSyntaxClick={handleSyntaxClick} onSemanticClick={handleSemanticClick} toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} textareaRef={textareaRef} /> {/* Pass textareaRef to Topnav */}
         {/*Text Area and Line of Numbers*/}
         <div className="flex flex-grow border border-none overflow-hidden">
           {/* Line of numbers and Textarea */}
           <div className="flex flex-grow overflow-hidden">
-        {/* Line of numbers */}
-        <div ref={lineNumbersRef} className={`w-fit text-right py-2 px-5 leading-6   border-r-2 border-black ${isDarkMode ? 'text-white' : 'text-black'}`} style={{ overflow: 'hidden' }}>
-          {[...Array(lineCount)].map((_, i) => (
-            <div key={i} className="h-6">
-          {i + 1}
+            {/* Line of numbers */}
+            <div ref={lineNumbersRef} className={`w-fit text-right py-2 px-5 leading-6 border-r-2 border-black ${isDarkMode ? 'text-white' : 'text-black'}`} style={{ overflow: 'hidden' }}>
+              {[...Array(lineCount)].map((_, i) => (
+                <div key={i} className="h-6">
+                  {i + 1}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Textarea */}
-        <textarea
-          ref={textareaRef}
-          className={`flex-grow text-sm leading-6 font-mono py-2 px-4 focus:outline-none focus:ring-2 focus:ring-stone-700 ${isDarkMode ? 'text-white bg-transparent' : 'text-black bg-transparent'}`}
-          placeholder="Coding..."
-          onChange={handleTextChange}
-          onKeyDown={handleKeyDown}
-          style={{ resize: 'none', borderRight: '2px solid #131314' }}
-        ></textarea>
+            {/* Textarea */}
+            <textarea
+              ref={textareaRef}
+              className={`flex-grow text-sm leading-6 font-mono py-2 px-4 focus:outline-none focus:ring-2 focus:ring-stone-700 ${isDarkMode ? 'text-white bg-transparent' : 'text-black bg-transparent'}`}
+              placeholder="Coding..."
+              onChange={handleTextChange}
+              onKeyDown={handleKeyDown}
+              style={{ resize: 'none', borderRight: '2px solid #131314' }}
+              spellCheck="false"
+            ></textarea>
           </div>
         </div>
 
@@ -207,7 +143,7 @@ curse domain(){
             <h1 className={`py-3 px-16 ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground'}`}>Output and Errors</h1>
             <div className={`pl-4 py-2 pr-0 text-sm font-mono min-h-40 ${isDarkMode ? 'text-white' : 'text-black'}`}>
               <div className="overflow-auto" style={{ maxHeight: '120px' }}>
-          <pre>{terminalOutput}</pre>
+                <pre>{terminalOutput}</pre>
               </div>
             </div>
           </div>
@@ -225,19 +161,23 @@ curse domain(){
               </tr>
             </thead>
             <tbody>
-                {outputData.map((item, index) => (
-                <tr key={index}>
-                  <td className={`py-2 px-4 border-b-2 ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`} title={item.lexeme}>
-                  {item.lexeme && item.lexeme.length > 20 ? item.lexeme.substring(0, 17) + '...' : item.lexeme}
-                  </td>
-                <td className={`py-2 px-4 border-b-2  ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`}>{item.token}</td>
+              {outputData.map((item, index) => (
+              <tr key={index}>
+                <td className={`py-2 pl-4 border-b-2 ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`} 
+                    title={item.lexeme} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }}>
+                {item.lexeme}
+                </td>
+                <td className={`py-2 px-4 border-b-2 ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`} 
+                    style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }}>
+                {item.token}
+                </td>
               </tr>
               ))}
             </tbody>
           </table>
-            <button onClick={() => setOutputData([])} className="fixed right-5 bottom-0 mb-4 ml-4 w-12 h-12  bg-purple-300/10 text-white rounded-full shadow-lg flex items-center justify-center">
-              <img src="/eye.svg" alt="Hide Table" className="w-6 h-6" style={{ filter: 'invert(1)' }} />
-            </button>
+          <button onClick={() => setOutputData([])} className="fixed right-5 bottom-0 mb-4 ml-4 w-12 h-12  bg-purple-300/10 text-white rounded-full shadow-lg flex items-center justify-center">
+            <img src="/eye.svg" alt="Hide Table" className="w-6 h-6" style={{ filter: 'invert(1)' }} />
+          </button>
         </div>
       )}
     </section>
