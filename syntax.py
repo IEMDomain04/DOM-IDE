@@ -16,14 +16,13 @@ CFG = {
         []                                      ########### 3
     ],
     "<body>": [               
-        ["<statement>", "<body>"],             ########### 4 FIXME
-        #"<statement>"],                        ########### 4
+        ["<statement>", "<body>"],              ########### 4
         []                                      ########### 5
     ],
     "<statement>": [
         ["<global_local_dec>", ";", "<statement>"], ########### 6
         ["<re-assign>", ";", "<statement>"],        ########### 7
-        #["<expression>", ";", "<statement>"],       ########### 8
+        #["<expression>", ";", "<statement>"],      ########### 8
         ["<invoke_stm>", ";", "<statement>"],       ########### 9
         ["<capture_stm>", ";", "<statement>"],      ########### 10
         ["<curse_call>", ";", "<statement>"],       ########### 11

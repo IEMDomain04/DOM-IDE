@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from "react";
-import axios from 'axios';
 import Topnav from "./components/Topnav";
 import { handleTokenizerClick } from "./lexical/lexical";
 import { handleSyntaxClick } from "./semantic/semantic"; // Import the function
