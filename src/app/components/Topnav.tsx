@@ -56,7 +56,7 @@ const handleOpenClick = () => {
 
 
   return (
-    <div>
+    <div className='fixed top-0 w-full z-50 border-b-2 border-dark-background'>
       {/* Top Nav */}
       <div className={`flex justify-between px-10 py-3 ${isDarkMode ? 'bg-dark-foreground' : 'bg-light-foreground'}`}>
         {/* Logo and Title of Compiler */}
