@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Topnav from "./components/Topnav";
 import { handleTokenizerClick } from "./lexical/lexical";
-import { handleSyntaxClick } from "./semantic/semantic"; // Import the function
+import { handleSyntaxClick } from "./syntax/syntax"; // Import the function
 
 interface Token {
   lexeme: string;
