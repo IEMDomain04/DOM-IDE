@@ -9,18 +9,62 @@ from lexer import run as lexer_run
 
 CFG = {
     "<program>": [              
-        ["expansion", ";", "<global_dec>", "curse", "domain", "(", ")", "{", "<body>", "}", "<curse_dec>"] ########### 1 
+        ["expansion", ";", "<global_dec>"] ########### 1 
     ],
     "<global_dec>": [           
-        ["<global_local_dec>", "<global_dec>"], ########### 2
-        []                                      ########### 3
+        ["<type_dec>", "<global_dec>"],
+        ["<void_curse_dec>", "<global_dec>"],
+        []
     ],
+
     "<body>": [               
-        ["<definition>",";","<body>"],          ########### 4
-        ["<conditional_stm>", "<body>"],        ########### 4
-        ["<looping_stm>", "<body>"],            ########### 4
+        ["<statement>", "<body>"],          ########### 4\
         []                                      ########### 5
     ],
+
+    "<type_dec>": [
+        ["<restrict_dec>", "<datatype>", "<nonvoid_curse_opt>", "id", "<type_choice>"], ########### 
+        ["<curse_dec>"], ###########
+    ],
+    "<restrict_dec>": [
+        ["restrict"], ###########
+        []
+    ], 
+
+    "<nonvoid_curse_opt>": [
+        ["curse"],
+        []
+    ],
+
+    "<type_choice>": [
+        ["<var_dec>", ";"], ########### 
+        ["<clan_dec>", ";"], ###########
+        ["<nonvoid_curse_dec>"] ###########
+    ],
+    "<var_choice>": [
+        ["<var_dec>"], ###########
+        ["<clan_dec>"], ###########
+    ],
+    "<var_dec>": [
+        ["<assign>", "<multi-assign>"], ########### 
+    ],
+    "<assign>": [
+        ["=", "<value>"], ########### 
+        []
+    ],
+    "<multi-assign>": [
+        [",", "id", "<assign>", "<multi-assign>"],  ########### 29
+        []                                   ########### 30
+    ],
+
+    # "<definition>": [
+    #     ["<type_dec>"],
+    #     ["<re-assign>"],
+    #     ["<invoke_stm>"],
+    #     ["<capture_stm>"],
+    #     ["<curse_call>"]
+    # ],
+    
     "<statement>": [
         ["<global_local_dec>", ";", "<statement>"], ########### 6
         ["<re-assign>", ";", "<statement>"],        ########### 7
@@ -28,50 +72,68 @@ CFG = {
         ["<invoke_stm>", ";", "<statement>"],       ########### 9
         ["<capture_stm>", ";", "<statement>"],      ########### 10
         ["<curse_call>", ";", "<statement>"],       ########### 11
-        ["<conditional_stm>", ";", "<statement>"],  ########### 12
-        ["<looping_stm>", ";", "<statement>"],      ########### 13
+        ["<conditional_stm>", "<statement>"],  ########### 12
+        ["<looping_stm>", "<statement>"],      ########### 13
         []                                          ########### 14
     ],
-    "<definition>": [
-        ["<global_local_dec>"], ########### 15
-        ["<re-assign>"], ########### 15
-        ["<invoke_stm>"], ########### 15
-        ["<capture_stm>"], ########### 15
-        ["<curse_call>"], ########### 15
 
+    # "<definition>": [
+    #     ["<global_local_dec>"], ########### 15
+    #     ["<re-assign>"], ########### 15
+    #     ["<invoke_stm>"], ########### 15
+    #     ["<capture_stm>"], ########### 15
+    #     ["<curse_call>"], ########### 15
+
+    # ],
+
+    "<void_curse_dec>": [
+        ["curse", "<init_void_curse>"],   ########### 16
     ],
-    "<global_local_dec>": [
-        ["<global_local_choice>"]               ########### 15
+
+    "<init_void_curse>": [
+        ["id", "(", "<param>", ")", "{", "<body>", "}"],
+        ["domain", "(", ")", "{", "<body>", "}"]
     ],
-    "<global_local_choice>": [  
-        ["<var_dec>"],                          ########### 16
-        ["<curse_dec>"],                        ########### 17
-        ["<clan_dec>"],                         ########### 18
-        ["<restrict_dec>"]                      ########### 19
+
+    "<nonvoid_curse_dec>": [
+        ["(", "<param>", ")", "{", "<body>", "<recall_statement>", "}"], ########### 31
     ],
+
+    "<param>": [
+        ["<datatype>", "id", "<more_param>"],
+        []
+    ],
+
+    "<more_param>": [
+        [",", "<datatype>", "id", "<more_param>"],
+        []
+    ],
+    "<recall_statement>": [
+        ["recall", "<recall_val>", ";"],
+        []
+    ],
+    "<recall_val>": [
+        ["<literal>"],
+        ["id"],
+        ["<value>"]
+    ],
+
+    # "<global_local_dec>": [
+    #     ["<global_local_choice>"]               ########### 15
+    # ],
+
+    # "<global_local_choice>": [  
+    #     ["<var_dec>"],                          ########### 16
+    #     ["<curse_dec>"],                        ########### 17
+    #     ["<clan_dec>"],                         ########### 18
+    #     ["<restrict_dec>"]                      ########### 19
+    # ],
+
     "<re-assign>": [
         ["<assign_expression>"],                ########### 20
         []                                   ########### 21
-        ],
-    "<var_dec>": [
-        ["<var_dec_syntax>", "<var_dec>"],      ########### 22
-        []                                   ########### 23
     ],
-    "<var_dec_syntax>": [
-        ["<datatype>", "id", "<assign>", "<multi-assign>"] ########### 24
-    ],
-    "<restrict_dec>": [
-        ["restrict", "<var_dec_syntax>"],       ########### 25
-        []                                   ########### 26
-    ],
-    "<assign>": [
-        ["=", "<value>"],                       ########### 27
-        []                                   ########### 28
-    ],
-    "<multi-assign>": [
-        [",", "id", "<assign>", "<multi-assign>"],  ########### 29
-        []                                   ########### 30
-    ],
+
     "<value>": [
         ["<literal>"],                          ########### 31         
         ["id"],                                 ########### 32
@@ -116,31 +178,6 @@ CFG = {
     "<clan_multi_item>": [      
         [",", "<literal>", "<clan_multi_item>"],########### 56
         []                                   ########### 57
-    ],
-    "<curse_dec>": [
-        ["curse", "<init_curse>", "<curse_dec>"],   ########### 58
-        ["<datatype>", "curse", "<init_curse>", "<curse_dec>"], ########### 59
-        []                                       ########### 60
-    ],
-    "<init_curse>": [               
-        ["id", "(", "<param>", ")", "{", "<body>", "<recall_statement>", "}"]   ########### 61
-    ],
-    "<param>": [
-        ["<datatype>", "id", "<more_param>"],   ########### 62
-        []                                   ########### 63
-    ],
-    "<more_param>": [
-        [",", "<datatype>", "id", "<more_param>"],  ########### 64
-        []                                   ########### 65
-    ],
-    "<recall_statement>": [         
-        ["recall", "<recall_val>", ";"],        ########### 66
-        []                                   ########### 67
-    ],  
-    "<recall_val>": [
-        ["<literal>"],                          ########### 68            
-        ["id"],                                  ########### 69  
-        ["value"],                              ########### 70
     ],
     "<invoke_stm>": [
         ["invoke", "(", "<arguments>", ")"]         ########### 71
@@ -486,15 +523,107 @@ PREDICT_SET = {
     "<program>": {
         "expansion": ["<program>", 0]
     },
+
     "<global_dec>": {
         "int": ["<global_dec>", 0],
         "string": ["<global_dec>", 0],
         "float": ["<global_dec>", 0],
         "bool": ["<global_dec>", 0],
-        "curse": ["<global_dec>", 1],
         "restrict": ["<global_dec>", 0],
-        "Ø": ["<global_dec>", 1]
+        "curse": ["<global_dec>",1],
+        "Ø": ["<global_dec>", 2]
+    }, 
+
+    "<type_dec>": {
+        "int": ["<type_dec>", 0],
+        "float": ["<type_dec>", 0],
+        "string": ["<type_dec>", 0],
+        "bool": ["<type_dec>", 0],
+        "restrict": ["<type_dec>", 0],
+        "curse": ["<type_dec>", 0]
     },
+
+    "<restrict_dec>": {
+        "restrict": ["<restrict_dec>", 0],
+        "int": ["<restrict_dec>", 1],
+        "string": ["<restrict_dec>", 1],
+        "float": ["<restrict_dec>", 1],
+        "bool": ["<restrict_dec>", 1],
+        "Ø": ["<restrict_dec>", 1]
+    },
+
+    "<nonvoid_curse_opt>": {
+        "curse": ["<nonvoid_curse_opt>", 0],
+        "id": ["<nonvoid_curse_opt>", 1],
+        "restrict": ["<nonvoid_curse_opt>", 1],
+        "Ø": ["<nonvoid_curse_opt>", 1]
+    },
+
+     "<type_choice>": {
+        "=": ["<type_choice>", 0],
+        "[": ["<type_choice>", 1],
+        "(": ["<type_choice>", 2]
+    },
+
+    "<var_dec>": {
+        "=": ["<var_dec>", 0],
+    },
+
+    "<assign>": {
+        "=": ["<assign>", 0],
+        ";": ["<assign>", 1],
+        "Ø": ["<assign>", 1]
+    },
+
+    "<multi-assign>": {
+        ",": ["<multi-assign>", 0],
+        ";": ["<multi-assign>", 1],
+        "Ø": ["<multi-assign>", 1]
+    },
+
+    "<void_curse_dec>": {
+        "curse": ["<void_curse_dec>", 0],
+    },
+
+    "<nonvoid_curse_dec>": {
+        "(": ["<nonvoid_curse_dec>", 0]
+    },
+
+    "<init_void_curse>": {
+        "id": ["<init_void_curse>", 0],
+        "domain": ["<init_void_curse>", 1]
+    },
+
+    "<param>": {
+        "int": ["<param>", 0],
+        "float": ["<param>", 0],
+        "string": ["<param>", 0],
+        "bool": ["<param>", 0],
+        ")": ["<param>", 1],
+        "Ø": ["<param>", 1]
+    },
+
+    "<more_param>": {
+        ",": ["<more_param>", 0],
+        ")": ["<more_param>", 1],
+        "Ø": ["<more_param>", 1]
+    },
+
+    "<recall_statement>": {
+        "recall": ["<recall_statement>", 0],
+        "Ø": ["<recall_statement>", 1]
+    },
+
+    "<recall_val>": {
+        "string_literal": ["<recall_val>", 0],
+        "int_literal": ["<recall_val>", 0],
+        "bool_literal": ["<recall_val>", 0],
+        "float_literal": ["<recall_val>", 0],
+        "(" : ["<recall_val>", 0], #FIXME Ambiguity for '('
+        "id": ["<recall_val>", 1],
+        "Ø": ["<recall_val>", 2]
+    },
+
     "<body>": {
         "int": ["<body>", 0],
         "string": ["<body>", 0],
@@ -506,70 +635,40 @@ PREDICT_SET = {
         #"len": ["<body>", 0],
         "invoke": ["<body>", 0],
         "capture": ["<body>", 0],
-        "vow": ["<body>", 1],
-        "boogie": ["<body>", 1],
-        "cycle": ["<body>", 2],
-        "sustain": ["<body>", 2],
-        "perform": ["<body>", 2],
-        "}": ["<body>", 3],
-        #";": ["<body>", 1],
-        "Ø": ["<body>", 3]
-    },
-    # "<statement>": {
-    #     "int": ["<statement>", 0], 
-    #     "string": ["<statement>", 0], 
-    #     "float": ["<statement>", 0],
-    #     "bool": ["<statement>", 0],
-    #     "curse": ["<statement>", 0],
-    #     "restrict": ["<statement>", 0],
-    #     "id": ["<statement>", 1],
-    #     "invoke": ["<statement>", 2],
-    #     "capture": ["<statement>",3],
-    #     "vow": ["<statement>", 5],
-    #     "boogie": ["<statement>", 6],
-    #     "cycle": ["<statement>", 6],
-    #     "sustain": ["<statement>", 6],
-    #     "perform": ["<statement>", 6],
-    #     "}": ["<statement>", 7],
-    #     "Ø": ["<statement>", 7]
-    # },
-    
-    "<definition>": {
-        "int": ["<definition>", 0],
-        "string": ["<definition>", 0],
-        "float": ["<definition>", 0],
-        "bool": ["<definition>", 0],
-        "restrict": ["<definition>", 0],
-        "id": ["<definition>", 1],
-        #"len": ["<definition>", 2],
-        "invoke": ["<definition>", 2],
-        "capture": ["<definition>", 3],
-        "curse": ["<definition>", 4],
-    },
-    "<global_local_dec>": {
-        "int": ["<global_local_dec>", 0],
-        "string": ["<global_local_dec>", 0],
-        "float": ["<global_local_dec>", 0],
-        "bool": ["<global_local_dec>", 0],
-        "curse": ["<global_local_dec>", 0],
-        "restrict": ["<global_local_dec>", 0]
-    },
-    "<global_local_choice>": {
-        "int": ["<global_local_choice>", 0],
-        "string": ["<global_local_choice>", 0],
-        "float": ["<global_local_choice>", 0],
-        "bool": ["<global_local_choice>", 0],
-        "curse": ["<global_local_choice>", 1],
-        "restrict": ["<global_local_choice>", 2]
+        "vow": ["<body>", 0],
+        "boogie": ["<body>", 0],
+        "cycle": ["<body>", 0],
+        "sustain": ["<body>", 0],
+        "perform": ["<body>", 0],
+        "recall": ["<body>", 1],
+        "}": ["<body>", 1],
+        ";": ["<body>", 1],
+        "Ø": ["<body>", 1]
     },
 
-    "<var_dec>": {
-        "int": ["<var_dec>", 0],
-        "float": ["<var_dec>", 0],
-        "string": ["<var_dec>", 0],
-        "bool": ["<var_dec>", 0],
-        "Ø": ["<var_dec>", 1],
-        ";": ["<var_dec>", 1]
+    "<statement>": {
+        "int": ["<statement>", 0], 
+        "string": ["<statement>", 0], 
+        "float": ["<statement>", 0],
+        "bool": ["<statement>", 0],
+        "curse": ["<statement>", 0],
+        "restrict": ["<statement>", 0],
+        "id": ["<statement>", 1],
+        "invoke": ["<statement>", 2],
+        "capture": ["<statement>",3],
+        "vow": ["<statement>", 5],
+        "boogie": ["<statement>", 6],
+        "cycle": ["<statement>", 6],
+        "sustain": ["<statement>", 6],
+        "perform": ["<statement>", 6],
+        "recall": ["<statement>", 7],
+        "}": ["<statement>", 7],
+        "Ø": ["<statement>", 7]
+    },
+    
+    "<var_choice>": {
+        "=": ["<var_choice>", 0],
+        "[": ["<var_choice>", 1],
     },
 
     "<re-assign>": {
@@ -636,7 +735,7 @@ PREDICT_SET = {
     },
 
     "<vow_conditions>": { ############# 33 in First Set
-        "id": ["<vow_conditions>", 1],
+        "id": ["<vow_conditions>", 0],
         "(": ["<vow_conditions>", 1],
         "string_literal": ["<vow_conditions>", 6], # FIXME Ambiguity for vow_conditions T_T this whole thing
         "int_literal": ["<vow_conditions>", 6],
