@@ -16,7 +16,9 @@ CFG = {
         []                                      ########### 3
     ],
     "<body>": [               
-        ["<statement>", "<body>"],              ########### 4
+        ["<definition>",";","<body>"],          ########### 4
+        ["<conditional_stm>", "<body>"],        ########### 4
+        ["<looping_stm>", "<body>"],            ########### 4
         []                                      ########### 5
     ],
     "<statement>": [
@@ -30,6 +32,14 @@ CFG = {
         ["<looping_stm>", ";", "<statement>"],      ########### 13
         []                                          ########### 14
     ],
+    "<definition>": [
+        ["<global_local_dec>"], ########### 15
+        ["<re-assign>"], ########### 15
+        ["<invoke_stm>"], ########### 15
+        ["<capture_stm>"], ########### 15
+        ["<curse_call>"], ########### 15
+
+    ],
     "<global_local_dec>": [
         ["<global_local_choice>"]               ########### 15
     ],
@@ -41,26 +51,26 @@ CFG = {
     ],
     "<re-assign>": [
         ["<assign_expression>"],                ########### 20
-        ["Ø"]                                   ########### 21
+        []                                   ########### 21
         ],
     "<var_dec>": [
         ["<var_dec_syntax>", "<var_dec>"],      ########### 22
-        ["Ø"]                                   ########### 23
+        []                                   ########### 23
     ],
     "<var_dec_syntax>": [
         ["<datatype>", "id", "<assign>", "<multi-assign>"] ########### 24
     ],
     "<restrict_dec>": [
         ["restrict", "<var_dec_syntax>"],       ########### 25
-        ["Ø"]                                   ########### 26
+        []                                   ########### 26
     ],
     "<assign>": [
         ["=", "<value>"],                       ########### 27
-        ["Ø"]                                   ########### 28
+        []                                   ########### 28
     ],
     "<multi-assign>": [
         [",", "id", "<assign>", "<multi-assign>"],  ########### 29
-        ["Ø"]                                   ########### 30
+        []                                   ########### 30
     ],
     "<value>": [
         ["<literal>"],                          ########### 31         
@@ -75,7 +85,7 @@ CFG = {
         ["<length>"],                           ########### 40
         ["<dismantle>"],                        ########### 41
         ["<cleave>"],                           ########### 42
-        ["Ø"]                                   ########### 43
+        []                                   ########### 43
     ],
     "<clan_dec>": [
         ["<datatype>", "id", "<clan_size>", "<clan_assign>"]    ########### 44
@@ -85,11 +95,11 @@ CFG = {
     ],
     "<two_dimensional>": [
         ["[int_literal]", "<two_dimensional>"], ########### 46
-        ["Ø"]                                   ########### 47
+        []                                   ########### 47
     ],
     "<clan_assign>": [
         ["=", "<clan_literal>"],                ########### 48
-        ["Ø"]                                   ########### 49
+        []                                   ########### 49
     ],
     "<clan_literal>": [
         ["{", "<clan_item>", "}"]               ########### 50
@@ -97,35 +107,35 @@ CFG = {
     "<clan_item>": [
         ["<literal>", "<clan_multi_item>", "<clan_item>"],  ########### 51
         ["{", "<literal>", "<clan_multi_item>", "}", "<more_item>"],  ########### 52
-        ["Ø"]                                   ########### 53
+        []                                   ########### 53
     ],
     "<more_item>": [                            
         [",", "<clan_item>"],                   ########### 54
-        ["Ø"]                                   ########### 55
+        []                                   ########### 55
     ],
     "<clan_multi_item>": [      
         [",", "<literal>", "<clan_multi_item>"],########### 56
-        ["Ø"]                                   ########### 57
+        []                                   ########### 57
     ],
     "<curse_dec>": [
         ["curse", "<init_curse>", "<curse_dec>"],   ########### 58
         ["<datatype>", "curse", "<init_curse>", "<curse_dec>"], ########### 59
-        ["Ø"]                                       ########### 60
+        []                                       ########### 60
     ],
     "<init_curse>": [               
         ["id", "(", "<param>", ")", "{", "<body>", "<recall_statement>", "}"]   ########### 61
     ],
     "<param>": [
         ["<datatype>", "id", "<more_param>"],   ########### 62
-        ["Ø"]                                   ########### 63
+        []                                   ########### 63
     ],
     "<more_param>": [
         [",", "<datatype>", "id", "<more_param>"],  ########### 64
-        ["Ø"]                                   ########### 65
+        []                                   ########### 65
     ],
     "<recall_statement>": [         
         ["recall", "<recall_val>", ";"],        ########### 66
-        ["Ø"]                                   ########### 67
+        []                                   ########### 67
     ],  
     "<recall_val>": [
         ["<literal>"],                          ########### 68            
@@ -144,24 +154,24 @@ CFG = {
         ["<boogie_true_statement>"]             ########### 75
     ],
     "<vow_statement>": [
-        ["vow", "(", "<vow_conditions>", ") {", "<con_loop_body>", "}", "<vow_next>"]  ########### 76
+        ["vow", "(", "<vow_conditions>", ")", "{", "<con_loop_body>", "}", "<vow_next>"]  ########### 76
     ],
     "<vow_next>": [
         ["<vow_else>"],                         ########### 77
         ["<vow_ladder>"],                       ########### 78
-        ["Ø"]                                   ########### 79                     
+        []                                   ########### 79                     
     ],
     "<vow_else>": [
         ["else{", "<statement>", "<recall_statement>", "}"],    ########### 80
-        ["Ø"]                                   ########### 81
+        []                                   ########### 81
     ],
     "<vow_ladder>": [
         ["else vow(", "vow_conditions", "){", "<statement>", "<recall_statement>", "}", "<more_vow_else>", "<vow_else>"],   ########### 82
-        ["Ø"]                                   ########### 83
+        []                                   ########### 83
     ],
     "<more_vow_else>": [
         ["else vow(", "<vow_conditions>", "){", "<con_loop_body>", "}", "<more_vow_else>"], ########### 84
-        ["Ø"]                                   ########### 85             
+        []                                   ########### 85             
     ],
     "<vow_conditions>": [
         ["id"],                                 ########### 86
@@ -182,14 +192,14 @@ CFG = {
     ],
     "<more_woogie>": [
         ["woogie", "<constant>", ":", "<statement>", "<control_flow>", "<more_woogie>"],    ########### 97
-        ["Ø"]                                   ########### 98
+        []                                   ########### 98
     ],
     "<boogie_true_statement>": [                ########### 99
         ["boogie", "{", "woogie", "(", "<woogie_sustain_condition>", ")", ":", "<con_loop_body>", "<control_flow>", "<more_true_woogie>", "default:", "<statement>", "}"]
     ],
     "<more_true_woogie>": [                     
         ["woogie", "(", "<woogie_sustain_condition>", ")", ":", "<statement>", "<control_flow>", "<more_true_woogie>"], ########### 100
-        ["Ø"]                                   ########### 101
+        []                                   ########### 101
     ],
     "<control_var>": [
         ["id"]                                  ########### 102
@@ -208,7 +218,7 @@ CFG = {
     "<control_flow>": [
         ["dismiss",";"],                        ########### 112
         ["hop",";"],                            ########### 113
-        ["Ø"]                                   ########### 114
+        []                                   ########### 114
     ],
     "<looping_stm>": [
         ["<sustain-loop>"],                     ########### 115
@@ -252,7 +262,7 @@ CFG = {
         ["<recall_statement>", ";", "<con_loop_body>"], ########### 137
         ["<conditional_stm>", "<con_loop_body>"],   ########### 138
         ["<con_loop_body>", "<con_loop_body>"],     ########### 139                         
-        ["Ø"]                                       ########### 140
+        []                                       ########### 140
     ],
     "<expressions>": [
         ["<assign_expression>"],                    ########### 141
@@ -260,7 +270,7 @@ CFG = {
         ["<relational_expression>"],                ########### 143
         ["<arith_expression>"],                     ########### 144
         ["<logic_expression>"],                     ########### 145
-        ["Ø"]                                       ########### 146
+        []                                       ########### 146
     ],
     "<assign_expression>": [
         ["<assign_left_operand>", "<assign_op>", "<assign_right_operand>"]  ########### 147
@@ -326,7 +336,7 @@ CFG = {
     ],
     "<more_arith>": [
         ["<arith_op>", "<arith_operand>", "<more_arith>"],  ########### 181
-        ["Ø"]                                       ########### 182
+        []                                       ########### 182
     ],
     "<arith_op>": [
         ["+"],                                      ########### 183                       
@@ -337,7 +347,7 @@ CFG = {
     ],
     "<pow>": [
         ["*"],                                      ########### 188                       
-        ["Ø"]                                       ########### 189                                
+        []                                       ########### 189                                
     ],
     "<relational_expression>": [
         ["<relational_operand>", "<relational_op>", "<relational_operand>"],    ########### 190
@@ -386,7 +396,7 @@ CFG = {
     ],
     "<more_logic>": [
         ["<logic_op>", "<not_logic_operand>", "<more_logic>"],  ########### 217
-        ["Ø"]                                       ########### 218
+        []                                       ########### 218
     ],
     "<logic_op>": [
         ["&&"],                                     ########### 219
@@ -394,7 +404,7 @@ CFG = {
     ],
     "<not_logic_op>": [
         ["!", "<more_not>"],                        ########### 221
-        ["Ø"]                                       ########### 222
+        []                                       ########### 222
     ],  
     "<more_not>": [
         ["<not_logic_op>"]                          ########### 223
@@ -404,6 +414,7 @@ CFG = {
         ["string_literal"]                          ########### 225
     ],
     "<literal>": [
+        ["int_literal"],                            ########### 
         ["string_literal"],                         ########### 226
         ["bool_literal"],                           ########### 227
         ["float_literal"],                          ########### 228
@@ -492,39 +503,147 @@ PREDICT_SET = {
         "curse": ["<body>", 0],
         "restrict": ["<body>", 0],
         "id": ["<body>", 0],
-        "len": ["<body>", 0],
+        #"len": ["<body>", 0],
         "invoke": ["<body>", 0],
         "capture": ["<body>", 0],
-        "vow": ["<body>", 0],
-        "boogie": ["<body>", 0],
-        "cycle": ["<body>", 0],
-        "sustain": ["<body>", 0],
-        "perform": ["<body>", 0],
-        "}": ["<body>", 1],
-        ";": ["<body>", 1],
-        "Ø": ["<body>", 1]
+        "vow": ["<body>", 1],
+        "boogie": ["<body>", 1],
+        "cycle": ["<body>", 2],
+        "sustain": ["<body>", 2],
+        "perform": ["<body>", 2],
+        "}": ["<body>", 3],
+        #";": ["<body>", 1],
+        "Ø": ["<body>", 3]
     },
-    "<statement>": {
-        "int": ["<statement>", 0], 
-        "string": ["<statement>", 0], 
-        "float": ["<statement>", 0],
-        "bool": ["<statement>", 0],
-        "curse": ["<statement>", 0],
-        "restrict": ["<statement>", 0],
-        "id": ["<statement>", 1],
-        "invoke": ["<statement>", 2],
-        "capture": ["<statement>",3],
-        "vow": ["<statement>", 5],
-        "boogie": ["<statement>", 6],
-        "cycle": ["<statement>", 6],
-        "sustain": ["<statement>", 6],
-        "perform": ["<statement>", 6],
-        "}": ["<statement>", 7],
-        "Ø": ["<statement>", 7]
+    # "<statement>": {
+    #     "int": ["<statement>", 0], 
+    #     "string": ["<statement>", 0], 
+    #     "float": ["<statement>", 0],
+    #     "bool": ["<statement>", 0],
+    #     "curse": ["<statement>", 0],
+    #     "restrict": ["<statement>", 0],
+    #     "id": ["<statement>", 1],
+    #     "invoke": ["<statement>", 2],
+    #     "capture": ["<statement>",3],
+    #     "vow": ["<statement>", 5],
+    #     "boogie": ["<statement>", 6],
+    #     "cycle": ["<statement>", 6],
+    #     "sustain": ["<statement>", 6],
+    #     "perform": ["<statement>", 6],
+    #     "}": ["<statement>", 7],
+    #     "Ø": ["<statement>", 7]
+    # },
+    
+    "<definition>": {
+        "int": ["<definition>", 0],
+        "string": ["<definition>", 0],
+        "float": ["<definition>", 0],
+        "bool": ["<definition>", 0],
+        "restrict": ["<definition>", 0],
+        "id": ["<definition>", 1],
+        #"len": ["<definition>", 2],
+        "invoke": ["<definition>", 2],
+        "capture": ["<definition>", 3],
+        "curse": ["<definition>", 4],
+    },
+    "<global_local_dec>": {
+        "int": ["<global_local_dec>", 0],
+        "string": ["<global_local_dec>", 0],
+        "float": ["<global_local_dec>", 0],
+        "bool": ["<global_local_dec>", 0],
+        "curse": ["<global_local_dec>", 0],
+        "restrict": ["<global_local_dec>", 0]
+    },
+    "<global_local_choice>": {
+        "int": ["<global_local_choice>", 0],
+        "string": ["<global_local_choice>", 0],
+        "float": ["<global_local_choice>", 0],
+        "bool": ["<global_local_choice>", 0],
+        "curse": ["<global_local_choice>", 1],
+        "restrict": ["<global_local_choice>", 2]
+    },
+
+    "<var_dec>": {
+        "int": ["<var_dec>", 0],
+        "float": ["<var_dec>", 0],
+        "string": ["<var_dec>", 0],
+        "bool": ["<var_dec>", 0],
+        "Ø": ["<var_dec>", 1],
+        ";": ["<var_dec>", 1]
+    },
+
+    "<re-assign>": {
+        "id": ["<re-assign>", 0],
+        "Ø": ["<re-assign>", 1]
+    },
+
+    "<multi-assign>": { ############# 9 in First Set
+        ",": ["<multi-assign>", 0],
+        ";": ["<multi-assign>", 1],
+        "Ø": ["<multi-assign>", 1]
+    },
+    
+    "<var_dec_syntax>": { ############# 19 in First Set
+        "int": ["<var_dec_syntax>", 0],
+        "float": ["<var_dec_syntax>", 0],
+        "string": ["<var_dec_syntax>", 0],
+        "bool": ["<var_dec_syntax>", 0],
+        "id": ["<var_dec_syntax>", 1]
+    },
+
+    "<assign>": { ############# 
+        "=": ["<assign>", 0],
+        "Ø": ["<assign>", 1],
+        ",": ["<assign>", 1],
+        ";": ["<assign>", 1]
     },
 
     "<invoke_stm>": { ############# 25 in First Set
         "invoke": ["<invoke_stm>", 0]
+    },
+
+    "<capture_stm>": { ############# 26 in First Set
+        "capture": ["<capture_stm>", 0]
+    },
+
+    "<conditional_stm>": { ############# 27 in First Set
+        "vow": ["<conditional_stm>", 0],
+        "boogie": ["<conditional_stm>", 1],
+    },
+
+    "<vow_statement>": { ############# 28 in First Set
+        "vow": ["<vow_statement>", 0]
+    },
+
+    "<vow_next>": { ############# 29 in First Set
+        "else": ["<vow_next>", 0], #FIXME Ambiguity for 'else'
+        "Ø": ["<vow_next>", 2]
+    },
+
+    "<vow_else>": { ############# 30 in First Set
+        "else": ["<vow_else>", 0], #FIXME Ambiguity for 'else'
+        "Ø": ["<vow_else>", 1]
+    },
+
+    "<vow_ladder>": { ############# 31 in First Set
+        "else": ["<vow_ladder>", 0], #FIXME Ambiguity for 'else'
+        "Ø": ["<vow_ladder>", 1]
+    },
+
+    "<more_vow_else>": { ############# 32 in First Set
+        "else": ["<more_vow_else>", 0], #FIXME Ambiguity for 'else'
+        "Ø": ["<more_vow_else>", 1]
+    },
+
+    "<vow_conditions>": { ############# 33 in First Set
+        "id": ["<vow_conditions>", 1],
+        "(": ["<vow_conditions>", 1],
+        "string_literal": ["<vow_conditions>", 6], # FIXME Ambiguity for vow_conditions T_T this whole thing
+        "int_literal": ["<vow_conditions>", 6],
+        "bool_literal": ["<vow_conditions>", 6],
+        "float_literal": ["<vow_conditions>", 6],
+        "len": ["<vow_conditions>", 6],
+        "!": ["<vow_conditions>", 4],
     },
 
     "<value>": {    ############# 30 in First Set
@@ -540,6 +659,32 @@ PREDICT_SET = {
         "cleave":   ["<value>", 11],
         "Ø": ["<value>", 12]
     },
+    "<assign_expression>": { ############# 52 in First Set
+        "id": ["<assign_expression>", 0]
+    },
+    "<assign_left_operand>": { ############# 53 in First Set
+        "id": ["<assign_left_operand>", 0],
+    },
+    "<assign_right_operand>": { ############# 54 in First Set
+        "id": ["<assign_right_operand>", 0],
+        "string_literal": ["<assign_right_operand>", 1],
+        "int_literal": ["<assign_right_operand>", 1],
+        "bool_literal": ["<assign_right_operand>", 1],
+        "float_literal": ["<assign_right_operand>", 1],
+        "len": ["<assign_right_operand>", 2],
+        "!": ["<assign_right_operand>", 4],
+        "(": ["<assign_right_operand>", 5], #FIXME Ambiguity for '('
+        "++": ["<assign_right_operand>", 6],
+        "--": ["<assign_right_operand>", 6],
+        "curse": ["<assign_right_operand>", 7]
+    },
+    "<assign_op>": { ############# 55 in First Set
+        "=": ["<assign_op>", 0],
+        "+=": ["<assign_op>", 1],
+        "-=": ["<assign_op>", 2],
+        "*=": ["<assign_op>", 3],
+        "/=": ["<assign_op>", 4]
+    },
 
     "<curse_dec>": { ############# 57 in First Set
         "curse": ["<curse_dec>", 0],
@@ -550,15 +695,47 @@ PREDICT_SET = {
         "Ø": ["<curse_dec>", 2]
     },
 
-    "<literal>": {  ############# 226 in First Set
-        "string_literal": ["<literal>", 0],
-        "bool_literal": ["<literal>", 1],
-        "float_literal": ["<literal>", 2],
-        "null_literal": ["<literal>", 3],
-        "Ø": ["<literal>", 4]
+    "<relational_expression>": { ############# 68 in First Set
+        "(": ["<relational_expression>", 1],
+        "id": ["<relational_expression>", 0],
+        "string_literal": ["<relational_expression>", 0],
+        "int_literal": ["<relational_expression>", 0],
+        #"bool_literal": ["<relational_expression>", 2],
+        "float_literal": ["<relational_expression>", 0],
+        "len": ["<relational_expression>", 0]
     },
 
-    "<arguments>": { ############# 232 in First Set
+    "<relational_operand>": { ############# 70 
+        "(": ["<relational_operand>", 0],
+        "id": ["<relational_operand>", 1],
+        "string_literal": ["<relational_operand>", 2],
+        "int_literal": ["<relational_operand>", 2],
+        "bool_literal": ["<relational_operand>", 2],
+        "float_literal": ["<relational_operand>", 2],
+        "len": ["<relational_operand>", 4] #FIXME Missing in First Set: curse_call, clan_access, length
+    },
+
+    "<relational_op>": { ############# 71 in First Set
+        "==": ["<relational_op>", 0],
+        "!=": ["<relational_op>", 1],
+        ">": ["<relational_op>", 2],
+        "<": ["<relational_op>", 3],
+        ">=": ["<relational_op>", 4],
+        "<=": ["<relational_op>", 5]
+    },
+
+    "<literal>": {  #############
+        "int_literal": ["<literal>", 0],
+        "string_literal": ["<literal>", 1],
+        "bool_literal": ["<literal>", 2],
+        "float_literal": ["<literal>", 3],
+        "null_literal": ["<literal>", 4],
+        ";": ["<literal>", 5],
+        ",": ["<literal>", 5],
+        "Ø": ["<literal>", 5]
+    },
+
+    "<arguments>": { ############# 
         "string_literal": ["<arguments>", 0],
         "int_literal": ["<arguments>", 0],
         "bool_literal": ["<arguments>", 0],
@@ -570,10 +747,17 @@ PREDICT_SET = {
         "Ø": ["<arguments>", 2]
     },
 
-    "<more_arguments>": { ############# 235 in First Set    
+    "<more_arguments>": { #############   
         ",": ["<more_arguments>", 0],
         ")": ["<more_arguments>", 1],
         "Ø": ["<more_arguments>", 1]
+    },
+
+    "<datatype>": { ############# 97 in first set
+        "int": ["<datatype>", 0],
+        "float": ["<datatype>", 1],
+        "string": ["<datatype>", 2],
+        "bool": ["<datatype>", 3]
     }
 }
 
