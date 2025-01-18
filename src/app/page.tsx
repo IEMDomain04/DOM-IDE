@@ -110,7 +110,7 @@ curse domain(){
                 onSyntaxClick={() => textareaRef.current && handleSyntaxClick(textareaRef as React.RefObject<HTMLTextAreaElement>, setTerminalOutput)} 
                 onSemanticClick={handleSemanticClick} toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} textareaRef={textareaRef} /> 
         {/*Text Area and Line of Numbers*/}
-        <div className="flex flex-grow border border-none overflow-hidden">
+        <div className="flex flex-grow border border-none overflow-hidden pt-12">
           {/* Line of numbers and Textarea */}
           <div className="flex flex-grow overflow-hidden">
             {/* Line of numbers */}
@@ -150,7 +150,7 @@ curse domain(){
 
       {/* Output Table for Lexeme, Tokens */}
       {outputData.length > 0 && (
-        <div className="flex flex-col w-5/12 overflow-auto" style={{ maxHeight: '100vh', position: 'relative' }}>
+        <div className="flex flex-col w-5/12 overflow-auto pt-12" style={{ maxHeight: '100vh', position: 'relative' }}>
           <table className={`min-w-full table-fixed ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
             <thead className={`${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`} style={{ position: 'sticky', top: 0, zIndex: 1 }}>
               <tr>
