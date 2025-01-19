@@ -19,12 +19,36 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
     if (textarea) {
       const textContent = textarea.value;  // Get content from textarea
       const blob = new Blob([textContent], { type: 'text/plain' });
+
+      // Create a temporary link element
       const link = document.createElement('a');
-      link.download = 'code.dom';
       link.href = window.URL.createObjectURL(blob);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+
+      // Use the File System Access API if available
+      if ('showSaveFilePicker' in window) {
+        const opts = {
+          types: [{
+            description: 'DOM Files',
+            accept: { 'text/plain': ['.dom'] },
+          }],
+        };
+
+        (window as any).showSaveFilePicker(opts).then((handle: FileSystemFileHandle) => {
+          handle.createWritable().then((writable: FileSystemWritableFileStream) => {
+            writable.write(blob).then(() => {
+              writable.close();
+            });
+          });
+        }).catch((err: any) => {
+          console.error('Save file failed', err);
+        });
+      } else {
+        // Fallback for browsers that do not support the File System Access API
+        link.download = 'code.dom';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     }
   };
 
