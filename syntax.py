@@ -118,16 +118,16 @@ CFG = {
         ["<value>"]
     ],
 
-    # "<global_local_dec>": [
-    #     ["<global_local_choice>"]               ########### 15
-    # ],
+    "<global_local_dec>": [
+        ["<global_local_choice>"]               ########### 15
+    ],
 
-    # "<global_local_choice>": [  
-    #     ["<var_dec>"],                          ########### 16
-    #     ["<curse_dec>"],                        ########### 17
-    #     ["<clan_dec>"],                         ########### 18
-    #     ["<restrict_dec>"]                      ########### 19
-    # ],
+    "<global_local_choice>": [  
+        ["<var_dec>"],                          ########### 16
+        ["<curse_dec>"],                        ########### 17
+        ["<clan_dec>"],                         ########### 18
+        ["<restrict_dec>"]                      ########### 19
+    ],
 
     "<re-assign>": [
         ["<assign_expression>"],                ########### 20
@@ -150,13 +150,14 @@ CFG = {
         []                                   ########### 43
     ],
     "<clan_dec>": [
-        ["<datatype>", "id", "<clan_size>", "<clan_assign>"]    ########### 44
+        ["<clan_size>", "<clan_assign>"]    ########### 44
     ],
     "<clan_size>": [
-        ["[int_literal]", "<two_dimensional>"]  ########### 45
+        ["[", "int_literal", "]", "<two_dimensional>"],  ########### 45
+        ["[...]"]  ########### 46
     ],
     "<two_dimensional>": [
-        ["[int_literal]", "<two_dimensional>"], ########### 46
+        ["[", "int_literal", "]", "<two_dimensional>"], ########### 46
         []                                   ########### 47
     ],
     "<clan_assign>": [
@@ -561,12 +562,17 @@ PREDICT_SET = {
 
      "<type_choice>": {
         "=": ["<type_choice>", 0],
+        ",": ["<type_choice>", 0],
+        ";": ["<type_choice>", 0],
         "[": ["<type_choice>", 1],
+        "[...]": ["<type_choice>", 1],
         "(": ["<type_choice>", 2]
     },
 
     "<var_dec>": {
         "=": ["<var_dec>", 0],
+        ",": ["<var_dec>", 0],
+        ";": ["<var_dec>", 0],
     },
 
     "<assign>": {
@@ -745,7 +751,7 @@ PREDICT_SET = {
         "!": ["<vow_conditions>", 4],
     },
 
-    "<value>": {    ############# 30 in First Set
+    "<value>": {    ############# 10 in First Set
         "string_literal": ["<value>", 0],
         "int_literal": ["<value>", 0],
         "bool_literal": ["<value>", 0],
@@ -758,6 +764,44 @@ PREDICT_SET = {
         "cleave":   ["<value>", 11],
         "Ø": ["<value>", 12]
     },
+    "<clan_dec>": { #############
+        "[": ["<clan_dec>", 0],
+        "[...]": ["<clan_dec>", 0]
+    },
+    "<clan_size>": { #############
+        "[": ["<clan_size>", 0],
+        "[...]": ["<clan_size>", 1]
+    },
+    "<two_dimensional>": { #############
+        "[": ["<two_dimensional>", 0],
+        "=": ["<two_dimensional>", 1],
+        ";": ["<two_dimensional>", 1],
+         "Ø": ["<two_dimensional", 1]
+    },
+    "<clan_assign>": { #############
+        "=": ["<clan_assign>", 0],
+        "Ø": ["<clan_assign>", 1]
+    },
+    "<clan_literal>": { #############
+        "{": ["<clan_literal>", 0]
+    },
+    "<clan_item>": { #############
+        "int_literal": ["<clan_item>", 0],
+        "string_literal": ["<clan_item>", 0],
+        "bool_literal": ["<clan_item>", 0],
+        "float_literal": ["<clan_item>", 0],
+        "{": ["<clan_item>", 1],
+        "}": ["<clan_item>", 2]
+    },
+    "<more_item>": { #############
+        ",": ["<more_item>", 0],
+        "}": ["<more_item>", 1]
+    },
+    "<clan_multi_item>": { #############
+        ",": ["<clan_multi_item>", 0],
+        "}": ["<clan_multi_item>", 1]
+    },
+
     "<assign_expression>": { ############# 52 in First Set
         "id": ["<assign_expression>", 0]
     },
@@ -917,7 +961,7 @@ class Parser:
                 # Check if the top of the stack is equal to the current token
                 if top == self.current_token.type:
                     stack.pop()  # Remove the terminal from the stack
-                    print(f"6. Matched Terminal: {top}")
+                    print(f"2. Matched Terminal: {top}")
                     self.advance()  # Move to the next token
                 else:
                     errors.append(f"Syntax Error: Expected '{top}' but found '{self.current_token.type}'")
