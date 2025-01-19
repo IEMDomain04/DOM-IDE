@@ -11,6 +11,13 @@ interface TopnavProps {
   updateLineCount: (count: number) => void; // Add the new prop
 }
 
+interface FilePickerOptions {
+  types: {
+    description: string;
+    accept: { [key: string]: string[] };
+  }[];
+}
+
 export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, onSemanticClick, toggleDarkMode, updateLineCount, isDarkMode, textareaRef }: TopnavProps) {
   
   // Function to handle "Save As.." button click
@@ -33,15 +40,18 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
           }],
         };
 
-        (window as any).showSaveFilePicker(opts).then((handle: FileSystemFileHandle) => {
-          handle.createWritable().then((writable: FileSystemWritableFileStream) => {
-            writable.write(blob).then(() => {
-              writable.close();
+        (window as unknown as { showSaveFilePicker: (opts: FilePickerOptions) => Promise<FileSystemFileHandle> })
+          .showSaveFilePicker(opts)
+          .then((handle) => {
+            handle.createWritable().then((writable) => {
+              writable.write(blob).then(() => {
+          writable.close();
+              });
             });
+          })
+          .catch((err) => {
+            console.error('Save file failed', err);
           });
-        }).catch((err: any) => {
-          console.error('Save file failed', err);
-        });
       } else {
         // Fallback for browsers that do not support the File System Access API
         link.download = 'code.dom';
@@ -53,37 +63,36 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
   };
 
   // Function to handle "Open" button click
-  const handleOpenClick = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.dom';
-    input.onchange = (event) => {
-      const file = (event.target as HTMLInputElement)?.files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const textarea = textareaRef.current;
-          if (textarea) {
-            const content = e.target?.result as string;
+    const handleOpenClick = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.dom';
+      input.onchange = (event) => {
+        const file = (event.target as HTMLInputElement)?.files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const textarea = textareaRef.current;
+            if (textarea) {
+              const content = e.target?.result as string;
             textarea.value = content;
   
-            // Create a new InputEvent for React's state synchronization
-            const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+              // Create a new InputEvent for React's state synchronization
+              const inputEvent = new Event('input', { bubbles: true, cancelable: true });
   
-            // Dispatch the event
-            textarea.dispatchEvent(inputEvent);
-  
+              // Dispatch the event
+              textarea.dispatchEvent(inputEvent);
+    
             // Update line count based on content
             const lines = content.split("\n").length;
             updateLineCount(lines);
           }
-        };
-        reader.readAsText(file);
-      }
+          };
+          reader.readAsText(file);
+        }
+      };
+      input.click();
     };
-    input.click();
-  };
-
 
   return (
     <div className='fixed top-0 w-full z-50 border-b-2 border-dark-background'>
@@ -130,5 +139,5 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
         </div>
       </div>
     </div>
-  );
+  ); 
 }
