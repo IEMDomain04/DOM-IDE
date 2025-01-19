@@ -34,6 +34,10 @@ curse domain(){
     invoke("Hello, World!");
 }`;
 
+const updateLineCount = (count: number) => {
+  setLineCount(count);
+};
+
   // Handle text change and update line count based on text area's line breaks
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const lines = e.target.value.split("\n").length;
@@ -105,10 +109,16 @@ curse domain(){
     <section className={`flex w-screen h-screen ${isDarkMode ? 'dark' : ''}`} style={{ backgroundImage: `url(${isDarkMode ? '/bg-dark.png' : '/bg-light.png'})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat' }}>
       {/*Left Side: Topnav, Textarea, and Terminal */}
       <div className="flex flex-col w-full h-screen">
-        <Topnav onRunClick={handleRunClick} 
-                onTokenizerClick={() => textareaRef.current && handleTokenizerClick(textareaRef as React.RefObject<HTMLTextAreaElement>, setOutputData, setTerminalOutput)} 
-                onSyntaxClick={() => textareaRef.current && handleSyntaxClick(textareaRef as React.RefObject<HTMLTextAreaElement>, setTerminalOutput)} 
-                onSemanticClick={handleSemanticClick} toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} textareaRef={textareaRef} /> 
+      <Topnav
+  onRunClick={handleRunClick}
+  onTokenizerClick={() => textareaRef.current && handleTokenizerClick(textareaRef as React.RefObject<HTMLTextAreaElement>, setOutputData, setTerminalOutput)}
+  onSyntaxClick={() => textareaRef.current && handleSyntaxClick(textareaRef as React.RefObject<HTMLTextAreaElement>, setTerminalOutput)}
+  onSemanticClick={handleSemanticClick}
+  toggleDarkMode={toggleDarkMode}
+  isDarkMode={isDarkMode}
+  textareaRef={textareaRef}
+  updateLineCount={updateLineCount} // Pass the function as a prop
+/>
         {/*Text Area and Line of Numbers*/}
         <div className="flex flex-grow border border-none overflow-hidden pt-12">
           {/* Line of numbers and Textarea */}
