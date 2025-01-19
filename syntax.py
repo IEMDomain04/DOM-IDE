@@ -12,23 +12,18 @@ CFG = {
         ["expansion", ";", "<global_dec>"] ########### 1 
     ],
     "<global_dec>": [           
-        ["<type_dec>", "<global_dec>"],
-        ["<void_curse_dec>", "<global_dec>"],
+        ["<global_type_dec>", "<global_dec>"],
+        ["<restrict_dec>", "<datatype>", "id", "<type_choice>", "<global_dec>"],
         []
     ],
-
-    "<body>": [               
-        ["<statement>", "<body>"],          ########### 4\
-        []                                      ########### 5
-    ],
-
-    "<type_dec>": [
-        ["<restrict_dec>", "<datatype>", "<nonvoid_curse_opt>", "id", "<type_choice>"], ########### 
-        ["<curse_dec>"], ###########
+    
+    "<global_type_dec>": [
+        ["<datatype>", "<nonvoid_curse_opt>", "id", "<type_choice>"], ########### 
+        ["<void_curse_dec>"], ###########
     ],
     "<restrict_dec>": [
         ["restrict"], ###########
-        []
+        []  
     ], 
 
     "<nonvoid_curse_opt>": [
@@ -41,10 +36,7 @@ CFG = {
         ["<clan_dec>", ";"], ###########
         ["<nonvoid_curse_dec>"] ###########
     ],
-    "<var_choice>": [
-        ["<var_dec>"], ###########
-        ["<clan_dec>"], ###########
-    ],
+
     "<var_dec>": [
         ["<assign>", "<multi-assign>"], ########### 
     ],
@@ -56,35 +48,6 @@ CFG = {
         [",", "id", "<assign>", "<multi-assign>"],  ########### 29
         []                                   ########### 30
     ],
-
-    # "<definition>": [
-    #     ["<type_dec>"],
-    #     ["<re-assign>"],
-    #     ["<invoke_stm>"],
-    #     ["<capture_stm>"],
-    #     ["<curse_call>"]
-    # ],
-    
-    "<statement>": [
-        ["<global_local_dec>", ";", "<statement>"], ########### 6
-        ["<re-assign>", ";", "<statement>"],        ########### 7
-        #["<expression>", ";", "<statement>"],      ########### 8
-        ["<invoke_stm>", ";", "<statement>"],       ########### 9
-        ["<capture_stm>", ";", "<statement>"],      ########### 10
-        ["<curse_call>", ";", "<statement>"],       ########### 11
-        ["<conditional_stm>", "<statement>"],  ########### 12
-        ["<looping_stm>", "<statement>"],      ########### 13
-        []                                          ########### 14
-    ],
-
-    # "<definition>": [
-    #     ["<global_local_dec>"], ########### 15
-    #     ["<re-assign>"], ########### 15
-    #     ["<invoke_stm>"], ########### 15
-    #     ["<capture_stm>"], ########### 15
-    #     ["<curse_call>"], ########### 15
-
-    # ],
 
     "<void_curse_dec>": [
         ["curse", "<init_void_curse>"],   ########### 16
@@ -102,32 +65,51 @@ CFG = {
     "<param>": [
         ["<datatype>", "id", "<more_param>"],
         []
-    ],
+    ],  
 
     "<more_param>": [
         [",", "<datatype>", "id", "<more_param>"],
         []
     ],
+
     "<recall_statement>": [
         ["recall", "<recall_val>", ";"],
         []
     ],
+
     "<recall_val>": [
         ["<literal>"],
         ["id"],
         ["<value>"]
     ],
 
-    "<global_local_dec>": [
-        ["<global_local_choice>"]               ########### 15
+    "<body>": [               
+        ["<statement>", "<body>"],          ########### 4
+        []                                      ########### 5
     ],
 
-    "<global_local_choice>": [  
-        ["<var_dec>"],                          ########### 16
-        ["<curse_dec>"],                        ########### 17
-        ["<clan_dec>"],                         ########### 18
-        ["<restrict_dec>"]                      ########### 19
+    "<statement>": [
+        ["<local_dec>"],   ########### 
+        ["<re-assign>", ";"],   ########### 
+        ["<invoke_stm>", ";"],  ########### 
+        ["<capture_stm>", ";"], ########### 
+        ["<curse_call>", ";"],  ########### 
+        ["<conditional_stm>"],  ########### 
+        ["<looping_stm>"],      ########### 
+        []                      ###########
     ],
+
+    "<local_dec>": [
+        ["<local_type_dec>", "<local_dec>"], ###########
+        ["<restrict_dec>", "<datatype>", "id", "<type_choice>", "<local_dec>"], ###########
+        []
+    ],
+
+    "<local_type_dec>": [
+        ["<datatype>", "<nonvoid_curse_opt>", "id", "<type_choice>"], ###########
+        ["curse", "id", "(", "<param>", ")", "{", "<body>", "}"], ###########
+    ],
+
 
     "<re-assign>": [
         ["<assign_expression>"],                ########### 20
@@ -529,19 +511,18 @@ PREDICT_SET = {
         "int": ["<global_dec>", 0],
         "string": ["<global_dec>", 0],
         "float": ["<global_dec>", 0],
-        "bool": ["<global_dec>", 0],
-        "restrict": ["<global_dec>", 0],
-        "curse": ["<global_dec>",1],
+        "bool": ["<global_dec>", 0],    
+        "curse": ["<global_dec>",0],
+        "restrict": ["<global_dec>", 1],
         "Ø": ["<global_dec>", 2]
     }, 
 
-    "<type_dec>": {
-        "int": ["<type_dec>", 0],
-        "float": ["<type_dec>", 0],
-        "string": ["<type_dec>", 0],
-        "bool": ["<type_dec>", 0],
-        "restrict": ["<type_dec>", 0],
-        "curse": ["<type_dec>", 0]
+    "<global_type_dec>": {
+        "int": ["<global_type_dec>", 0],
+        "float": ["<global_type_dec>", 0],
+        "string": ["<global_type_dec>", 0],
+        "bool": ["<global_type_dec>", 0],
+        "curse": ["<global_type_dec>", 1]
     },
 
     "<restrict_dec>": {
@@ -671,10 +652,25 @@ PREDICT_SET = {
         "}": ["<statement>", 7],
         "Ø": ["<statement>", 7]
     },
+
+    "<local_dec>": {
+        "int": ["<local_dec>", 0],
+        "string": ["<local_dec>", 0],
+        "float": ["<local_dec>", 0],
+        "bool": ["<local_dec>", 0],
+        "curse": ["<local_dec>",0],
+        "restrict": ["<local_dec>", 1],
+        "}": ["<local_dec>", 2],
+        ";": ["<local_dec>", 2],
+        "Ø": ["<local_dec>", 2]
+    },
     
-    "<var_choice>": {
-        "=": ["<var_choice>", 0],
-        "[": ["<var_choice>", 1],
+    "<local_type_dec>": {
+        "int": ["<local_type_dec>", 0],
+        "string": ["<local_type_dec>", 0],
+        "float": ["<local_type_dec>", 0],
+        "bool": ["<local_type_dec>", 0],
+        "curse": ["<local_type_dec>", 1]
     },
 
     "<re-assign>": {
@@ -780,6 +776,7 @@ PREDICT_SET = {
     },
     "<clan_assign>": { #############
         "=": ["<clan_assign>", 0],
+        ";": ["<clan_assign>", 1],
         "Ø": ["<clan_assign>", 1]
     },
     "<clan_literal>": { #############
