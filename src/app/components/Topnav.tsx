@@ -8,6 +8,7 @@ interface TopnavProps {
   toggleDarkMode: () => void;
   isDarkMode: boolean;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  updateLineCount: (count: number) => void; // Add the new prop
 }
 
 interface FilePickerOptions {
@@ -17,7 +18,7 @@ interface FilePickerOptions {
   }[];
 }
 
-export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, onSemanticClick, toggleDarkMode, isDarkMode, textareaRef }: TopnavProps) {
+export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, onSemanticClick, toggleDarkMode, updateLineCount, isDarkMode, textareaRef }: TopnavProps) {
   
   // Function to handle "Save As.." button click
   const handleSaveAsClick = () => {
@@ -62,31 +63,36 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
   };
 
   // Function to handle "Open" button click
-  const handleOpenClick = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.dom';
-    input.onchange = (event) => {
-      const file = (event.target as HTMLInputElement)?.files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const textarea = textareaRef.current;
-          if (textarea) {
-            textarea.value = e.target?.result as string;
-
-            // Create a new InputEvent for React's state synchronization
-            const inputEvent = new Event('input', { bubbles: true, cancelable: true });
-
-            // Dispatch the event
-            textarea.dispatchEvent(inputEvent);
+    const handleOpenClick = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.dom';
+      input.onchange = (event) => {
+        const file = (event.target as HTMLInputElement)?.files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const textarea = textareaRef.current;
+            if (textarea) {
+              const content = e.target?.result as string;
+            textarea.value = content;
+  
+              // Create a new InputEvent for React's state synchronization
+              const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+  
+              // Dispatch the event
+              textarea.dispatchEvent(inputEvent);
+    
+            // Update line count based on content
+            const lines = content.split("\n").length;
+            updateLineCount(lines);
           }
-        };
-        reader.readAsText(file);
-      }
+          };
+          reader.readAsText(file);
+        }
+      };
+      input.click();
     };
-    input.click();
-  };
 
   return (
     <div className='fixed top-0 w-full z-50 border-b-2 border-dark-background'>
@@ -133,5 +139,5 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
         </div>
       </div>
     </div>
-  );
+  ); 
 }
