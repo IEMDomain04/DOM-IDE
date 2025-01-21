@@ -1492,10 +1492,13 @@ class Lexer:
                         continue
                     
                 else:
-                    if len(tokens) > 0 and tokens[-1].type in [TT_INT, TT_FLOAT, TT_IDENTIFIER, TT_RPAREN]:
+                    if len(tokens) > 0 and tokens[-1].type in [TT_INT, TT_FLOAT, TT_IDENTIFIER, TT_RPAREN, TT_SPACE]:
                         states.append(170)
                         tokens.append(Token(TT_MINUS, '-', pos_start=pos_start, pos_end=self.pos))
+                        continue
                     else:
+                        while self.current_char in [' ', '\t', '\n']:
+                            self.advance()
                         if self.current_char in NUMERIC: 
                             tok, error = self.make_number(is_negative=True)
                             if error: 
