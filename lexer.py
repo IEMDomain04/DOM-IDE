@@ -429,13 +429,13 @@ class Lexer:
                                     ident_str += self.current_char
                                     ident_count+=1
                                     self.advance()
-                                    if self.current_char != None and self.current_char in delim_map['white_delim']:
+                                    if self.current_char != None and self.current_char in delim_map['kword_delim']:
                                         states.append(28)
                                         tokens.append(Token(TT_CURSE, ident_str, pos_start=pos_start, pos_end=self.pos)) 
                                         continue
-                                    elif self.current_char != None and self.current_char not in delim_map['white_delim'] and self.current_char in ALPHA_NUMERIC + '_':
+                                    elif self.current_char != None and self.current_char not in delim_map['kword_delim'] and self.current_char in ALPHA_NUMERIC + '_':
                                         pass
-                                    elif self.current_char != None and self.current_char not in delim_map['white_delim']:
+                                    elif self.current_char != None and self.current_char not in delim_map['kword_delim']:
                                         pos_end = self.pos.copy()
                                         if self.current_char == '\n':
                                             errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\n' after keyword '{ident_str}'"))
