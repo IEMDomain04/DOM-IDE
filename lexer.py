@@ -32,7 +32,7 @@ keywords = [
 delim_map = {
     'adr_delim':        set(ALPHA_NUMERIC + ' '),
     'arith_delim':      set(ALPHA_NUMERIC + ' ' + '-' + '('),
-    'assign_delim':     set(ALPHA_NUMERIC + ' ' + '"' + '-' + '(' + ')' + '[' + '\n'),
+    'assign_delim':     set(ALPHA_NUMERIC + ' ' + '"' + '-' + '(' + '\n'),
     'boogie_delim':     {'(', ' ', '\n', '\t', '{'},
     'bool_delim':       {')', ']', ',', ' ', ';'},
     'clsbrace_delim':   set(ALPHA_NUMERIC + '}' + '\n' + '\t' + ' ' + ';' + ','),
@@ -1492,7 +1492,13 @@ class Lexer:
                         continue
                     
                 else:
-                    if len(tokens) > 0 and tokens[-1].type in [TT_INT, TT_FLOAT, TT_IDENTIFIER, TT_RPAREN, TT_SPACE]:
+                    i = -1
+                    if len(tokens) > 0 and tokens[-1].type in [TT_SPACE, TT_TAB]:
+                        i = i-1
+                        while len(tokens) > 0 and tokens[i].type in [TT_SPACE, TT_TAB]:
+                            i = i-1
+                            print("After popping spaces/tabs:", [token.type for token in tokens])  # Debug print
+                    if len(tokens) > 0 and tokens[i].type in [TT_INTLIT, TT_FLOATLIT, TT_IDENTIFIER, TT_RPAREN]:
                         states.append(170)
                         tokens.append(Token(TT_MINUS, '-', pos_start=pos_start, pos_end=self.pos))
                         continue
@@ -1798,6 +1804,8 @@ class Lexer:
                 states.append(211)
                 pos_start = self.pos.copy()
                 self.advance()
+                while self.current_char in [' ', '\t']:
+                    self.advance()
                 if self.current_char == '.':
                     states.append(213)
                     self.advance()    
@@ -1807,6 +1815,9 @@ class Lexer:
                         if self.current_char == '.':
                             states.append(215)
                             self.advance()  
+                            if self.current_char in [' ', '\t']:
+                                while self.current_char in [' ', '\t']:
+                                    self.advance()
                             if self.current_char != ']':
                                 states.append(216)
                                 errors.append(LexicalError(pos_start, pos_end, f"Invalid clan declaration"))
