@@ -44,14 +44,14 @@ delim_map = {
     'comp_delim':       set(ALPHA_NUMERIC + '"' + "'" + '(' + '-' + ' '),
     'default_delim':    {' ', ':', '\t'},
     'ex_delim':         {';'},
-    'ident_delim':      {'+', '-', '*', '/', '%', '!', '=', '<', '>', '(', ')', ',', '[', ']', ' ', ';', '&', '|'},
+    'ident_delim':      {'+', '-', '*', '/', '%', '!', '=', '<', '>', '(', ')', ',', '[', ']', ' ', ';', '&', '|', '}'},
     'incdec_delim':     set(ALPHA_NUMERIC + ')' + ' ' + ';'),
     'kword_delim':      {' ', '\t'},
     'lend_delim':       set(ALPHA_NUMERIC + '#' + '#$' + '\n' + '\t' + ' ' + '}'),
     'logic_delim':      set(ALPHA + ' ' + '('),
     'minus_delim':      set(ALPHA_NUMERIC + '-' + '(' + ' '),
     'num_delim':        set(ARITH_OP + ' ' + ')' + ',' + ';' + ':' + ']' + '}'),
-    'opnbrace_delim':   set(ALPHA_NUMERIC + '\n' + '\t' + '"' + ' '),
+    'opnbrace_delim':   set(ALPHA_NUMERIC + '\n' + '\t' + '"' + ' ' + '{'),
     'opnparen_delim':   set(ALPHA_NUMERIC + '"' + "'" + '-' + '+' + '(' + ')' + '\n' + '\t' + ' ' + '!'),
     'opnsquare_delim':  set(ALPHA_NUMERIC + '"' + "'" + '-' + '(' + '[' + ']' + ' ' + '\n' + '\t'),
     'plus_delim':       set(ALPHA_NUMERIC + '"' + "'" + '-' + '(' + ',' + ' ' + '\t' + '\n'),
@@ -1541,7 +1541,7 @@ class Lexer:
                             else: 
                                 tokens.append(tok)
                                 continue
-                        elif self.current_char in ALPHA:
+                        elif self.current_char in ALPHA + '(':
                             tokens.append(Token(TT_MINUS, '-', pos_start=pos_start, pos_end=self.pos))
                             continue
                         else:
@@ -1670,7 +1670,12 @@ class Lexer:
                         continue
                 elif tok_type == TT_MOD:
                     if self.current_char != None and self.current_char not in delim_map['arith_delim']:
-                        errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
+                        if self.current_char == '\n':
+                            errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\n' after operator"))
+                        elif self.current_char == '\t':
+                            errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\t' after operator"))
+                        else:
+                            errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
                         self.advance()
                         continue
                     else:
