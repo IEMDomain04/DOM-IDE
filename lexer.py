@@ -44,14 +44,14 @@ delim_map = {
     'comp_delim':       set(ALPHA_NUMERIC + '"' + "'" + '(' + '-' + ' '),
     'default_delim':    {' ', ':', '\t'},
     'ex_delim':         {';'},
-    'ident_delim':      {'+', '-', '*', '/', '%', '!', '=', '<', '>', '(', ')', ',', '[', ']', ' ', ';', '&', '|'},
+    'ident_delim':      {'+', '-', '*', '/', '%', '!', '=', '<', '>', '(', ')', ',', '[', ']', ' ', ';', '&', '|', '}'},
     'incdec_delim':     set(ALPHA_NUMERIC + ')' + ' ' + ';'),
     'kword_delim':      {' ', '\t'},
     'lend_delim':       set(ALPHA_NUMERIC + '#' + '#$' + '\n' + '\t' + ' ' + '}'),
     'logic_delim':      set(ALPHA + ' ' + '('),
     'minus_delim':      set(ALPHA_NUMERIC + '-' + '(' + ' '),
     'num_delim':        set(ARITH_OP + ' ' + ')' + ',' + ';' + ':' + ']' + '}'),
-    'opnbrace_delim':   set(ALPHA_NUMERIC + '\n' + '\t' + '"' + ' '),
+    'opnbrace_delim':   set(ALPHA_NUMERIC + '\n' + '\t' + '"' + ' ' + '{'),
     'opnparen_delim':   set(ALPHA_NUMERIC + '"' + "'" + '-' + '+' + '(' + ')' + '\n' + '\t' + ' ' + '!'),
     'opnsquare_delim':  set(ALPHA_NUMERIC + '"' + "'" + '-' + '(' + '[' + ']' + ' ' + '\n' + '\t'),
     'plus_delim':       set(ALPHA_NUMERIC + '"' + "'" + '-' + '(' + ',' + ' ' + '\t' + '\n'),
@@ -1514,10 +1514,22 @@ class Lexer:
                             i = i-1
                             print("After popping spaces/tabs:", [token.type for token in tokens])  # Debug print
                     if len(tokens) > 0 and tokens[i].type in [TT_INTLIT, TT_FLOATLIT, TT_IDENTIFIER, TT_RPAREN]:
+                        tok_type = TT_MINUS
                         states.append(170)
-                        tokens.append(Token(TT_MINUS, '-', pos_start=pos_start, pos_end=self.pos))
-                        continue
-                    else:
+                        if self.current_char != None and self.current_char not in delim_map['minus_delim']:
+                            if self.current_char == '\n':
+                                errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\n' after operator"))
+                            elif self.current_char == '\t':
+                                errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\t' after operator"))
+                            else:
+                                errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
+                            self.advance()
+                            continue
+                        else: 
+                            tokens.append(Token(TT_MINUS, '-', pos_start=pos_start, pos_end=self.pos))
+                            continue
+                    elif len(tokens) > 0 and tokens[i].type in [TT_PLUS, TT_MINUS, TT_MUL, TT_DIV, TT_MOD, TT_POW, TT_PLUSEQ, TT_MINUSEQ, TT_MULEQ, TT_DIVEQ, TT_MODEQ,
+                                                                TT_EQ, TT_NE, TT_LT, TT_GT, TT_LTE, TT_GTE, TT_AND, TT_OR, TT_NOT, TT_LPAREN]:
                         while self.current_char in [' ', '\t', '\n']:
                             self.advance()
                         if self.current_char in NUMERIC: 
@@ -1529,10 +1541,17 @@ class Lexer:
                             else: 
                                 tokens.append(tok)
                                 continue
+                        elif self.current_char in ALPHA + '(':
+                            tokens.append(Token(TT_MINUS, '-', pos_start=pos_start, pos_end=self.pos))
+                            continue
                         else:
                             errors.append(LexicalError(pos_start, pos_end, f"Unexpected '-' without a valid number or identifier."))
                             self.advance()
                             continue
+                    else:
+                        errors.append(LexicalError(pos_start, pos_end, f"Unexpected '-' without a valid number or identifier."))
+                        self.advance()
+                        continue
 
         
             elif self.current_char == '*':      # multiply, power operator, multiply equals,
@@ -1546,7 +1565,7 @@ class Lexer:
                     self.advance()
                     pos_end = self.pos.copy()
                     tok_type = TT_POW
-                if self.current_char == '=':
+                elif self.current_char == '=':
                     states.append(179)
                     self.advance()
                     pos_end = self.pos.copy()
@@ -1640,7 +1659,16 @@ class Lexer:
                     pos_end = self.pos.copy()
                     tok_type = TT_MODEQ
 
-                if tok_type == TT_DIV:
+                if tok_type == TT_MODEQ:
+                    if self.current_char != None and self.current_char not in delim_map['assign_delim']:
+                        errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
+                        self.advance()
+                        continue
+                    else:
+                        states.append(188)
+                        tokens.append(Token(tok_type, '%=', pos_start=pos_start, pos_end=self.pos))
+                        continue
+                elif tok_type == TT_MOD:
                     if self.current_char != None and self.current_char not in delim_map['arith_delim']:
                         if self.current_char == '\n':
                             errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\n' after operator"))
@@ -1652,17 +1680,9 @@ class Lexer:
                         continue
                     else:
                         states.append(186)
-                        tokens.append(Token(tok_type, '%', pos_start=self.pos))
+                        tokens.append(Token(tok_type, '%', pos_start=pos_start, pos_end=self.pos))
                         continue
-                if tok_type == TT_MODEQ:
-                    if self.current_char != None and self.current_char not in delim_map['assign_delim']:
-                        errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
-                        self.advance()
-                        continue
-                    else:
-                        states.append(188)
-                        tokens.append(Token(tok_type, '%=', pos_start=pos_start, pos_end=self.pos))
-                        continue
+
 
             elif self.current_char == '!':      # not, not equals
                 states.append(189)
