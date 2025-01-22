@@ -1918,6 +1918,7 @@ class Lexer:
                                 self.advance()
                                 continue
                 if self.current_char != None and self.current_char not in delim_map['opnsquare_delim']:
+                    pos_end = self.pos.copy()
                     errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after brackets"))
                     self.advance()
                     continue
