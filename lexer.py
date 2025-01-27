@@ -2122,7 +2122,7 @@ class Lexer:
             if self.current_char == '"':
                 self.advance()
                 if self.current_char != None and self.current_char not in delim_map['str_delim']:
-                    return [], LexicalError(pos_start, self.pos, f"Invalid delimiter '{self.current_char}' after string '{id_str}'")
+                    return [], LexicalError(pos_start, self.pos, f"Invalid delimiter '{self.current_char}' after string")
                 else:
                     return Token(TT_STRLIT, id_str, pos_start, self.pos), None
             if self.current_char == '\n':
