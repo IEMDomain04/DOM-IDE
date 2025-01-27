@@ -1504,7 +1504,12 @@ class Lexer:
                         if self.current_char in NUMERIC: 
                             tok, error = self.make_number(is_negative=True)
                             if error: 
-                                errors.append(error)
+                                if self.current_char == '\n':
+                                    errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\n' after number"))
+                                elif self.current_char == '\t':
+                                    errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\t' after number"))
+                                else:
+                                    errors.append(error)
                                 continue
                             else: 
                                 tokens.append(tok)
@@ -1963,7 +1968,12 @@ class Lexer:
             elif self.current_char in NUMERIC:
                 tok, error = self.make_number()     # function for making integer and float tokens
                 if error: 
-                    errors.append(error)
+                    if self.current_char == '\n':
+                        errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\n' after number"))
+                    elif self.current_char == '\t':
+                        errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\t' after number"))
+                    else:
+                        errors.append(error)
                     continue
                 else: 
                     tokens.append(tok)
