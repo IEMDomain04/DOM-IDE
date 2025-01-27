@@ -2048,7 +2048,6 @@ class Lexer:
                 self.advance()
                 pos_end = self.pos.copy()
                 errors.append(LexicalError(pos_start, pos_end, f"Invalid Character '{char}'"))
-                self.advance()
                 continue
         
         tokens.append(Token(TT_EOF, pos_start=self.pos))
