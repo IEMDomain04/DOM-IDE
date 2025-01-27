@@ -1818,7 +1818,7 @@ class Lexer:
                 pos_end = self.pos.copy()
                 if self.current_char != None and self.current_char not in delim_map['opnparen_delim']:
                     states.append(208)
-                    errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after parentheses"))
+                    errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after parenthesis"))
                     continue
                 else:
                     tokens.append(Token(TT_LPAREN, '(', pos_start=self.pos))
@@ -1832,7 +1832,7 @@ class Lexer:
                 pos_end = self.pos.copy()
                 if self.current_char != None and self.current_char not in delim_map['clsparen_delim']:
                     states.append(210)
-                    errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after parentheses"))
+                    errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after parenthesis"))
                     continue
                 else:
                     tokens.append(Token(TT_RPAREN, ')', pos_start=self.pos))
