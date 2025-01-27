@@ -1483,7 +1483,7 @@ class Lexer:
                         i = i-1
                         while len(tokens) > 0 and tokens[i].type in [TT_SPACE, TT_TAB]:
                             i = i-1
-                    if len(tokens) > 0 and tokens[i].type in [TT_INTLIT, TT_FLOATLIT, TT_IDENTIFIER, TT_RPAREN]:
+                    if len(tokens) > 0 and tokens[i].type in [TT_INTLIT, TT_FLOATLIT, TT_IDENTIFIER, TT_RPAREN, TT_RSQUARE]:
                         tok_type = TT_MINUS
                         states.append(170)
                         if self.current_char != None and self.current_char not in delim_map['minus_delim']:
@@ -1498,7 +1498,7 @@ class Lexer:
                             tokens.append(Token(TT_MINUS, '-', pos_start=pos_start, pos_end=self.pos))
                             continue
                     elif len(tokens) > 0 and tokens[i].type in [TT_PLUS, TT_MINUS, TT_MUL, TT_DIV, TT_MOD, TT_POW, TT_PLUSEQ, TT_MINUSEQ, TT_MULEQ, TT_DIVEQ, TT_MODEQ,
-                                                                TT_ASSIGN, TT_EQ, TT_NE, TT_LT, TT_GT, TT_LTE, TT_GTE, TT_AND, TT_OR, TT_NOT, TT_LPAREN]:
+                                                                TT_ASSIGN, TT_EQ, TT_NE, TT_LT, TT_GT, TT_LTE, TT_GTE, TT_AND, TT_OR, TT_NOT, TT_LPAREN, TT_LSQUARE, TT_COMMA]:
                         while self.current_char in [' ', '\t', '\n']:
                             self.advance()
                         if self.current_char in NUMERIC: 
