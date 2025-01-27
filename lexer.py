@@ -50,7 +50,7 @@ delim_map = {
     'lend_delim':       set(ALPHA_NUMERIC + '#' + '#$' + '\n' + '\t' + ' ' + '}'),
     'logic_delim':      set(ALPHA + ' ' + '('),
     'minus_delim':      set(ALPHA_NUMERIC + '-' + '(' + ' '),
-    'num_delim':        set(ARITH_OP + ' ' + ')' + ',' + ';' + ':' + ']' + '}'),
+    'num_delim':        set(ARITH_OP + RELATION_OP + ' ' + ')' + ',' + ';' + ':' + ']' + '}'),
     'opnbrace_delim':   set(ALPHA_NUMERIC + '\n' + '\t' + '"' + ' ' + '{'),
     'opnparen_delim':   set(ALPHA_NUMERIC + '"' + "'" + '-' + '+' + '(' + ')' + '\n' + '\t' + ' ' + '!'),
     'opnsquare_delim':  set(ALPHA_NUMERIC + '"' + "'" + '-' + '(' + '[' + ']' + ' ' + '\n' + '\t'),
