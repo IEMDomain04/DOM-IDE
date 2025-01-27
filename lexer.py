@@ -1406,7 +1406,12 @@ class Lexer:
 
                 if tok_type == TT_PLUS:
                     if self.current_char != None and self.current_char not in delim_map['plus_delim']:
-                        errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
+                        if self.current_char == '\n':
+                            errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\n' after operator"))
+                        elif self.current_char == '\t':
+                            errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\t' after operator"))
+                        else:
+                            errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
                         continue
                     else:  
                         states.append(164)
