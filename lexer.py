@@ -1336,7 +1336,6 @@ class Lexer:
 
                 if ident_lower in keywords:
                     errors.append(LexicalError(pos_start, pos_end, f"Keyword '{ident_str}' cannot be used as identifier regardless of letter-casing"))
-                    self.advance()
                     continue
                 elif self.current_char != None and self.current_char not in delim_map['ident_delim']:
                     if self.current_char == '\n':
@@ -1345,11 +1344,9 @@ class Lexer:
                         errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\t' after identifier '{ident_str}'"))
                     else:
                         errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after identifier '{ident_str}'"))
-                    self.advance()
                     continue
                 elif ident_count > 25:
                     errors.append(LexicalError(pos_start, pos_end, "Identifier exceeded maximum character limit of 25"))
-                    self.advance()
                     continue
                 else:
                     tokens.append(Token(TT_IDENTIFIER, ident_str, pos_start=pos_start, pos_end=self.pos))
@@ -1372,7 +1369,6 @@ class Lexer:
                 if tok_type == TT_ASSIGN:
                     if self.current_char != None and self.current_char not in delim_map['assign_delim']:
                         errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
-                        self.advance()
                         continue
                     else:
                         states.append(160)
@@ -1411,7 +1407,6 @@ class Lexer:
                 if tok_type == TT_PLUS:
                     if self.current_char != None and self.current_char not in delim_map['plus_delim']:
                         errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
-                        self.advance()
                         continue
                     else:  
                         states.append(164)
@@ -1808,7 +1803,6 @@ class Lexer:
                         continue
                 else: 
                     errors.append(LexicalError(pos_start, pos_end, "'|' is not a valid operator"))
-                    self.advance()
                     continue
 
 
