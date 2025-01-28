@@ -36,7 +36,7 @@ delim_map = {
     'boogie_delim':     {'(', ' ', '\n', '\t', '{'},
     'bool_delim':       {')', ']', ',', ' ', ';'},
     'clsbrace_delim':   set(ALPHA_NUMERIC + '}' + '\n' + '\t' + ' ' + ';' + ','),
-    'clsparen_delim':   {'+', '-', '*', '/', '%', ')', '{', '}', ',', ']', '\n', '\t', ' ', ';', ':', '&', '|'},
+    'clsparen_delim':   {'+', '-', '*', '/', '%', ')', '{', '}', ',', ']', '\n', '\t', ' ', ';', ':', '&', '|' , '>' , '<'},
     'clssquare_delim':  {'+', '-', '*', '/', '%', ' !', '=', '<', '>', ')', ',', '[', ']', '\n', '\t', ';', ' ', '&', '|'},
     'codeblk_delim':    {'{', ' ', '\n', '\t'},
     'col_delim':        set(ALPHA + '\n' + '\t' + ' '),
@@ -50,7 +50,7 @@ delim_map = {
     'lend_delim':       set(ALPHA_NUMERIC + '#' + '#$' + '\n' + '\t' + ' ' + '}'),
     'logic_delim':      set(ALPHA + ' ' + '('),
     'minus_delim':      set(ALPHA_NUMERIC + '-' + '(' + ' '),
-    'num_delim':        set(ARITH_OP + RELATION_OP + ' ' + ')' + ',' + ';' + ':' + ']' + '}'),
+    'num_delim':        set(ARITH_OP + '>' + '<' + ' ' + ')' + ',' + ';' + ':' + ']' + '}'),
     'opnbrace_delim':   set(ALPHA_NUMERIC + '\n' + '\t' + '"' + ' ' + '{'),
     'opnparen_delim':   set(ALPHA_NUMERIC + '"' + "'" + '-' + '+' + '(' + ')' + '\n' + '\t' + ' ' + '!'),
     'opnsquare_delim':  set(ALPHA_NUMERIC + '"' + "'" + '-' + '(' + '[' + ']' + ' ' + '\n' + '\t'),
@@ -1480,6 +1480,7 @@ class Lexer:
                 else:
                     i = -1
                     if len(tokens) > 0 and tokens[-1].type in [TT_SPACE, TT_TAB]:
+                        white_start = self.pos.copy()
                         i = i-1
                         while len(tokens) > 0 and tokens[i].type in [TT_SPACE, TT_TAB]:
                             i = i-1
