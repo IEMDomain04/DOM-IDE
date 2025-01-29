@@ -32,7 +32,7 @@ keywords = [
 delim_map = {
     'adr_delim':        set(ALPHA_NUMERIC + ' ' + '#'),
     'arith_delim':      set(ALPHA_NUMERIC + ' ' + '-' + '(' + '#'),
-    'assign_delim':     set(ALPHA_NUMERIC + ' ' + '"' + '-' + '(' + '\n' + '\t' + '#'),
+    'assign_delim':     set(ALPHA_NUMERIC + ' ' + '"' + '-' + '(' + '\n' + '\t' + '!' + '#'),
     'boogie_delim':     {'(', ' ', '\n', '\t', '{', '#'},
     'bool_delim':       {')', ']', ',', ' ', ';', '#'},
     'clsbrace_delim':   set(ALPHA_NUMERIC + '}' + '\n' + '\t' + ' ' + ';' + ',' + '#'),
@@ -41,7 +41,7 @@ delim_map = {
     'codeblk_delim':    {'{', ' ', '\n', '\t', '#'},
     'col_delim':        set(ALPHA + '\n' + '\t' + ' ' + '#'),
     'comma_delim':      set(ALPHA_NUMERIC + '"' + "'" + '(' + '[' + '-' + ' ' + "\n" + "\t" + '#'),
-    'comp_delim':       set(ALPHA_NUMERIC + '"' + "'" + '(' + '-' + ' ' + '#'),
+    'comp_delim':       set(ALPHA_NUMERIC + '"' + "'" + '(' + '-' + ' ' + '!' + '#'),
     'default_delim':    {' ', ':', '\t', '#'},
     'ex_delim':         {';', '#'},
     'ident_delim':      {'+', '-', '*', '/', '%', '!', '=', '<', '>', '(', ')', ',', '[', ']', ' ', ';', '&', '|', '}', '#'},
@@ -1399,7 +1399,7 @@ class Lexer:
                     states.append
                     self.advance()
                     tok_type = TT_INCR
-                if self.current_char == '=':        
+                elif self.current_char == '=':        
                     states.append(167)
                     self.advance()
                     tok_type = TT_PLUSEQ
@@ -1417,7 +1417,8 @@ class Lexer:
                         states.append(164)
                         tokens.append(Token(tok_type, '+', pos_start=self.pos))
                         continue
-                if tok_type == TT_INCR:
+                elif tok_type == TT_INCR:
+                    pos_end = self.pos.copy()
                     if self.current_char != None and self.current_char not in delim_map['incdec_delim']:
                         if self.current_char == '\n':
                             errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\n' after operator"))
@@ -1430,7 +1431,8 @@ class Lexer:
                         states.append(166)
                         tokens.append(Token(tok_type, '++', pos_start=pos_start, pos_end=self.pos))
                         continue
-                if tok_type == TT_PLUSEQ:
+                elif tok_type == TT_PLUSEQ:
+                    pos_end = self.pos.copy()
                     if self.current_char != None and self.current_char not in delim_map['assign_delim']:
                         errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
                         continue
@@ -1438,6 +1440,10 @@ class Lexer:
                         states.append(168)
                         tokens.append(Token(tok_type, '+=', pos_start=pos_start, pos_end=self.pos))
                         continue
+                else:
+                    print("Line 1442, Wtf am I?")
+                    errors.append(LexicalError(pos_start, pos_end, f"Unclassified Token"))
+                    continue
                 
 
             elif self.current_char == '-':          # minus, decrement, minus equals
