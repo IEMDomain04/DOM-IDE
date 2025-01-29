@@ -14,7 +14,7 @@ DIGIT = '123456789'
 NUMERIC = ZERO + DIGIT
 ALPHA_NUMERIC = ALPHA + NUMERIC
 PUNCTUATION_SYMBOLS = string.punctuation
-ASCII = ALPHA_NUMERIC + PUNCTUATION_SYMBOLS + ' \t\n'
+ASCII = ALPHA_NUMERIC + PUNCTUATION_SYMBOLS
 ARITH_OP = '+-*/%='
 RELATION_OP = '<>!&|'
 ALL_OPERATOR = ARITH_OP + RELATION_OP
@@ -30,36 +30,36 @@ keywords = [
 
 # FROM THE DELIMITERS 
 delim_map = {
-    'adr_delim':        set(ALPHA_NUMERIC + ' '),
-    'arith_delim':      set(ALPHA_NUMERIC + ' ' + '-' + '('),
-    'assign_delim':     set(ALPHA_NUMERIC + ' ' + '"' + '-' + '(' + '\n' + '\t'),
-    'boogie_delim':     {'(', ' ', '\n', '\t', '{'},
-    'bool_delim':       {')', ']', ',', ' ', ';'},
-    'clsbrace_delim':   set(ALPHA_NUMERIC + '}' + '\n' + '\t' + ' ' + ';' + ','),
-    'clsparen_delim':   {'+', '-', '*', '/', '%', ')', '{', '}', ',', ']', '\n', '\t', ' ', ';', ':', '&', '|' , '>' , '<'},
-    'clssquare_delim':  {'+', '-', '*', '/', '%', ' !', '=', '<', '>', ')', ',', '[', ']', '\n', '\t', ';', ' ', '&', '|'},
-    'codeblk_delim':    {'{', ' ', '\n', '\t'},
-    'col_delim':        set(ALPHA + '\n' + '\t' + ' '),
-    'comma_delim':      set(ALPHA_NUMERIC + '"' + "'" + '(' + '[' + '-' + ' ' + "\n" + "\t"),
-    'comp_delim':       set(ALPHA_NUMERIC + '"' + "'" + '(' + '-' + ' '),
-    'default_delim':    {' ', ':', '\t'},
-    'ex_delim':         {';'},
-    'ident_delim':      {'+', '-', '*', '/', '%', '!', '=', '<', '>', '(', ')', ',', '[', ']', ' ', ';', '&', '|', '}'},
-    'incdec_delim':     set(ALPHA_NUMERIC + ')' + ' ' + ';'),
-    'kword_delim':      {' ', '\t'},
-    'lend_delim':       set(ALPHA_NUMERIC + '#' + '#$' + '\n' + '\t' + ' ' + '}'),
-    'logic_delim':      set(ALPHA + ' ' + '('),
-    'minus_delim':      set(ALPHA_NUMERIC + '-' + '(' + ' '),
-    'num_delim':        set(ARITH_OP + '>' + '<' + ' ' + ')' + ',' + ';' + ':' + ']' + '}'),
-    'opnbrace_delim':   set(ALPHA_NUMERIC + '\n' + '\t' + '"' + ' ' + '{'),
-    'opnparen_delim':   set(ALPHA_NUMERIC + '"' + "'" + '-' + '+' + '(' + ')' + '\n' + '\t' + ' ' + '!'),
-    'opnsquare_delim':  set(ALPHA_NUMERIC + '"' + "'" + '-' + '(' + '[' + ']' + ' ' + '\n' + '\t'),
-    'plus_delim':       set(ALPHA_NUMERIC + '"' + "'" + '-' + '(' + ',' + ' ' + '\t'),
-    'para_delim':       {'(', ' ', '\t'},
-    'recall_delim':     set(ALPHA + ' ' + ';' + '('), 
-    'str_delim':        {'+', ')', ']', '\n', '\t', ',', ';', ' ', ':', '}'},
-    'white_delim':      set(ASCII + ALL_OPERATOR + ' ' + '\n' + '\t' + '\0'),
-    'woogie_delim':     set(NUMERIC + '(' + ' ' + '\t'),
+    'adr_delim':        set(ALPHA_NUMERIC + ' ' + '#'),
+    'arith_delim':      set(ALPHA_NUMERIC + ' ' + '-' + '(' + '#'),
+    'assign_delim':     set(ALPHA_NUMERIC + ' ' + '"' + '-' + '(' + '\n' + '\t' + '#'),
+    'boogie_delim':     {'(', ' ', '\n', '\t', '{', '#'},
+    'bool_delim':       {')', ']', ',', ' ', ';', '#'},
+    'clsbrace_delim':   set(ALPHA_NUMERIC + '}' + '\n' + '\t' + ' ' + ';' + ',' + '#'),
+    'clsparen_delim':   {'+', '-', '*', '/', '%', ')', '{', '}', ',', ']', '\n', '\t', ' ', ';', ':', '&', '|' , '>' , '<' , '#'},
+    'clssquare_delim':  {'+', '-', '*', '/', '%', ' !', '=', '<', '>', ')', ',', '[', ']', '\n', '\t', ';', ' ', '&', '|' , '#'},
+    'codeblk_delim':    {'{', ' ', '\n', '\t', '#'},
+    'col_delim':        set(ALPHA + '\n' + '\t' + ' ' + '#'),
+    'comma_delim':      set(ALPHA_NUMERIC + '"' + "'" + '(' + '[' + '-' + ' ' + "\n" + "\t" + '#'),
+    'comp_delim':       set(ALPHA_NUMERIC + '"' + "'" + '(' + '-' + ' ' + '#'),
+    'default_delim':    {' ', ':', '\t', '#'},
+    'ex_delim':         {';', '#'},
+    'ident_delim':      {'+', '-', '*', '/', '%', '!', '=', '<', '>', '(', ')', ',', '[', ']', ' ', ';', '&', '|', '}', '#'},
+    'incdec_delim':     set(ALPHA_NUMERIC + ')' + ' ' + ';' + '#'),
+    'kword_delim':      {' ', '\t', '#'},
+    'lend_delim':       set(ALPHA_NUMERIC + '#' + '#$' + '\n' + '\t' + ' ' + '}' + '#'),
+    'logic_delim':      set(ALPHA + ' ' + '(' + '#'),
+    'minus_delim':      set(ALPHA_NUMERIC + '-' + '(' + ' ' + '#'),
+    'num_delim':        set(ARITH_OP + '>' + '<' + ' ' + ')' + ',' + ';' + ':' + ']' + '}' + '#'),
+    'opnbrace_delim':   set(ALPHA_NUMERIC + '\n' + '\t' + '"' + ' ' + '{' + '#'),
+    'opnparen_delim':   set(ALPHA_NUMERIC + '"' + "'" + '-' + '+' + '(' + ')' + '\n' + '\t' + ' ' + '!' + '#'),
+    'opnsquare_delim':  set(ALPHA_NUMERIC + '"' + "'" + '-' + '(' + '[' + ']' + ' ' + '\n' + '\t' + '#'),
+    'plus_delim':       set(ALPHA_NUMERIC + '"' + "'" + '-' + '(' + ',' + ' ' + '\t' + '#'),
+    'para_delim':       {'(', ' ', '\t' , '#'},
+    'recall_delim':     set(ALPHA + ' ' + ';' + '(' + '#'), 
+    'str_delim':        {'+', ')', ']', '\n', '\t', ',', ';', ' ', ':', '}', '#'},
+    'white_delim':      set(ASCII + ALL_OPERATOR + ' ' + '\n' + '\t' + '\0' + '#'),
+    'woogie_delim':     set(NUMERIC + '(' + ' ' + '\t' + '#'),
 }
 
 
@@ -1998,7 +1998,7 @@ class Lexer:
                 if self.current_char == '$':
                     states.append(235)
                     self.advance()
-                    while self.current_char in ASCII + ' ' + '\t' + '\n':
+                    while self.current_char != None and self.current_char in ASCII + ' \t\n':
                         states.append(236)
                         self.advance()
                         if self.current_char == '$':
@@ -2012,7 +2012,7 @@ class Lexer:
                     self.advance()
             
 
-            elif self.current_char in ' \t\n':        # whitespace, newline, tab
+            elif self.current_char != None and self.current_char in [' ','\t','\n']:        # whitespace, newline, tab
                 pos_start = self.pos
 
                 # check for space
@@ -2133,7 +2133,7 @@ class Lexer:
         pos_start = self.pos.copy()
         self.advance()
 
-        while self.current_char is not None and self.current_char in ASCII:
+        while self.current_char is not None and self.current_char in ASCII + ' \t':
             pos_end = self.pos.copy()
             if self.current_char == '"':
                 self.advance()
