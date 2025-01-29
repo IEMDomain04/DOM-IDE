@@ -2006,10 +2006,12 @@ class Lexer:
                             self.advance()
                             if self.current_char == '#':
                                 states.append(238)
+                                self.advance()
                                 break
-                while self.current_char != None and self.current_char in ASCII + ' \t':
-                    states.append(239)
-                    self.advance()
+                else:
+                    while self.current_char != None and self.current_char in ASCII + ' \t':
+                        states.append(239)
+                        self.advance()
             
 
             elif self.current_char != None and self.current_char in [' ','\t','\n']:        # whitespace, newline, tab
