@@ -214,7 +214,7 @@ CFG = {
     ],
 
     "<vow_statement>": [
-        ["vow", "(", "<conditional_looping_conditions>", ")", "{", "<con_loop_body>", "}", "<vow_next>"], ###########
+        ["vow", "(", "<expression>", ")", "{", "<con_loop_body>", "}", "<vow_next>"], ###########
     ],
 
     "<vow_next>": [
@@ -224,7 +224,7 @@ CFG = {
 
     "<vow_tail>": [
         ["{", "<statement>", "}",],
-        ["vow", "(", "<conditional_looping_conditions>", ")", "{", "<con_loop_body>", "}", "<vow_next>"],
+        ["vow", "(", "<expression>", ")", "{", "<con_loop_body>", "}", "<vow_next>"],
         []
     ],
 
@@ -636,7 +636,8 @@ PREDICT_SET = {
         "&&": ["<more_clan>", 1],
         "||": ["<more_clan>", 1],
         "!": ["<more_clan>", 1],
-        ";": ["<more_clan>", 1]
+        ";": ["<more_clan>", 1],
+        ")": ["<more_clan>", 1]
     },
 
     "<more_logic>": { #############
@@ -658,7 +659,8 @@ PREDICT_SET = {
         ")": ["<more_logic>", 1],
         ",": ["<more_logic>", 1],
         ";": ["<more_logic>", 1],
-        "(" : ["<more_logic>", 1],\
+        "(": ["<more_logic>", 1],
+        ":": ["<more_logic>", 1] 
     },
 
     "<operator>": { #############
@@ -756,6 +758,11 @@ PREDICT_SET = {
 
     "<id_call>": {
         "=": ["<id_call>", 0],
+        "+=": ["<id_call>", 0],
+        "-=": ["<id_call>", 0],
+        "*=": ["<id_call>", 0],
+        "/=": ["<id_call>", 0],
+        "%=": ["<id_call>", 0],
         "[": ["<id_call>", 1],
         "(": ["<id_call>", 2]
     },
@@ -945,9 +952,9 @@ PREDICT_SET = {
         "+": ["<arith_op>", 0],
         "-": ["<arith_op>", 1],
         "*": ["<arith_op>", 2],
-        "**": ["<arith_op>", 3],
-        "/": ["<arith_op>", 4],
-        "%": ["<arith_op>", 5]
+        "/": ["<arith_op>", 3],
+        "%": ["<arith_op>", 4],
+        "**": ["<arith_op>", 5]
     },
 
     "<relational_op>": { #############
@@ -1019,7 +1026,12 @@ PREDICT_SET = {
         ")": ["<post>", 2],
         ",": ["<post>", 2],
         ";": ["<post>", 2],
-        "(": ["<post>", 2]
+        "(": ["<post>", 2],
+        "=": ["<post>", 2],
+        "+=": ["<post>", 2],
+        "-=": ["<post>", 2],
+        "*=": ["<post>", 2],
+        "%=": ["<post>", 2]
     }
 
 }
