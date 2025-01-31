@@ -19,17 +19,18 @@ CFG = {
     "<global_type_dec>": [
         ["<datatype>", "<curse_or_var>"], ########### 
         ["curse", "<init_void_curse>"], ###########
+        ["restrict", "<datatype>", "id", "<type_choice>"], ###########
     ],
 
     "<curse_or_var>": [
         ["curse", "id", "<nonvoid_curse_dec>"],
-        ["<restrict>", "id", "<type_choice>"]
+        ["id", "<type_choice>"]
     ],
 
-    "<restrict>": [
-        ["restrict"], ###########
-        []  
-    ], 
+    # "<restrict>": [
+    #     ["restrict"], ###########
+    #     []  
+    # ], 
 
     "<nonvoid_curse_dec>": [
         ["(", "<param>", ")", "{", "<body>", "}"], ########### 31
@@ -111,13 +112,19 @@ CFG = {
 
     "<expression>": [
         ["(", "<expression>", "<more_logic>", ")", "<more_logic>"],
-        ["<operand>","<more_logic>"]
+        ["<operand>","<more_logic>"],
+        ["<not_op>", "(", "<expression>", ")", "<more_logic>"]
     ],
 
     "<operand>": [
         ["<pre>", "<value>"],
         ["<value>", "<post>"],
         ["<not_op>", "<value>"]
+    ],
+
+    "<more_logic>": [
+        ["<operator>", "<expression>"],
+        []
     ],
 
     "<value>": [
@@ -128,11 +135,16 @@ CFG = {
         ["<cleave>", "(", "<arguments>", ")"],
         ["<dismantle>", "(", "<arguments>", ")"],
         ["len", "(", "<arguments>", ")"],
-        ["(", "<value>", ")"]
     ],
 
-    "<more_logic>": [
-        ["<operator>", "<expression>"],
+    "<curse_or_clan>": [
+        ["(", "<arguments>", ")"],
+        ["[", "int_literal", "]", "<more_clan>"],
+        []
+    ],
+
+    "<more_clan>": [    
+        ["[", "int_literal", "]", "<more_clan>"],
         []
     ],
 
@@ -151,7 +163,6 @@ CFG = {
         ["<local_dec>"],                ###########
         ["id", "<id_call>", ";"],            ###########
         ["invoke", "(", "<arguments>", ")", ";"], ###########
-        ["capture", "(", "<arguments>", ")", ";"],    ###########
         ["cleave", "(", "<arguments>", ")", ";"],    ###########
         ["dismantle", "(", "<arguments>", ")", ";"], ###########
         ["capture", "(", "id", ")", ";"],    ###########
@@ -166,7 +177,6 @@ CFG = {
     "<local_dec>": [
         ["<datatype>", "<curse_or_var>"], ###########
         ["curse", "<local_void_curse>"], ###########
-        ["<id_call>"],
     ],
 
     "<local_void_curse>": [
@@ -188,15 +198,6 @@ CFG = {
         ["(", "<arguments>", ")"] ###########
     ],
 
-    "<assign_index>": [
-        ["[", "<int_literal>", "]", "<more_index>"], ###########
-    ],
-
-    "<more_index>": [
-        ["[", "<int_literal>", "]"], ########### FIXME: update
-        []
-    ],
-
     "<arguments>": [
         ["<expression>", "<more_arguments>"], ###########
         []
@@ -207,240 +208,100 @@ CFG = {
         []
     ],
 
-    "<re-assign>": [
-        ["<assign_expression>"],                ########### 20
-        []                                   ########### 21
-    ],
-    
-    "<invoke_stm>": [
-        ["invoke", "(", "<arguments>", ")"]         ########### 71
-    ],
-    "<capture_stm>": [
-        ["capture", "(", "id", ")"]             ########### 72
-    ],
     "<conditional_stm>": [
-        ["<vow_statement>"],                    ########### 73
-        ["<boogie_woogie_statement>"],          ########### 74
-        ["<boogie_true_statement>"]             ########### 75
+        ["<vow_statement>"], ###########
+        ["boogie", "<boogie_tail>"] ###########
     ],
+
     "<vow_statement>": [
-        ["vow", "(", "<vow_conditions>", ")", "{", "<con_loop_body>", "}", "<vow_next>"]  ########### 76
+        ["vow", "(", "<conditional_looping_conditions>", ")", "{", "<con_loop_body>", "}", "<vow_next>"], ###########
     ],
+
     "<vow_next>": [
-        ["<vow_else>"],                         ########### 77
-        ["<vow_ladder>"],                       ########### 78
-        []                                   ########### 79                     
+        ["else", "<vow_tail>"],
+        []
     ],
-    "<vow_else>": [
-        ["else{", "<statement>", "<recall_statement>", "}"],    ########### 80
-        []                                   ########### 81
+
+    "<vow_tail>": [
+        ["{", "<statement>", "}",],
+        ["vow", "(", "<conditional_looping_conditions>", ")", "{", "<con_loop_body>", "}", "<vow_next>"],
+        []
     ],
-    "<vow_ladder>": [
-        ["else vow(", "vow_conditions", "){", "<statement>", "<recall_statement>", "}", "<more_vow_else>", "<vow_else>"],   ########### 82
-        []                                   ########### 83
+
+    "<boogie_tail>": [
+        ["(", "id", ")", "{", "woogie", "<literal>", ":", "<con_loop_body>", "<more_woogie>", "default", ":", "<statement>", "}"],
+        ["{", "woogie", "<expression>", ":", "<con_loop_body>", "<more_true_woogie>", "default", ":", "<statement>", "}"],
     ],
-    "<more_vow_else>": [
-        ["else vow(", "<vow_conditions>", "){", "<con_loop_body>", "}", "<more_vow_else>"], ########### 84
-        []                                   ########### 85             
-    ],
-    "<vow_conditions>": [
-        ["id"],                                 ########### 86
-        ["<relational_expression>"],            ########### 87
-        ["<logic_expression>"],                 ########### 88
-        ["id == bool_literal"],                 ########### 89
-        ["<not_logic_op>", "id"],               ########### 90
-        ["<not_logic_op>", "(", "<relational_expression>", ")"],    ########### 91
-        ["<not_logic_op>", "(", "<logic_expression>", ")"],         ########### 92
-        ["<not_logic_op>", "(", "id == bool_literal", ")"],         ########### 93
-        ["<not_logic_op>", "(", "<vow_conditions>", ")"]            ########### 94
-    ],
-    "<boogie_woogie_statement>": [              ########### 95
-        ["boogie", "(", "<control_var>", ")", "{", "woogie", "<constant>", ":", "<con_loop_body>", "<control_flow>", "<more_woogie>", "default:", "<statement>", "}"]
-    ],
-    "<constant>": [
-        ["<literal>"]                           ########### 96
-    ],
+
     "<more_woogie>": [
-        ["woogie", "<constant>", ":", "<statement>", "<control_flow>", "<more_woogie>"],    ########### 97
-        []                                   ########### 98
+        ["woogie", "<literal>", ":", "<con_loop_body>", "<more_woogie>"],
+        []
     ],
-    "<boogie_true_statement>": [                ########### 99
-        ["boogie", "{", "woogie", "(", "<woogie_sustain_condition>", ")", ":", "<con_loop_body>", "<control_flow>", "<more_true_woogie>", "default:", "<statement>", "}"]
+
+    "<more_true_woogie>": [
+        ["woogie", "(", "<expression>", ")", ":", "<con_loop_body>", "<more_true_woogie>"],
+        []
     ],
-    "<more_true_woogie>": [                     
-        ["woogie", "(", "<woogie_sustain_condition>", ")", ":", "<statement>", "<control_flow>", "<more_true_woogie>"], ########### 100
-        []                                   ########### 101
-    ],
-    "<control_var>": [
-        ["id"]                                  ########### 102
-    ],
-    "<woogie_sustain_condition>": [
-        ["id"],                                 ########### 103
-        ["<relational_expression>"],            ########### 104
-        ["<logic_expression>"],                 ########### 105  
-        ["id == <bool_literal>"],               ########### 106
-        ["<not_logic_op>", "id"],               ########### 107
-        ["<not_logic_op>", "(", "<relational_expression>", ")"],    ########### 108
-        ["<not_logic_op>", "(", "<logic_expression>", ")"],         ########### 109
-        ["<not_logic_op>", "(", "id == <bool_literal>", ")"],       ########### 110
-        ["<not_logic_op>", "(", "<vow_conditions>", ")"]            ########### 111
-    ],
-    "<control_flow>": [
-        ["dismiss",";"],                        ########### 112
-        ["hop",";"],                            ########### 113
-        []                                   ########### 114
-    ],
+
+    # "<conditional_looping_conditions>": [
+    #     ["id"],
+    #     ["<expression>"]
+    # ],
+
     "<looping_stm>": [
-        ["<sustain-loop>"],                     ########### 115
-        ["<persustain-loop>"],                  ########### 116
-        ["<cycle-loop>"]                        ########### 117
+        ["<cycle-loop>"],
+        ["<sustain-loop>"],
+        ["<persustain-loop>"]
     ],
+
     "<cycle-loop>": [
-        ["cycle","(", "<cycle_initialize>", ";", "<cycle_condition>", ";", "<iteration>", ")","{", "<con_loop_body>", "}"]    ########### 118
+        ["cycle", "(", "<cycle_initialize>", ";", "<cycle_condition>", ";", "<iteration>", ")", "{", "<con_loop_body>", "}"]
     ],
+
     "<cycle_initialize>": [
-        ["id", "=", "<cycle_ini_val>"],           ########### 119
-        ["<datatype>", "id", "=", "<cycle_ini_val>"]  ########### 120
+        ["id", "<id_call>"],
+        ["<datatype>", "id", "=", "<expression>"]
     ],
-    "<cycle_ini_val>": [
-        ["id"],                                 ########### 121
-        ["int_literal"],                        ########### 122
-        ["<arith_expression>"]                  ########### 123
-    ],
+
+    # "<cycle_ini_val>": [
+    #     ["id"],
+    #     ["int_literal"],
+    #     ["<expression>"]
+    # ],
+
     "<cycle_condition>": [
-        ["<relational_expression>"],            ########### 124
-        ["<not_logic_op>", "(", "<relational_expression>", ")"],    ########### 125
-        ["<not_logic_op>", "(", "<cycle_condition>", ")"]        ########### 126
+        ["<expression>"],
+        ["<not_op>", "(", "<cycle_condition>", ")"]
     ],
+
     "<iteration>": [
-        ["<unary_expression>"]                  ########### 127
+        ["<pre>", "id"],
+        ["id", "<post>"]
     ],
+
     "<sustain-loop>": [
-        ["sustain (", "<woogie_sustain_condition>", "){", "<con_loop_body>", "}"]   ########### 128
+        ["sustain", "(", "<expression>", ")", "{", "<con_loop_body>", "}"]
     ],
+
     "<persustain-loop>": [
-        ["perform {", "<con_loop_body>", "} sustain(", "<woogie_sustain_condition>", ")"]   ########### 129
+        ["perform", "{", "<con_loop_body>", "}", "sustain", "(", "<expression>", ")", ";"]
     ],
+
     "<con_loop_body>": [
-        ["<var_dec>", ";", "<con_loop_body>"],      ########### 130
-        ["<restrict_dec>", ";", "<con_loop_body>"], ########### 131
-        ["<re-assign>", ";", "<con_loop_body>"],    ########### 132
-        ["<expression>", ";", "<con_loop_body>"],   ########### 133
-        ["<invoke_stm>", ";", "<con_loop_body>"],   ########### 134
-        ["<capture_stm>", ";", "<con_loop_body>"],  ########### 135
-        ["<curse_call>", ";", "<con_loop_body>"],   ########### 136
-        ["<recall_statement>", ";", "<con_loop_body>"], ########### 137
-        ["<conditional_stm>", "<con_loop_body>"],   ########### 138
-        ["<con_loop_body>", "<con_loop_body>"],     ########### 139                         
-        []                                       ########### 140
-    ],
-    "<expressions>": [
-        ["<assign_expression>"],                    ########### 141
-        ["<unary_expression>"],                     ########### 142
-        ["<relational_expression>"],                ########### 143
-        ["<arith_expression>"],                     ########### 144
-        ["<logic_expression>"],                     ########### 145
-        []                                       ########### 146
-    ],
-    "<assign_expression>": [
-        ["<assign_left_operand>", "<assign_op>", "<assign_right_operand>"]  ########### 147
-    ],
-    "<assign_left_operand>": [
-        ["id"],                                     ########### 148
-        ["<clan_access>"],                          ########### 149
-        ["<string_access>"]                         ########### 150
-    ],
-    "<assign_right_operand>": [
-        ["id"],                                     ########### 151
-        ["<literal>"],                              ########### 152       
-        ["<length>"],                               ########### 153              
-        ["<relational_expression>"],                ########### 154
-        ["<logic_expression>"],                     ########### 155
-        ["<arith_expression>"],                     ########### 156
-        ["<curse_call>"]                            ########### 157
-    ],  
-
-    "<unary_expression>": [
-        ["<prefix_unary_expression>"],              ########### 163
-        ["<postfix_unary_expression>"]              ########### 164
-    ],
-    "<prefix_unary_expression>": [
-        ["<unary_op>", "<unary_operand>"]           ########### 165
-    ],
-    "<postfix_unary_expression>": [
-        ["<unary_operand>", "<unary_op>"]           ########### 166
-    ],
-    "<unary_operand>": [
-        ["id"]                                      ########### 167
-    ],
-    "<unary_op>": [
-        ["++"],                                     ########### 168
-        ["--"]                                      ########### 169
-    ],
-    "<arith_expression>": [
-        ["<arith_operand>", "<arith_op>", "<arith_operand>", "<more_arith>"],   ########### 170
-        ["(", "<paren_arith_expression>", ")"]      ########### 171
-    ],
-    "<paren_arith_expression>": [
-        ["<arith_expression>"]                      ########### 172
-    ],
-    "<arith_operand>": [
-        ["(", "<paren_arith_operand>", ")"],        ########### 173
-        ["id"],                                     ########### 174 
-        ["int_literal"],                            ########### 175
-        ["float_literal"],                          ########### 176
-        ["<curse_call>"]                            ########### 177
-    ],
-    "<arith_operand>": [
-        ["<clan_access>"],                          ########### 178
-        ["<arith_expression>"]                      ########### 179
-    ],
-    "<paren_arith_operand>": [
-        ["<arith_operand>"]                         ########### 180
-    ],
-    "<more_arith>": [
-        ["<arith_op>", "<arith_operand>", "<more_arith>"],  ########### 181
-        []                                       ########### 182
-    ],
-
-    "<relational_expression>": [
-        ["<relational_operand>", "<relational_op>", "<relational_operand>"],    ########### 190
-        ["(", "<paren_relational_expression>", ")"] ########### 191
-    ],
-    "<paren_relational_expression>": [
-        ["<relational_expression>"]                 ########### 192
-    ],
-    "<relational_operand>": [
-        ["(", "<paren_relational_operand>", ")"],   ########### 193    
-        ["id"],                                     ########### 194    
-        ["<literal>"],                              ########### 195               
-        ["<clan_access>"],                          ########### 196               
-        ["<length>"],                               ########### 197                
-        ["<curse_call>"],                           ########### 198            
-        ["<arith_expression>"]                      ########### 199       
-    ],
-    "<paren_relational_operand>": [
-        ["<relational_operand>"]                    ########### 200
-    ],
-
-    "<logic_expression>": [
-        ["<not_logic_operand>", "<logic_op>", "<not_logic_operand>", "<more_logic>"],   ########### 207
-        ["(", "<paren_logic_expression>", ")"],     ########### 208
-        ["<not_logic_op>", "(", "<logic_expression>", ")"]  ########### 209
-    ],
-    "<paren_logic_expression>": [
-        ["<logic_expression>"]                      ########## 210
-    ],
-    "<not_logic_operand>": [
-        ["<not_logic_op>", "<logic_operand>"]       ########### 211
-    ],
-    "<logic_operand>": [
-        ["(", "<not_logic_operand>", ")"],          ########### 212
-        ["id"],                                     ########### 213
-        ["bool_literal"],                           ########### 214
-        ["<curse_call>"],                           ########### 215
-        ["<relational_expression>"]                 ########### 216
-    ],
+        ["<local_dec>", "<con_loop_body>"],                            ########### 0
+        ["id", "<id_call>", ";", "<con_loop_body>"],                   ########### 1
+        ["invoke", "(", "<arguments>", ")", ";", "<con_loop_body>"],   ########### 2
+        ["cleave", "(", "<arguments>", ")", ";", "<con_loop_body>"],   ########### 3
+        ["dismantle", "(", "<arguments>", ")", ";", "<con_loop_body>"],########### 4
+        ["capture", "(", "id", ")", ";", "<con_loop_body>"],           ########### 5
+        ["len", "(", "<arguments>", ")", ";", "<con_loop_body>"],      ########### 6
+        ["<recall_stm>", "<con_loop_body>"],                           ########### 7 
+        ["<conditional_stm>", "<con_loop_body>"],                      ###########
+        ["<looping_stm>", "<con_loop_body>"],                          ###########
+        ["dismiss", ";", "<con_loop_body>"],                            ###########
+        ["hop", ";", "<con_loop_body>"],                               ###########
+        []
+    ], 
 
     "<string_concat>": [
         ["string_literal", "+", "<string_concat>"], ########### 224
@@ -573,6 +434,7 @@ PREDICT_SET = {
         "float": ["<global_dec>", 0],
         "bool": ["<global_dec>", 0],    
         "curse": ["<global_dec>",0],
+        "restrict": ["<global_dec>", 0],
         "Ø": ["<global_dec>", 1]
     }, 
 
@@ -581,19 +443,19 @@ PREDICT_SET = {
         "float": ["<global_type_dec>", 0],
         "string": ["<global_type_dec>", 0],
         "bool": ["<global_type_dec>", 0],
-        "curse": ["<global_type_dec>", 1]
+        "curse": ["<global_type_dec>", 1],
+        "restrict": ["<global_type_dec>", 2]
     },
 
     "<curse_or_var>": {
         "curse": ["<curse_or_var>", 0],
-        "restrict": ["<curse_or_var>", 1],
         "id": ["<curse_or_var>", 1]
     },
 
-    "<restrict>": {
-        "restrict": ["<restrict>", 0],
-        "id": ["<restrict>", 1]
-    },
+    # "<restrict>": {
+    #     "restrict": ["<restrict>", 0],
+    #     "id": ["<restrict>", 1]
+    # },
 
     "<nonvoid_curse_dec>": {
         "(": ["<nonvoid_curse_dec>", 0]
@@ -693,7 +555,6 @@ PREDICT_SET = {
         "string_literal": ["<expression>", 1],
         "bool_literal": ["<expression>", 1],
         "float_literal": ["<expression>", 1],
-        "!": ["<expression>", 1],
         "++": ["<expression>", 1],
         "--": ["<expression>", 1],
         "invoke": ["<expression>", 1],
@@ -701,6 +562,7 @@ PREDICT_SET = {
         "cleave": ["<expression>", 1],
         "dismantle": ["<expression>", 1],
         "len": ["<expression>", 1],
+        "!": ["<expression>", 2],
     },
 
     "<operand>": { #############
@@ -730,12 +592,31 @@ PREDICT_SET = {
         "cleave": ["<value>", 4],
         "dismantle": ["<value>", 5],
         "len": ["<value>", 6],
-        "(" : ["<value>", 7],
     },
 
     "<curse_or_clan>": { #############
         "(" : ["<curse_or_clan>", 0],
         "[": ["<curse_or_clan>", 1],
+        "+": ["<curse_or_clan>", 2],
+        "-": ["<curse_or_clan>", 2],
+        "*": ["<curse_or_clan>", 2],
+        "/": ["<curse_or_clan>", 2],
+        "%": ["<curse_or_clan>", 2],
+        "!=": ["<curse_or_clan>", 2],
+        "**": ["<curse_or_clan>", 2],
+        "==": ["<curse_or_clan>", 2],
+        ">": ["<curse_or_clan>", 2],
+        "<": ["<curse_or_clan>", 2],
+        ">=": ["<curse_or_clan>", 2],
+        "<=": ["<curse_or_clan>", 2],
+        "&&": ["<curse_or_clan>", 2],
+        "||": ["<curse_or_clan>", 2],
+        "!": ["<curse_or_clan>", 2],
+        ")": ["<curse_or_clan>", 2],
+        ";": ["<curse_or_clan>", 2],
+        "++": ["<curse_or_clan>", 2],
+        "--": ["<curse_or_clan>", 2],
+        ",": ["<curse_or_clan>", 2]
     },
 
     "<more_clan>": { #############
@@ -754,7 +635,8 @@ PREDICT_SET = {
         "<=": ["<more_clan>", 1],
         "&&": ["<more_clan>", 1],
         "||": ["<more_clan>", 1],
-        "!": ["<more_clan>", 1]
+        "!": ["<more_clan>", 1],
+        ";": ["<more_clan>", 1]
     },
 
     "<more_logic>": { #############
@@ -775,7 +657,8 @@ PREDICT_SET = {
         "!": ["<more_logic>", 0],
         ")": ["<more_logic>", 1],
         ",": ["<more_logic>", 1],
-        ";": ["<more_logic>", 1]
+        ";": ["<more_logic>", 1],
+        "(" : ["<more_logic>", 1],\
     },
 
     "<operator>": { #############
@@ -823,18 +706,18 @@ PREDICT_SET = {
         "curse": ["<statement>", 0],
         "id": ["<statement>", 1],
         "invoke": ["<statement>", 2],
-        "capture": ["<statement>", 6],
-        "cleave": ["<statement>", 4],
-        "dismantle": ["<statement>", 5],
-        "len": ["<statement>", 7],
-        "recall": ["<statement>", 8],
-        "vow": ["<statement>", 9],
-        "boogie": ["<statement>", 9],
-        "cycle": ["<statement>", 10],
-        "sustain": ["<statement>"   , 10],
-        "perform": ["<statement>", 10],
-        "}": ["<statement>", 11],
-        "Ø": ["<statement>", 11]
+        "cleave": ["<statement>", 3],
+        "dismantle": ["<statement>", 4],
+        "capture": ["<statement>", 5],
+        "len": ["<statement>", 6],
+        "recall": ["<statement>", 7],
+        "vow": ["<statement>", 8],
+        "boogie": ["<statement>", 8],
+        "cycle": ["<statement>", 9],
+        "sustain": ["<statement>"   , 9],
+        "perform": ["<statement>", 9],
+        "}": ["<statement>", 10],
+        "Ø": ["<statement>", 10]
     },
 
     "<local_dec>": {
@@ -900,130 +783,145 @@ PREDICT_SET = {
         ")": ["<more_arguments>", 1]
     },
 
-
-    "<re-assign>": {
-        "id": ["<re-assign>", 0],
-        "Ø": ["<re-assign>", 1]
-    },
-
-    "<multi-assign>": { ############# 9 in First Set
-        ",": ["<multi-assign>", 0],
-        ";": ["<multi-assign>", 1],
-        "Ø": ["<multi-assign>", 1]
-    },
-    
-    "<var_dec_syntax>": { ############# 19 in First Set
-        "int": ["<var_dec_syntax>", 0],
-        "float": ["<var_dec_syntax>", 0],
-        "string": ["<var_dec_syntax>", 0],
-        "bool": ["<var_dec_syntax>", 0],
-        "id": ["<var_dec_syntax>", 1]
-    },
-
-    "<assign>": { ############# 
-        "=": ["<assign>", 0],
-        "Ø": ["<assign>", 1],
-        ",": ["<assign>", 1],
-        ";": ["<assign>", 1]
-    },
-
-    "<invoke_stm>": { ############# 25 in First Set
-        "invoke": ["<invoke_stm>", 0]
-    },
-
-    "<capture_stm>": { ############# 26 in First Set
-        "capture": ["<capture_stm>", 0]
-    },
-
-    "<conditional_stm>": { ############# 27 in First Set
+    "<conditional_stm>": {
         "vow": ["<conditional_stm>", 0],
-        "boogie": ["<conditional_stm>", 1],
+        "boogie": ["<conditional_stm>", 1]
     },
 
-    "<vow_statement>": { ############# 28 in First Set
+    "<vow_statement>": {
         "vow": ["<vow_statement>", 0]
     },
 
-    "<vow_next>": { ############# 29 in First Set
-        "else": ["<vow_next>", 0], #FIXME Ambiguity for 'else'
-        "Ø": ["<vow_next>", 2]
+    "<vow_next>": {
+        "else": ["<vow_next>", 0],
+        "}": ["<vow_next>", 1],
+        "int": ["<vow_next>", 1],
+        "float": ["<vow_next>", 1],
+        "string": ["<vow_next>", 1],
+        "bool": ["<vow_next>", 1],
+        "curse": ["<vow_next>", 1],
+        "id": ["<vow_next>", 1],
+        "invoke": ["<vow_next>", 1],
+        "capture": ["<vow_next>", 1],
+        "cleave": ["<vow_next>", 1],
+        "dismantle": ["<vow_next>", 1],
+        "len": ["<vow_next>", 1],
+        "recall": ["<vow_next>", 1],
+        "vow": ["<vow_next>", 1],
+        "boogie": ["<vow_next>", 1],
+        "cycle": ["<vow_next>", 1],
+        "sustain": ["<vow_next>", 1],
+        "perform": ["<vow_next>", 1],
+        "dismiss": ["<vow_next>", 1],
+        "hop": ["<vow_next>", 1]
     },
 
-    "<vow_else>": { ############# 30 in First Set
-        "else": ["<vow_else>", 0], #FIXME Ambiguity for 'else'
-        "Ø": ["<vow_else>", 1]
+    "<vow_tail>": {
+        "{": ["<vow_tail>", 0],
+        "vow": ["<vow_tail>", 1],
+        "}": ["<vow_tail>", 2],
     },
 
-    "<vow_ladder>": { ############# 31 in First Set
-        "else": ["<vow_ladder>", 0], #FIXME Ambiguity for 'else'
-        "Ø": ["<vow_ladder>", 1]
+    "<boogie_tail>": {
+        "(": ["<boogie_tail>", 0],
+        "{": ["<boogie_tail>", 1]
     },
 
-    "<more_vow_else>": { ############# 32 in First Set
-        "else": ["<more_vow_else>", 0], #FIXME Ambiguity for 'else'
-        "Ø": ["<more_vow_else>", 1]
+    "<more_woogie>": {
+        "woogie": ["<more_woogie>", 0],
+        "default": ["<more_woogie>", 1],
     },
 
-    "<vow_conditions>": { ############# 33 in First Set
-        "id": ["<vow_conditions>", 0],
-        "(": ["<vow_conditions>", 1],
-        "string_literal": ["<vow_conditions>", 6], # FIXME Ambiguity for vow_conditions T_T this whole thing
-        "int_literal": ["<vow_conditions>", 6],
-        "bool_literal": ["<vow_conditions>", 6],
-        "float_literal": ["<vow_conditions>", 6],
-        "len": ["<vow_conditions>", 6],
-        "!": ["<vow_conditions>", 4],
+    "<more_true_woogie>": {
+        "woogie": ["<more_true_woogie>", 0],
+        "default": ["<more_true_woogie>", 1],
+    },
+
+    "<conditional_looping_conditions>": {
+        "id": ["<conditional_looping_conditions>", 1],
+        "(": ["<conditional_looping_conditions>", 1],
+        "int_literal": ["<conditional_looping_conditions>", 1],
+        "string_literal": ["<conditional_looping_conditions>", 1],
+        "bool_literal": ["<conditional_looping_conditions>", 1],
+        "float_literal": ["<conditional_looping_conditions>", 1],
+        "len": ["<conditional_looping_conditions>", 1],
+        "!": ["<conditional_looping_conditions>", 1],
+        "invoke": ["<conditional_looping_conditions>", 1],
+        "capture": ["<conditional_looping_conditions>", 1],
+        "cleave": ["<conditional_looping_conditions>", 1],
+        "dismantle": ["<conditional_looping_conditions>", 1],
+        "++": ["<conditional_looping_conditions>", 1],
+        "--": ["<conditional_looping_conditions>", 1],
+    },
+
+    "<looping_stm>": {
+        "cycle": ["<looping_stm>", 0],
+        "sustain": ["<looping_stm>", 1],
+        "perform": ["<looping_stm>", 2]
     },
     
-    "<assign_expression>": { ############# 52 in First Set
-        "id": ["<assign_expression>", 0]
-    },
-    "<assign_left_operand>": { ############# 53 in First Set
-        "id": ["<assign_left_operand>", 0],
-    },
-    "<assign_right_operand>": { ############# 54 in First Set
-        "id": ["<assign_right_operand>", 0],
-        "string_literal": ["<assign_right_operand>", 1],
-        "int_literal": ["<assign_right_operand>", 1],
-        "bool_literal": ["<assign_right_operand>", 1],
-        "float_literal": ["<assign_right_operand>", 1],
-        "len": ["<assign_right_operand>", 2],
-        "!": ["<assign_right_operand>", 4],
-        "(": ["<assign_right_operand>", 5], #FIXME Ambiguity for '('
-        "++": ["<assign_right_operand>", 6],
-        "--": ["<assign_right_operand>", 6],
-        "curse": ["<assign_right_operand>", 7]
+    "<cycle-loop>": {
+        "cycle": ["<cycle-loop>", 0]
     },
 
-    "<curse_dec>": { ############# 57 in First Set
-        "curse": ["<curse_dec>", 0],
-        "int": ["<curse_dec>", 1],
-        "string": ["<curse_dec>", 1],
-        "float": ["<curse_dec>", 1],
-        "bool": ["<curse_dec>", 1],
-        "Ø": ["<curse_dec>", 2]
+    "<cycle_initialize>": {
+        "id": ["<cycle_initialize>", 0],
+        "int": ["<cycle_initialize>", 1],
+        "float": ["<cycle_initialize>", 1],
+        "string": ["<cycle_initialize>", 1],
+        "bool": ["<cycle_initialize>", 1]
     },
 
-    "<relational_expression>": { ############# 68 in First Set
-        "(": ["<relational_expression>", 1],
-        "id": ["<relational_expression>", 0],
-        "string_literal": ["<relational_expression>", 0],
-        "int_literal": ["<relational_expression>", 0],
-        #"bool_literal": ["<relational_expression>", 2],
-        "float_literal": ["<relational_expression>", 0],
-        "len": ["<relational_expression>", 0]
+     "<cycle_condition>": {
+        "id": ["<cycle_condition>", 0],
+        "int_literal": ["<cycle_condition>", 0],
+        "string_literal": ["<cycle_condition>", 0],
+        "bool_literal": ["<cycle_condition>", 0],
+        "float_literal": ["<cycle_condition>", 0],
+        "(": ["<cycle_condition>", 0],
+        "++": ["<cycle_condition>", 0],
+        "--": ["<cycle_condition>", 0],
+        "!": ["<cycle_condition>", 1],
     },
 
-    "<relational_operand>": { ############# 70 
-        "(": ["<relational_operand>", 0],
-        "id": ["<relational_operand>", 1],
-        "string_literal": ["<relational_operand>", 2],
-        "int_literal": ["<relational_operand>", 2],
-        "bool_literal": ["<relational_operand>", 2],
-        "float_literal": ["<relational_operand>", 2],
-        "len": ["<relational_operand>", 4] #FIXME Missing in First Set: curse_call, clan_access, length
+    "<iteration>": {
+        "++": ["<iteration>", 0],
+        "--": ["<iteration>", 0],
+        "id": ["<iteration>", 1]
     },
 
+    "<sustain-loop>": {
+        "sustain": ["<sustain-loop>", 0]
+    },
+
+    "<persustain-loop>": {
+        "perform": ["<persustain-loop>", 0]
+    },
+
+    "<con_loop_body>": {
+        "int": ["<con_loop_body>", 0],
+        "string": ["<con_loop_body>", 0],
+        "float": ["<con_loop_body>", 0],
+        "bool": ["<con_loop_body>", 0],
+        "curse": ["<con_loop_body>", 0],
+        "id": ["<con_loop_body>", 1],
+        "invoke": ["<con_loop_body>", 2],
+        "cleave": ["<con_loop_body>", 3],
+        "dismantle": ["<con_loop_body>", 4],
+        "capture": ["<con_loop_body>", 5],
+        "len": ["<con_loop_body>", 6],
+        "recall": ["<con_loop_body>", 7],
+        "vow": ["<con_loop_body>", 8],      
+        "boogie": ["<con_loop_body>", 8],
+        "cycle": ["<con_loop_body>", 9],
+        "sustain": ["<con_loop_body>", 9],
+        "perform": ["<con_loop_body>", 9],
+        "dismiss": ["<con_loop_body>", 10],
+        "hop": ["<con_loop_body>", 11],
+        "}": ["<con_loop_body>", 12],
+        "woogie": ["<con_loop_body>", 12],
+        "default": ["<con_loop_body>", 12],
+    },
 
     "<literal>": {  #############
         "int_literal": ["<literal>", 0],
@@ -1120,7 +1018,8 @@ PREDICT_SET = {
         "!": ["<post>", 2],
         ")": ["<post>", 2],
         ",": ["<post>", 2],
-        ";": ["<post>", 2]
+        ";": ["<post>", 2],
+        "(": ["<post>", 2]
     }
 
 }
