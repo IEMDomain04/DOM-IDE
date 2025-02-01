@@ -76,12 +76,12 @@ CFG = {
     ],
 
     "<clan_size>": [
-        ["[", "int_literal", "]", "<two_dimensional>"],  
+        ["[", "<expression>", "]", "<two_dimensional>"],  
         ["[...]"]  
     ],
 
     "<two_dimensional>": [
-        ["[", "int_literal", "]"], ########### 46
+        ["[", "<expression>", "]"], ########### 46
         []                                   ########### 47
     ],
 
@@ -95,8 +95,8 @@ CFG = {
     ],
 
     "<clan_item>": [
-        ["<literal>", "<clan_multi_item>", "<clan_item>"],  ########### 51
-        ["{", "<literal>", "<clan_multi_item>", "}", "<more_item>"],  ########### 52
+        ["<expression>", "<clan_multi_item>", "<clan_item>"],  ########### 51
+        ["{", "<expression>", "<clan_multi_item>", "}", "<more_item>"],  ########### 52
         []                                   ########### 53
     ],
 
@@ -113,7 +113,7 @@ CFG = {
     "<expression>": [
         ["(", "<expression>", "<more_logic>", ")", "<more_logic>"],
         ["<operand>","<more_logic>"],
-        ["<not_op>", "(", "<expression>", ")", "<more_logic>"]
+        ["<not_op>", "<expression>", "<more_logic>"]
     ],
 
     "<operand>": [
@@ -139,12 +139,12 @@ CFG = {
 
     "<curse_or_clan>": [
         ["(", "<arguments>", ")"],
-        ["[", "int_literal", "]", "<more_clan>"],
+        ["[", "<expression>", "]", "<more_clan>"],
         []
     ],
 
     "<more_clan>": [    
-        ["[", "int_literal", "]", "<more_clan>"],
+        ["[", "<expression>", "]", "<more_clan>"],
         []
     ],
 
@@ -534,6 +534,16 @@ PREDICT_SET = {
         "string_literal": ["<clan_item>", 0],
         "bool_literal": ["<clan_item>", 0],
         "float_literal": ["<clan_item>", 0],
+        "id": ["<clan_item>", 0],
+        "++": ["<clan_item>", 0],
+        "--": ["<clan_item>", 0],
+        "invoke": ["<clan_item>", 0],
+        "capture": ["<clan_item>", 0],
+        "cleave": ["<clan_item>", 0],
+        "dismantle": ["<clan_item>", 0],
+        "len": ["<clan_item>", 0],
+        "!": ["<clan_item>", 0],
+        "(": ["<clan_item>", 0],
         "{": ["<clan_item>", 1],
         "}": ["<clan_item>", 2]
     },
@@ -616,7 +626,8 @@ PREDICT_SET = {
         ";": ["<curse_or_clan>", 2],
         "++": ["<curse_or_clan>", 2],
         "--": ["<curse_or_clan>", 2],
-        ",": ["<curse_or_clan>", 2]
+        ",": ["<curse_or_clan>", 2],
+        "]": ["<curse_or_clan>", 2]
     },
 
     "<more_clan>": { #############
@@ -637,7 +648,7 @@ PREDICT_SET = {
         "||": ["<more_clan>", 1],
         "!": ["<more_clan>", 1],
         ";": ["<more_clan>", 1],
-        ")": ["<more_clan>", 1]
+        ")": ["<more_clan>", 1],
     },
 
     "<more_logic>": { #############
@@ -660,7 +671,8 @@ PREDICT_SET = {
         ",": ["<more_logic>", 1],
         ";": ["<more_logic>", 1],
         "(": ["<more_logic>", 1],
-        ":": ["<more_logic>", 1] 
+        ":": ["<more_logic>", 1],
+        "]": ["<more_logic>", 1]
     },
 
     "<operator>": { #############
@@ -1031,7 +1043,8 @@ PREDICT_SET = {
         "+=": ["<post>", 2],
         "-=": ["<post>", 2],
         "*=": ["<post>", 2],
-        "%=": ["<post>", 2]
+        "%=": ["<post>", 2],
+        "]": ["<post>", 2]
     }
 
 }
