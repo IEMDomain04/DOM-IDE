@@ -170,12 +170,12 @@ curse domain(){
             </thead>
             <tbody>
               {outputData.map((item, index) => (
-                <tr key={index}>
-                  <td className={`py-2 px-4 border-b-2 ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`} title={item.lexeme}>
-                    {item.lexeme && item.lexeme.length > 15 ? item.lexeme.substring(0, 12) + '...' : item.lexeme}
-                  </td>
-                  <td className={`py-2 px-4 border-b-2  ${isDarkMode ? 'border-[#2f1919]' : 'border-[#1b1f36]'}`}>{item.token}</td>
-                </tr>
+              <tr key={index} className={index % 2 === 0 ? isDarkMode ? 'bg-[#412121]': 'bg-[#2d3456]' : ''}>
+                <td className={`py-2 px-4 border-b-2 ${isDarkMode ? 'border-[#412121]' : 'border-[#2C3358]'}`} title={item.lexeme}>
+                {item.lexeme && item.lexeme.length > 15 ? item.lexeme.substring(0, 12) + '...' : item.lexeme}
+                </td>
+                <td className={`py-2 px-4 border-b-2  ${isDarkMode ? 'border-[#412121]' : 'border-[#2C3358]'}`}>{item.token}</td>
+              </tr>
               ))}
             </tbody>
           </table>
