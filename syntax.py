@@ -1071,7 +1071,7 @@ class Parser:
 
     def parse(self):
         stack = ["<program>"]
-        errors = []
+        error = "";
 
         while stack:
             top = stack[-1]
@@ -1083,7 +1083,11 @@ class Parser:
 
             if is_non_terminal(top):
                 # Check what production to use by checking the top of the stack and the current token
-                production_key = PREDICT_SET[top][self.current_token.type]
+                if top in PREDICT_SET and self.current_token.type in PREDICT_SET[top]:
+                    production_key = PREDICT_SET[top][self.current_token.type]
+                else:
+                    error = f"Syntax Error: No prediction for '{top}' with token '{self.current_token.type}'"
+                    break
                 print(f"3. Production Key: {production_key}")
 
                 if production_key[0] in CFG:
@@ -1098,10 +1102,10 @@ class Parser:
                             stack.append(symbol)
                             print(f"5. Symbol Pushed: {symbol}")
                     else:
-                        errors.append(f"Syntax Error: No production rule for '{production}'")
+                        error = "Syntax Error: No production rule for '{production}'"
                         break
                 else:
-                    errors.append(f"Syntax Error: No prediction for '{production_key}'")
+                    errors = f"Syntax Error: No prediction for '{production_key}'"
                     break
             else:
                 # Check if the top of the stack is equal to the current token
@@ -1110,21 +1114,20 @@ class Parser:
                     print(f"2. Matched Terminal: {top}")
                     self.advance()  # Move to the next token
                 else:
-                    errors.append(f"Syntax Error: Expected '{top}' but found '{self.current_token.type}'")
+                    error = "Syntax Error: Expected '{top}' but found '{self.current_token.type}'"
                     break
 
-        if errors:
-            return errors
+        if error:
+            return error
         return []
-
-def is_non_terminal(text):
+ 
+def is_non_terminal(text): # (boolean) checks if the given string is a non-terminal
     return text.startswith('<') and text.endswith('>')
 
 def parse_run(tokens):
     parser = Parser(tokens)
-    errors = parser.parse()
-    if errors:
-        for err in errors:
-            print(err)
-        return "Failure from Syntax Analyzer"
+    error = parser.parse()
+    if error:
+        print(error)
+        return error
     return "Successful from Syntax Analyzer"
