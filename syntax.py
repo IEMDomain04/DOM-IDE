@@ -2,6 +2,7 @@
 # IMPORTS
 ##############
 from lexer import run as lexer_run
+from lexer import string_with_arrows 
 
 ############## 
 # CONSTANTS 
@@ -1049,7 +1050,56 @@ PREDICT_SET = {
 
 }
 
+##############
+# ERRORS
+############## 
+class Error:
+    def __init__(self, pos_start, pos_end, error_name, details):
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        self.error_name = error_name
+        self.details = details
 
+    def as_string(self):
+        result = f'{self.error_name}: {self.details}'
+        result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}\n'
+        result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
+        return result
+    
+class InvalidSyntaxError(Error):
+    def __init__(self, pos_start, pos_end, details=''):
+        super().__init__(pos_start, pos_end, 'Syntax Error', details)
+
+def string_with_arrows(text, pos_start, pos_end):
+    result = ''
+
+    # Calculate indices
+    idx_start = max(text.rfind('\n', 0, pos_start.idx), 0)
+    idx_end = text.find('\n', idx_start + 1)
+    if idx_end < 0: idx_end = len(text)
+
+    # Generate each line
+    line_count = pos_end.ln - pos_start.ln + 1
+    for i in range(line_count):
+        # Calculate line columns
+        line = text[idx_start:idx_end]
+        col_start = pos_start.col if i == 0 else 0
+        col_end = pos_end.col if i == line_count - 1 else len(line) - 1
+
+        # Append to result
+        result += line + '\n' 
+        result += ' ' * col_start + '^' * (col_end - col_start)
+
+        # Re-calculate indices
+        idx_start = idx_end
+        idx_end = text.find('\n', idx_start + 1)
+        if idx_end < 0 : idx_end = len(text)
+
+    return result.replace('\t', ' ')
+
+###################
+# Syntax Analyzer 
+###################
 
 class Parser:
     def __init__(self, tokens):
@@ -1086,7 +1136,9 @@ class Parser:
                 if top in PREDICT_SET and self.current_token.type in PREDICT_SET[top]:
                     production_key = PREDICT_SET[top][self.current_token.type]
                 else:
-                    error = f"Syntax Error: No prediction for '{top}' with token '{self.current_token.type}'"
+                    error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
+                                               f"Invalid key '{self.current_token.type}' for production '{top}'").as_string()
+                    print(self.current_token.pos_start.idx, self.current_token.pos_start.col)
                     break
                 print(f"3. Production Key: {production_key}")
 
@@ -1102,10 +1154,12 @@ class Parser:
                             stack.append(symbol)
                             print(f"5. Symbol Pushed: {symbol}")
                     else:
-                        error = "Syntax Error: No production rule for '{production}'"
+                        error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
+                                                   f"No production rule for '{production}'").as_string()
                         break
                 else:
-                    errors = f"Syntax Error: No prediction for '{production_key}'"
+                    error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
+                                               f"Syntax Error: No   prediction for '{production_key}'").as_string()
                     break
             else:
                 # Check if the top of the stack is equal to the current token
@@ -1114,7 +1168,8 @@ class Parser:
                     print(f"2. Matched Terminal: {top}")
                     self.advance()  # Move to the next token
                 else:
-                    error = "Syntax Error: Expected '{top}' but found '{self.current_token.type}'"
+                    error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
+                                               f"Expected '{top}', got '{self.current_token.type}'").as_string()
                     break
 
         if error:
