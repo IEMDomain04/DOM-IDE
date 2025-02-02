@@ -1130,16 +1130,21 @@ class Parser:
                 self.current_token = type('Token', (object,), {'type': 'Ø'})()
                 
             print(f"2. Current Token: {self.current_token.type}")
+            if self.current_token.type in ['id', 'int_literal', 'string_literal', 'bool_literal', 'float_literal']:
+                print(f"2. Token Value: {self.current_token.value}")
 
             if is_non_terminal(top):
                 # Check what production to use by checking the top of the stack and the current token
                 if top in PREDICT_SET and self.current_token.type in PREDICT_SET[top]:
                     production_key = PREDICT_SET[top][self.current_token.type]
                 else:
-                    error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
+                    if self.current_token.type == 'Ø':
+                        break
+                    else: 
+                        error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
                                                f"Invalid key '{self.current_token.type}' for production '{top}'").as_string()
-                    print(self.current_token.pos_start.idx, self.current_token.pos_start.col)
-                    break
+                        print(self.current_token.pos_start.idx, self.current_token.pos_start.col)
+                        break
                 print(f"3. Production Key: {production_key}")
 
                 if production_key[0] in CFG:
@@ -1154,13 +1159,19 @@ class Parser:
                             stack.append(symbol)
                             print(f"5. Symbol Pushed: {symbol}")
                     else:
-                        error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                                   f"No production rule for '{production}'").as_string()
-                        break
+                        if self.current_token.type == 'Ø':
+                            break
+                        else:
+                            error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
+                                                    f"No production rule for '{production}'").as_string()
+                            break
                 else:
-                    error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
+                    if self.current_token.type == 'Ø':
+                        break
+                    else: 
+                        error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
                                                f"Syntax Error: No   prediction for '{production_key}'").as_string()
-                    break
+                        break
             else:
                 # Check if the top of the stack is equal to the current token
                 if top == self.current_token.type:
@@ -1168,9 +1179,12 @@ class Parser:
                     print(f"2. Matched Terminal: {top}")
                     self.advance()  # Move to the next token
                 else:
-                    error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                               f"Expected '{top}', got '{self.current_token.type}'").as_string()
-                    break
+                    if self.current_token.type == 'Ø':
+                        break
+                    else:
+                        error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
+                                                f"Expected '{top}', got '{self.current_token.type}'").as_string()
+                        break
 
         if error:
             return error

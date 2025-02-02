@@ -2132,9 +2132,10 @@ class Lexer:
             pos_end = self.pos.copy()
             return [], LexicalError(pos_start, pos_end, f"Multiple period '.' in a float assignment")
         if dot_count == 0:
-            return Token(TT_INTLIT, int(num_str), pos_start, self.pos), None
+            pos_end = self.pos.copy()
+            return Token(TT_INTLIT, int(num_str), pos_start, pos_end), None
         else:
-            return Token(TT_FLOATLIT, float(num_str), pos_start, self.pos), None
+            return Token(TT_FLOATLIT, float(num_str), pos_start, pos_end), None
         
     def make_string(self):
         id_str = ''
@@ -2148,7 +2149,7 @@ class Lexer:
                 if self.current_char != None and self.current_char not in delim_map['str_delim']:
                     return [], LexicalError(pos_start, self.pos, f"Invalid delimiter '{self.current_char}' after string")
                 else:
-                    return Token(TT_STRLIT, id_str, pos_start, self.pos), None
+                    return Token(TT_STRLIT, id_str, pos_start, pos_end), None
             if self.current_char == '\n':
                 return [], LexicalError(pos_start, pos_end, 'String not properly closed with double quotes (")')
             id_str += self.current_char
