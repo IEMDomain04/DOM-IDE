@@ -150,8 +150,8 @@ curse domain(){
           <div className="flex-shrink-0" style={{ resize: 'none', borderRight: '2px solid #131314' }}>
             <h1 className={`py-3 px-16 ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground'}`}>Output and Errors</h1>
             <div className={`pl-4 py-2 pr-0 text-sm font-mono min-h-40 ${isDarkMode ? 'text-white' : 'text-black'}`}>
-              <div className="overflow-auto" style={{ maxHeight: '120px' }}>
-                <pre>{terminalOutput}</pre>
+              <div className="overflow-y-auto " style={{ maxHeight: '120px' }}>
+                <pre className="whitespace-pre-wrap">{terminalOutput}</pre>
               </div>
             </div>
           </div>

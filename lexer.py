@@ -2135,6 +2135,7 @@ class Lexer:
             pos_end = self.pos.copy()
             return Token(TT_INTLIT, int(num_str), pos_start, pos_end), None
         else:
+            pos_end = self.pos.copy()
             return Token(TT_FLOATLIT, float(num_str), pos_start, pos_end), None
         
     def make_string(self):

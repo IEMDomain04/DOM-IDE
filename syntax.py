@@ -196,7 +196,9 @@ CFG = {
     "<id_call>": [
         ["<assign_op>", "<expression>"], ###########
         ["[", "<value>", "]", "<assign_op>", "<expression>"], ###########
-        ["(", "<arguments>", ")"] ###########
+        ["(", "<arguments>", ")"], ###########
+        ["++"], 
+        ["--"], 
     ],
 
     "<arguments>": [
@@ -224,14 +226,14 @@ CFG = {
     ],
 
     "<vow_tail>": [
-        ["{", "<statement>", "}",],
+        ["{", "<con_loop_body>", "}",],
         ["vow", "(", "<expression>", ")", "{", "<con_loop_body>", "}", "<vow_next>"],
         []
     ],
 
     "<boogie_tail>": [
-        ["(", "id", ")", "{", "woogie", "<literal>", ":", "<con_loop_body>", "<more_woogie>", "default", ":", "<statement>", "}"],
-        ["{", "woogie", "<expression>", ":", "<con_loop_body>", "<more_true_woogie>", "default", ":", "<statement>", "}"],
+        ["(", "id", ")", "{", "woogie", "<literal>", ":", "<con_loop_body>", "<more_woogie>", "default", ":", "<con_loop_body>", "}"],
+        ["{", "woogie", "<expression>", ":", "<con_loop_body>", "<more_true_woogie>", "default", ":", "<con_loop_body>", "}"],
     ],
 
     "<more_woogie>": [
@@ -777,7 +779,9 @@ PREDICT_SET = {
         "/=": ["<id_call>", 0],
         "%=": ["<id_call>", 0],
         "[": ["<id_call>", 1],
-        "(": ["<id_call>", 2]
+        "(": ["<id_call>", 2],
+        "++": ["<id_call>", 3],
+        "--": ["<id_call>", 4]
     },
 
     "<arguments>": {
@@ -1045,7 +1049,8 @@ PREDICT_SET = {
         "-=": ["<post>", 2],
         "*=": ["<post>", 2],
         "%=": ["<post>", 2],
-        "]": ["<post>", 2]
+        "]": ["<post>", 2],
+        ":": ["<post>", 2]
     }
 
 }
@@ -1129,9 +1134,10 @@ class Parser:
             if self.current_token is None:
                 self.current_token = type('Token', (object,), {'type': 'Ø'})()
                 
-            print(f"2. Current Token: {self.current_token.type}")
-            if self.current_token.type in ['id', 'int_literal', 'string_literal', 'bool_literal', 'float_literal']:
-                print(f"2. Token Value: {self.current_token.value}")
+            if self.current_token.type in ['id', 'int_literal', 'bool_literal', 'float_literal']:
+                print(f"2. Current Token: {self.current_token.type} '{self.current_token.value}'")
+            else: 
+                print(f"2. Current Token: {self.current_token.type}")
 
             if is_non_terminal(top):
                 # Check what production to use by checking the top of the stack and the current token
@@ -1142,7 +1148,7 @@ class Parser:
                         break
                     else: 
                         error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                               f"Invalid key '{self.current_token.type}' for production '{top}'").as_string()
+                                               f"Tanga bawal yang '{self.current_token.type}' token dito \t\t========== FOR DEV: Invalid key '{self.current_token.type}' for production '{top}' ==========").as_string()
                         print(self.current_token.pos_start.idx, self.current_token.pos_start.col)
                         break
                 print(f"3. Production Key: {production_key}")
@@ -1170,7 +1176,7 @@ class Parser:
                         break
                     else: 
                         error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                               f"Syntax Error: No   prediction for '{production_key}'").as_string()
+                                               f"Syntax Error: No prediction for '{production_key}'").as_string()
                         break
             else:
                 # Check if the top of the stack is equal to the current token
