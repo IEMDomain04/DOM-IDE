@@ -2067,17 +2067,17 @@ class Lexer:
                 pos_end = self.pos.copy()
                 errors.append(LexicalError(pos_start, pos_end, f"Invalid Character '{char}'"))
                 continue
-        
+        pos_start = self.pos.copy()
         tokens.append(Token(TT_EOF, pos_start=pos_start, pos_end=self.pos.copy()))
         return tokens, errors
                 
 
     def make_number(self, is_negative=False):  # for making numbers: int and float
         num_str = ''
-        int_count = 0
-        num_count = 0 
-        dec_count = 0
-        dot_count = 0
+        int_count = 0 # counts the number of digits in the integer part of the number
+        num_count = 0 # counts the total number of digits in the number
+        dec_count = 0 # counts the number of digits in the decimal part of the number
+        dot_count = 0 # counts the number of periods in the number
         pos_start = self.pos.copy()
 
         if is_negative:  # Prepend '-' to handle negative numbers
@@ -2107,14 +2107,14 @@ class Lexer:
                     dec_count += 1
 
                 # checks if num_count exceeds limit of 17 if number is an int
-                if dot_count == 0 and num_count > 17:
+                if dot_count == 0 and int_count > 17:
                     pos_end = self.pos.copy()
                     return [], LexicalError(pos_start, pos_end, "Whole number exceeded maximum character limit of 17")
                 
                 # checks if num_count exceeds limit of 9 if number is a float
                 if dot_count == 1 and num_count > 9:
                     pos_end = self.pos.copy()
-                    return [], LexicalError(pos_start, pos_end, "Whole number exceeded maximum character limit of 17")
+                    return [], LexicalError(pos_start, pos_end, "Float's significant number exceeded maximum character limit of 9")
                 
                 # checks if dec_count exceeds limit of 7 if number is a float, if it exceeds then just ignore
                 if dot_count == 1 and dec_count > 7:
