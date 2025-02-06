@@ -42,9 +42,9 @@ export const handleTokenizerClick = async (
       const url = window.location.hostname === 'localhost' ? 'http://127.0.0.1:5000/api/lexer' : '/api/lexer';
       const response = await axios.post(url, { text });
       const { tokens, errors } = response.data;
-      const newOutputData = tokens.map((token: { type: string; value: any }) => {
+      const newOutputData = tokens.map((token: { type: string; value: string }) => {
         let lexeme = token.value;
-        if (token.type === 'float_literal' && typeof token.value === 'number' && token.value % 1 === 0) { 
+        if (token.type === 'float_literal' && parseFloat(token.value) % 1 === 0) { 
           lexeme = `${token.value}.0`;
         }
         return {
