@@ -39,7 +39,7 @@ CFG = {
 
     "<type_choice>": [
         ["<var_dec>", ";"], ########### 
-        ["<clan_dec>", ";"], ###########
+        ["<clan_dec>", ";"], ###########    
         [";"]
     ],
 
@@ -49,7 +49,6 @@ CFG = {
 
     "<assign>": [
         ["=", "<expression>"], ########### 
-        []
     ],
 
     "<multi-assign>": [
@@ -196,7 +195,9 @@ CFG = {
     "<id_call>": [
         ["<assign_op>", "<expression>"], ###########
         ["[", "<value>", "]", "<assign_op>", "<expression>"], ###########
-        ["(", "<arguments>", ")"] ###########
+        ["(", "<arguments>", ")"], ###########
+        ["++"], 
+        ["--"], 
     ],
 
     "<arguments>": [
@@ -224,14 +225,14 @@ CFG = {
     ],
 
     "<vow_tail>": [
-        ["{", "<statement>", "}",],
+        ["{", "<con_loop_body>", "}",],
         ["vow", "(", "<expression>", ")", "{", "<con_loop_body>", "}", "<vow_next>"],
         []
     ],
 
     "<boogie_tail>": [
-        ["(", "id", ")", "{", "woogie", "<literal>", ":", "<con_loop_body>", "<more_woogie>", "default", ":", "<statement>", "}"],
-        ["{", "woogie", "<expression>", ":", "<con_loop_body>", "<more_true_woogie>", "default", ":", "<statement>", "}"],
+        ["(", "id", ")", "{", "woogie", "<literal>", ":", "<con_loop_body>", "<more_woogie>", "default", ":", "<con_loop_body>", "}"],
+        ["{", "woogie", "<expression>", ":", "<con_loop_body>", "<more_true_woogie>", "default", ":", "<con_loop_body>", "}"],
     ],
 
     "<more_woogie>": [
@@ -476,9 +477,7 @@ PREDICT_SET = {
     },
 
     "<assign>": {
-        "=": ["<assign>", 0],
-        ";": ["<assign>", 1],
-        ",": ["<assign>", 1]
+        "=": ["<assign>", 0]
     },
 
     "<multi-assign>": {
@@ -653,27 +652,29 @@ PREDICT_SET = {
     },
 
     "<more_logic>": { #############
-        "+": ["<more_logic>", 0],
-        "-": ["<more_logic>", 0],
-        "*": ["<more_logic>", 0],
-        "/": ["<more_logic>", 0],
-        "%": ["<more_logic>", 0],
-        "**": ["<more_logic>", 0],
-        "==": ["<more_logic>", 0],
-        "!=": ["<more_logic>", 0],
-        ">": ["<more_logic>", 0],
-        "<": ["<more_logic>", 0],
-        ">=": ["<more_logic>", 0],
-        "<=": ["<more_logic>", 0],
-        "&&": ["<more_logic>", 0],
-        "||": ["<more_logic>", 0],  
-        "!": ["<more_logic>", 0],
-        ")": ["<more_logic>", 1],
-        ",": ["<more_logic>", 1],
-        ";": ["<more_logic>", 1],
-        "(": ["<more_logic>", 1],
-        ":": ["<more_logic>", 1],
-        "]": ["<more_logic>", 1]
+        "+": ["<more_logic>", 0], # verified
+        "-": ["<more_logic>", 0], # verified
+        "*": ["<more_logic>", 0], # verified
+        "/": ["<more_logic>", 0], # verified
+        "%": ["<more_logic>", 0], # verified
+        "**": ["<more_logic>", 0], # verified
+        "==": ["<more_logic>", 0], # verified
+        "!=": ["<more_logic>", 0], # verified
+        ">": ["<more_logic>", 0], # verified
+        "<": ["<more_logic>", 0], # verified
+        ">=": ["<more_logic>", 0], # verified
+        "<=": ["<more_logic>", 0], # verified
+        "&&": ["<more_logic>", 0], # verified
+        "||": ["<more_logic>", 0], # verified
+        "!": ["<more_logic>", 0], # verified
+        ")": ["<more_logic>", 1],  # verified
+        ",": ["<more_logic>", 1], # verified
+        ";": ["<more_logic>", 1], # verified
+        "(": ["<more_logic>", 1],  # verified
+        ":": ["<more_logic>", 1], # verified
+        "]": ["<more_logic>", 1]  # verified
+
+        # :, , , id, int_lit, string_lit, bool_lit, float_lit, ++, --, invoke, capture, cleave, dismantle, len
     },
 
     "<operator>": { #############
@@ -777,7 +778,9 @@ PREDICT_SET = {
         "/=": ["<id_call>", 0],
         "%=": ["<id_call>", 0],
         "[": ["<id_call>", 1],
-        "(": ["<id_call>", 2]
+        "(": ["<id_call>", 2],
+        "++": ["<id_call>", 3],
+        "--": ["<id_call>", 4]
     },
 
     "<arguments>": {
@@ -1045,7 +1048,8 @@ PREDICT_SET = {
         "-=": ["<post>", 2],
         "*=": ["<post>", 2],
         "%=": ["<post>", 2],
-        "]": ["<post>", 2]
+        "]": ["<post>", 2],
+        ":": ["<post>", 2]
     }
 
 }
@@ -1098,6 +1102,171 @@ def string_with_arrows(text, pos_start, pos_end):
     return result.replace('\t', ' ')
 
 ###################
+# AST Nodes
+###################
+
+class ASTNode:
+    def __init__(self, tok):
+        self.tok = tok
+
+    def __repr__(self):
+        return f"{self.tok}"
+
+class VowNode(ASTNode): # if-else (vow-else)
+    def __init__(self, condition, body, else_body=None):
+        self.condition = condition
+        self.body = body
+        self.else_body = else_body
+
+    def __repr__(self):
+        return f"VowNode({self.condition}, {self.body}, {self.else_body})"
+
+class BoogieNode(ASTNode): # switch-case (boogie)
+    def __init__(self, expression, cases):
+        self.expression = expression
+        self.cases = cases
+
+    def __repr__(self):
+        return f"BoogieNode({self.expression}, {self.cases})"
+
+class SustainNode(ASTNode): # while loop (sustain)
+    def __init__(self, condition, body):
+        self.condition = condition
+        self.body = body
+    
+    def __repr__(self):
+        return f"SustainNode({self.condition}, {self.body})"
+
+class PerformSustainNode(ASTNode): # do-while loop (perform-sustain)
+    def __init__(self, body, condition):
+        self.body = body
+        self.condition = condition
+
+    def __repr__(self):
+        return f"PerformSustainNode({self.body}, {self.condition})"
+
+class CycleNode(ASTNode): # for-loop (cycle)
+    def __init__(self, init, condition, increment, body):
+        self.init = init
+        self.condition = condition
+        self.increment = increment
+        self.body = body
+
+    def __repr__(self):
+        return f"CycleNode({self.init}, {self.condition}, {self.increment}, {self.body})"
+
+class BinOpNode(ASTNode): # binary operation
+    def __init__(self, left, op, right):
+        self.left = left
+        self.op = op
+        self.right = right
+
+    def __repr__(self):
+        return f"({self.left}, {self.op}, {self.right})"
+
+class NumNode(ASTNode): # for factor
+    def __init__(self, value):
+        self.value = value
+
+    def __repr__(self):
+        return f"{self.value}"
+
+class VarNode(ASTNode): # for variables
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return f"{self.name}"
+        
+class VarAssignNode(ASTNode): # for variable assignments
+    def __init__(self, restrict, datatype, name, value):
+        self.restrict = restrict
+        self.datatype = datatype
+        self.name = name
+        self.value = value
+
+    def __repr__(self):
+        restrict_str = " restrict" if self.restrict else ""
+        return f"{self.datatype} {self.name} = {self.value}{restrict_str}"
+    
+class ClanNode(ASTNode): # for arrays
+    def __init__(self, datatype, name, size):
+        self.datatype = datatype
+        self.name = name
+        self.size = size
+        self.initial_values = []
+
+    def __repr__(self):
+        if self.initial_values:
+            return f"{self.datatype} {self.name}[{self.size}] = {self.initial_values}"
+        else:
+            return f"{self.datatype} {self.name}[{self.size}]"
+    
+class ClanAssignNode(ASTNode): # for array assignments
+    def __init__(self, name, index, value):
+        self.name = name
+        self.index = index
+        self.value = value
+
+    def __repr__(self):
+        return f"{self.name}[{self.index}] = {self.value}"
+
+###################
+# AST Traverser
+###################
+
+class ASTVisitor:
+    def visit(self, node):
+        method_name = 'visit_' + type(node).__name__
+        visitor = getattr(self, method_name, self.generic_visit)
+        return visitor(node)
+
+    def generic_visit(self, node):
+        raise Exception(f'No visit_{type(node).__name__} method')
+
+    def visit_VowNode(self, node):
+        print(f"Visiting VowNode: {node.condition}")
+        self.visit(node.condition)
+        self.visit(node.body)
+        if node.else_body:
+            self.visit(node.else_body)
+
+    def visit_BoogieNode(self, node):
+        print(f"Visiting BoogieNode: {node.expression}")
+        self.visit(node.expression)
+        for case_expr, case_body in node.cases:
+            self.visit(case_expr)
+            self.visit(case_body)
+
+    def visit_SustainNode(self, node):
+        print(f"Visiting SustainNode: {node.condition}")
+        self.visit(node.condition)
+        self.visit(node.body)
+
+    def visit_PerformSustainNode(self, node):
+        print(f"Visiting PerformSustainNode: {node.condition}")
+        self.visit(node.body)
+        self.visit(node.condition)
+
+    def visit_CycleNode(self, node):
+        print(f"Visiting CycleNode: {node.init}")
+        self.visit(node.init)
+        self.visit(node.condition)
+        self.visit(node.increment)
+        self.visit(node.body)
+
+    def visit_BinOpNode(self, node):
+        print(f"Visiting BinOpNode: {node.op}")
+        self.visit(node.left)
+        self.visit(node.right)
+
+    def visit_NumNode(self, node):
+        print(f"Visiting NumNode: {node.value}, restrict={node.restrict}")
+
+    def visit_VarNode(self, node):
+        print(f"Visiting VarNode: {node.name}, restrict={node.restrict}")
+        
+###################
 # Syntax Analyzer 
 ###################
 
@@ -1112,37 +1281,43 @@ class Parser:
             self.token_idx += 1
             if self.token_idx < len(self.tokens):
                 self.current_token = self.tokens[self.token_idx]
-                if self.current_token.type not in ['\n', '\t', ' ', '\\n', '\\t', 'space', 'EOF']:
+                if self.current_token.type not in ['\n', '\t', ' ', '\\n', '\\t', 'space']:
                     break
             else:
                 self.current_token = None
                 break
         return self.current_token
 
-    def parse(self):
+    def syntax_analyzer(self):
         stack = ["<program>"]
         error = "";
 
         while stack:
             top = stack[-1]
             print(f"1. Stack: {stack}")
-            if self.current_token is None:
-                self.current_token = type('Token', (object,), {'type': 'Ø'})()
+            if self.current_token is None or self.current_token.type == 'EOF':
+                self.current_token = type('Token', (object,), {
+                    'type': 'Ø',
+                    'pos_start': self.tokens[-1].pos_end if self.tokens else None,
+                    'pos_end': self.tokens[-1].pos_end if self.tokens else None
+                })()
                 
-            print(f"2. Current Token: {self.current_token.type}")
-            if self.current_token.type in ['id', 'int_literal', 'string_literal', 'bool_literal', 'float_literal']:
-                print(f"2. Token Value: {self.current_token.value}")
+            if self.current_token.type in ['id', 'int_literal', 'bool_literal', 'float_literal']:
+                print(f"2. Current Token: {self.current_token.type} '{self.current_token.value}'")
+            else: 
+                print(f"2. Current Token: {self.current_token.type}")
 
             if is_non_terminal(top):
                 # Check what production to use by checking the top of the stack and the current token
                 if top in PREDICT_SET and self.current_token.type in PREDICT_SET[top]:
                     production_key = PREDICT_SET[top][self.current_token.type]
                 else:
-                    if self.current_token.type == 'Ø':
-                        break
-                    else: 
-                        error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                               f"Invalid key '{self.current_token.type}' for production '{top}'").as_string()
+                        if self.current_token.type == 'Ø':
+                            error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
+                                               f"Unexpected File termination here\n[FOR DEV: Invalid key '{self.current_token.type}' for production '{top}']").as_string()
+                        else:
+                            error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
+                                               f"Unexpected token '{self.current_token.type}' \n[FOR DEV: Invalid key '{self.current_token.type}' for production '{top}']").as_string()
                         print(self.current_token.pos_start.idx, self.current_token.pos_start.col)
                         break
                 print(f"3. Production Key: {production_key}")
@@ -1170,7 +1345,7 @@ class Parser:
                         break
                     else: 
                         error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                               f"Syntax Error: No   prediction for '{production_key}'").as_string()
+                                               f"Syntax Error: No prediction for '{production_key}'").as_string()
                         break
             else:
                 # Check if the top of the stack is equal to the current token
@@ -1189,13 +1364,18 @@ class Parser:
         if error:
             return error
         return []
- 
+    
+    def build_ast(self):
+        self.advance()
+        return self.parse()
+
+    
 def is_non_terminal(text): # (boolean) checks if the given string is a non-terminal
     return text.startswith('<') and text.endswith('>')
 
 def parse_run(tokens):
     parser = Parser(tokens)
-    error = parser.parse()
+    error = parser.syntax_analyzer()
     if error:
         print(error)
         return error
