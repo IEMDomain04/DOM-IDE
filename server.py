@@ -26,7 +26,7 @@ def run_syntax():
     tokens, lexer_errors = lexer(text)  # Call lexer with text
     if lexer_errors:  
         return jsonify({'syntax_tree': "Failure from Syntax Analyzer"})
-    syntax_result = syntax(tokens)  # Call syntax with tokens
+    syntax_result, ast = syntax(tokens)  # Call syntax with tokens
     return jsonify({'syntax_tree': syntax_result})
 
 if __name__ == '__main__':
