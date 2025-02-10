@@ -1354,22 +1354,32 @@ class CycleNode(ASTNode): # for-loop (cycle)
     def __repr__(self):
         return f"CycleNode({self.init}, {self.condition}, {self.increment}, {self.body})"
     
-class ClanNode(ASTNode): # for arrays
-    def __init__(self, datatype, name, size):
+class ClanDecNode(ASTNode): # for arrays
+    def __init__(self, restrict, datatype, name, size, initial_values=None):
         super().__init__("Clan Declaration")
+        self.restrict = restrict
         self.datatype = datatype
         self.name = name
         self.size = size
-        self.initial_values = []
+        self.initial_values = initial_values or []
         self.add_child(DatatypeNode(datatype))
         self.add_child(IdNode(name))
         self.add_child(size)
+        if initial_values:
+            self.add_child(ClanLiteralNode(initial_values))
 
     def __repr__(self):
         if self.initial_values:
             return f"{self.datatype} {self.name}[{self.size}] = {self.initial_values}"
         else:
             return f"{self.datatype} {self.name}[{self.size}]"
+
+class ClanLiteralNode(ASTNode): # for clan literals
+    def __init__(self, values):
+        super().__init__(f"Clan Literal: {{{', '.join(str(value.data) for value in values)}}}")
+        self.values = values
+        for value in values:
+            self.add_child(value)
 
 class ClanAssignNode(ASTNode): # for array assignments
     def __init__(self, name, index, value):
@@ -1382,6 +1392,29 @@ class ClanAssignNode(ASTNode): # for array assignments
 
     def __repr__(self):
         return f"{self.name}[{self.index}] = {self.value}"
+    
+class ClanIndexNode(ASTNode): # for array indexing
+    def __init__(self, index):
+        super().__init__("Clan Index")
+        self.index = index
+        self.add_child(index)
+
+    def __repr__(self):
+        return f"{self.index}"
+
+class ClanSizeNode(ASTNode): # for array size
+    def __init__(self, size):
+        super().__init__("Clan Size")
+        self.size = size
+        self.add_child(size)
+    
+class ClanAccessNode(ASTNode): # for array access
+    def __init__(self, name, index):
+        super().__init__("Clan Access")
+        self.name = name
+        self.index = index
+        self.add_child(IdNode(name))
+        self.add_child(index)
 
 class VarNode(ASTNode): # for variables
     def __init__(self, name):
@@ -1437,7 +1470,6 @@ class CurseDecNode(ASTNode): # for functions
 
     def __repr__(self):
         return f"{self.datatype} {self.name}({self.parameters}) {self.body}"
-    
     
 class ParamNode(ASTNode): # for function parameters
     def __init__(self, datatype, name):
@@ -1707,9 +1739,6 @@ class Parser:
             datatype = self.current_token.type
             self.advance()
 
-            ################################################################################     
-            ################## PARSING CLAN AND VAR DECLARATIONS ###########################
-            ################################################################################
             if self.current_token.type == 'id':
                 name = self.current_token.value
                 self.advance()
@@ -1720,15 +1749,22 @@ class Parser:
                 elif self.current_token.type == '[':
                     self.advance()
                     size = self.parseExpr()
+                    clan_size_node = ClanSizeNode(size)
                     if self.current_token.type == ']':
                         self.advance()
-                        return ClanNode(datatype, name, size)
+                        initial_values = []
+                        if self.current_token.type == '=':
+                            self.advance()
+                            if self.current_token.type == '{':
+                                self.advance()
+                                while self.current_token.type != '}':
+                                    initial_values.append(self.parseExpr())
+                                    if self.current_token.type == ',':
+                                        self.advance()
+                                self.advance()
+                        return ClanDecNode(None, datatype, name, clan_size_node, initial_values)
                 else:
                     return VarNode(name)
-                    
-        ################################################################################     
-        ########################### PARSING CURSES #####################################
-        ################################################################################
         elif self.current_token.type == 'curse':
             self.advance()
             if self.current_token.type == 'id':
@@ -1751,10 +1787,6 @@ class Parser:
                         self.advance()
                         body = self.parseBody()
                         return CurseDecNode(None, name, parameters, body)
-                        
-        ################################################################################     
-        ########################## PARSING CONSTANTS ###################################
-        ################################################################################
         elif self.current_token.type == 'restrict':
             self.advance()
             if self.current_token.type in ['int', 'float', 'string', 'bool']:
@@ -1768,50 +1800,6 @@ class Parser:
                         value = self.parseExpr()
                         return VarDecNode('restrict', datatype, name, value)
         return None
-
-    def parseBody(self):
-        body = BodyNode()
-        while self.current_token.type != '}':
-            if self.current_token.type in ['int', 'float', 'string', 'bool', 'curse', 'restrict']:
-                declaration = self.parseDeclaration()
-                if declaration:
-                    body.add_child(declaration)
-            else:
-                self.advance()
-        return body
-
-    def parseVow(self, condition, body, else_body=None):
-        self.condition = condition
-        self.body = body
-        self.else_body = else_body
-        return VowNode(condition, body, else_body)
-
-    def parseBoogie(self, expression, cases):
-        self.expression = expression
-        self.cases = cases
-        return BoogieNode(expression, cases)
-
-    def parseSustain(self, condition, body):
-        self.condition = condition
-        self.body = body
-        return SustainNode(condition, body)
-
-    def parsePerformSustain(self, body, condition):
-        self.body = body
-        self.condition = condition
-        return PerformSustainNode(body, condition)
-        
-    def parseCycle(self, init, condition, increment, body):
-        self.init = init
-        self.condition = condition
-        self.increment = increment
-        self.body = body
-        return CycleNode(init, condition, increment, body)
-
-
-    def parseNum(self, value):
-        self.value = value
-        return NumNode(value)
 
 def is_non_terminal(text): # (boolean) checks if the given string is a non-terminal
     return text.startswith('<') and text.endswith('>')
