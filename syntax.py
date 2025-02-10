@@ -1227,7 +1227,7 @@ class ASTNode:
         return level
 
     def print_tree(self):
-        spaces = ' ' * self.get_level() * 3 if self.parent else ' ' * 3
+        spaces = ' ' * self.get_level() * 3 
         prefix = spaces + "|__" if self.parent else spaces
         print(prefix + str(self.data))
         if self.children:
@@ -1248,14 +1248,34 @@ class BinOpNode(ASTNode): # binary operation
         self.add_child(left)
         self.add_child(right)
 
+class RelOpNode(ASTNode): # relational operation
+    def __init__(self, left, op, right):
+        super().__init__(f"Relational Operation: {op.type}")
+        self.left = left
+        self.op = op.type
+        self.right = right
+        self.add_child(left)
+        self.add_child(right)
+
+class LogOpNode(ASTNode): # logical operation
+    def __init__(self, left, op, right):
+        super().__init__(f"Logical Operation: {op.type}")
+        self.left = left
+        self.op = op.type
+        self.right = right
+        self.add_child(left)
+        self.add_child(right)
+
 class UnaryOpNode(ASTNode): # unary operation
     def __init__(self, op, expr, pre=False, post=False):
-        super().__init__(f"Unary Operation: {op.type}")
-        self.op = op.type
+        super().__init__("Unary Operation")
+        self.op = UnaryOperator(op)
         self.expr = expr
         self.pre = pre
         self.post = post
+        if pre: self.add_child(self.op)
         self.add_child(expr)
+        if post: self.add_child(self.op)
 
     def __repr__(self):
         if self.pre:
@@ -1264,6 +1284,11 @@ class UnaryOpNode(ASTNode): # unary operation
             return f"{self.expr}{self.op}"
         else:
             return f"{self.op} {self.expr}"
+    
+class UnaryOperator(ASTNode): # unary operator
+    def __init__(self, op):
+        super().__init__(f"Unary Operator: {op.type}")
+        self.op = op.type
 
 class VowNode(ASTNode): # if-else (vow-else)
     def __init__(self, condition, body, else_body=None):
@@ -1635,7 +1660,16 @@ class Parser:
                 return expr
             else:
                 raise InvalidSyntaxError(tok.pos_start, tok.pos_end, "Expected ')'")
+        elif tok.type in ('+', '-'):
+            self.advance()
+            factor = self.parseFactor()
+            return UnaryOpNode(tok, factor)
         elif tok.type in ('++', '--'):
+            op = tok
+            self.advance()
+            factor = self.parseFactor()
+            return UnaryOpNode(op, factor, pre=True)
+        elif tok.type == '!':
             op = tok
             self.advance()
             factor = self.parseFactor()
@@ -1644,18 +1678,27 @@ class Parser:
             raise InvalidSyntaxError(tok.pos_start, tok.pos_end, "Expected int, float, identifier, or '('")
 
     def parseTerm(self):
-        return self.parseBinOp(self.parseFactor, ['*', '/', '%'])
+        return self.parseBinOp(self.parseFactor, ['*', '/', '%'], BinOpNode)
+
+    def parseArithExpr(self):
+        return self.parseBinOp(self.parseTerm, ['+', '-'], BinOpNode)
+
+    def parseRelExpr(self):
+        return self.parseBinOp(self.parseArithExpr, ['<', '>', '<=', '>=', '==', '!='], RelOpNode)
+
+    def parseLogExpr(self):
+        return self.parseBinOp(self.parseRelExpr, ['&&', '||'], LogOpNode)
 
     def parseExpr(self):
-        return self.parseBinOp(self.parseTerm, ['+', '-'])
+        return self.parseLogExpr()
 
-    def parseBinOp(self, func, ops):
+    def parseBinOp(self, func, ops, node_class):
         left = func()
         while self.current_token.type in ops:
             op = self.current_token
             self.advance()
             right = func()
-            left = BinOpNode(left, op, right)
+            left = node_class(left, op, right)
         return left
     
 
@@ -1664,9 +1707,9 @@ class Parser:
             datatype = self.current_token.type
             self.advance()
 
-        ################################################################################     
-        ################## PARSING CLAN AND VAR DECLARATIONS ###########################
-        ################################################################################
+            ################################################################################     
+            ################## PARSING CLAN AND VAR DECLARATIONS ###########################
+            ################################################################################
             if self.current_token.type == 'id':
                 name = self.current_token.value
                 self.advance()
@@ -1682,7 +1725,7 @@ class Parser:
                         return ClanNode(datatype, name, size)
                 else:
                     return VarNode(name)
-                
+                    
         ################################################################################     
         ########################### PARSING CURSES #####################################
         ################################################################################
@@ -1708,7 +1751,7 @@ class Parser:
                         self.advance()
                         body = self.parseBody()
                         return CurseDecNode(None, name, parameters, body)
-                    
+                        
         ################################################################################     
         ########################## PARSING CONSTANTS ###################################
         ################################################################################
