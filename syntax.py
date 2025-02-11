@@ -1228,7 +1228,7 @@ class ASTNode:
 
     def print_tree(self):
         spaces = ' ' * self.get_level() * 3 
-        prefix = spaces + "ᴸ---" if self.parent else spaces
+        prefix = spaces + "ᴸ--" if self.parent else spaces
         print(prefix + str(self.data))
         if self.children:
             for child in self.children:
@@ -1536,46 +1536,6 @@ class DismissNode(ASTNode): # for break statements
 class HopNode(ASTNode): # for continue statements
     def __init__(self):
         super().__init__("Hop")
-    
-class WoogieNode(ASTNode): # for normal switch-case statements
-    def __init__(self, expression, woogie, default_case=None):
-        super().__init__("Woogie Statement")
-        self.expression = expression
-        self.woogie = woogie
-        self.default_case = default_case
-        self.add_child(expression)
-        for case_expr, case_body in woogie:
-            self.add_child(case_expr)
-            self.add_child(case_body)
-        if default_case:
-            self.add_child(default_case)
-
-class WoogieTrueNode(ASTNode): # for switch true (woogie true)
-    def __init__(self, expression, woogie, default_case=None):
-        super().__init__("Woogie")
-        self.expression = expression
-        self.woogie = woogie
-        self.default_case = default_case
-        self.add_child(expression)
-        for case_expr, case_body in woogie:
-            self.add_child(case_expr)
-            self.add_child(case_body)
-        if default_case:
-            self.add_child(default_case)
-
-class WoogieStatementNode(ASTNode): # for cases
-    def __init__(self, expression, body):
-        super().__init__("Woogie Statement")
-        self.expression = expression
-        self.body = body
-        self.add_child(expression)
-        self.add_child(body)
-
-class DefaultCaseNode(ASTNode): # for default cases
-    def __init__(self, body):
-        super().__init__("Default Case")
-        self.body = body
-        self.add_child(body)
 
 class VowNode(ASTNode): # if-else (vow-else)
     def __init__(self, condition, body, else_vows=None, else_body=None):
@@ -1613,13 +1573,35 @@ class BoogieNode(ASTNode): # switch-case (boogie)
         super().__init__("Boogie Statement")
         self.expression = expression
         self.cases = cases
-        self.add_child(expression)
-        for case_expr, case_body in cases:
-            self.add_child(case_expr)
-            self.add_child(case_body)
+        if expression:
+            self.add_child(expression)
+        for case in cases:
+            self.add_child(case)
 
     def __repr__(self):
         return f"BoogieNode({self.expression}, {self.cases})"
+
+class WoogieTrueNode(ASTNode): # for cases/woogie of boogie true statements (switch true)
+    def __init__(self, condition, body):
+        super().__init__("Woogie True Statement")
+        self.condition = condition
+        self.body = body
+        self.add_child(condition)
+        self.add_child(body)
+
+class WoogieNode(ASTNode): # for cases/woogie of standard boogie statements (switch)
+    def __init__(self, condition, body):
+        super().__init__("Woogie Statement")
+        self.condition = condition
+        self.body = body
+        self.add_child(condition)
+        self.add_child(body)
+
+class DefaultCaseNode(ASTNode): # for default cases
+    def __init__(self, body):
+        super().__init__("Default Case")
+        self.body = body
+        self.add_child(body)
 
 class SustainNode(ASTNode): # while loop (sustain)
     def __init__(self, condition, body):
@@ -2165,6 +2147,139 @@ class Parser:
     def parseBody(self):
         body = BodyNode()
         while self.current_token.type != '}':
+            if self.current_token.type in ['int', 'float', 'string', 'bool', 'curse', 'restrict']:
+                declaration = self.parseDeclaration()
+                if declaration:
+                    body.add_child(declaration)
+            elif self.current_token.type == 'id':
+                assignment = self.parseIdCall()
+                if assignment:
+                    body.add_child(assignment)
+            elif self.current_token.type == 'invoke':
+                self.advance()
+                if self.current_token.type == '(':
+                    self.advance()
+                    value = self.parseInvokeArgument()
+                    if self.current_token.type == ')':
+                        self.advance()
+                        body.add_child(InvokeNode(value))
+            elif self.current_token.type == 'capture':
+                self.advance()
+                if self.current_token.type == '(':
+                    self.advance()
+                    if self.current_token.type == 'id':
+                        name = IdNode(self.current_token.value)
+                        self.advance()
+                        if self.current_token.type == ')':
+                            self.advance()
+                            body.add_child(CaptureNode(name))
+            elif self.current_token.type == 'dismiss':
+                self.advance()
+                body.add_child(DismissNode())
+            elif self.current_token.type == 'hop':
+                self.advance()
+                body.add_child(HopNode())
+            elif self.current_token.type == 'recall': # check later for all possibilities
+                self.advance()
+                value = self.parseExpr()
+                body.add_child(RecallNode(value))
+            elif self.current_token.type == 'vow':
+                self.advance()
+                if self.current_token.type == '(':
+                    self.advance()
+                    condition = self.parseExpr()
+                    if self.current_token.type == ')':
+                        self.advance()
+                        if self.current_token.type == '{':
+                            self.advance()
+                            body_node = self.parseBody()
+                            self.advance()  # advance past the closing brace '}'
+                            else_vows = []
+                            while self.current_token.type == 'else' and self.peek().type == 'vow':
+                                self.advance()
+                                self.advance()
+                                if self.current_token.type == '(':
+                                    self.advance()
+                                    else_condition = self.parseExpr()
+                                    if self.current_token.type == ')':
+                                        self.advance()
+                                        if self.current_token.type == '{':
+                                            self.advance()
+                                            else_body_node = self.parseBody()
+                                            self.advance()  # Advance past the closing '}'
+                                            else_vows.append(ElseVow(else_condition, else_body_node))
+                            if self.current_token.type == 'else':
+                                self.advance()
+                                if self.current_token.type == '{':
+                                    self.advance()
+                                    else_body_node = self.parseBody()
+                                    self.advance()  # Advance past the closing '}'
+                                    body.add_child(VowNode(condition, body_node, else_vows, ElseNode(else_body_node)))
+                            else:
+                                body.add_child(VowNode(condition, body_node, else_vows))
+            elif self.current_token.type == 'boogie':
+                self.advance()
+                if self.current_token.type == '(':
+                    self.advance()
+                    expression = IdNode(self.current_token.value)
+                    self.advance()
+                    if self.current_token.type == ')':
+                        self.advance()
+                        if self.current_token.type == '{':
+                            self.advance()
+                            cases = []
+                            while self.current_token.type != '}':
+                                if self.current_token.type == 'woogie':
+                                    self.advance()
+                                    if self.current_token.type in ['int_literal', 'float_literal', 'id']:
+                                        case_expr = self.parseExpr()
+                                    elif self.current_token.type == 'string_literal':
+                                        case_expr = StringNode(self.current_token.value)
+                                        self.advance()
+                                    elif self.current_token.type == '(':
+                                        self.advance()
+                                        if self.current_token.type == 'id':
+                                            case_expr = self.parseIdCall()
+                                    else:
+                                        raise InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected int_literal, float_literal, or string_literal")
+                                    if self.current_token.type == ':':
+                                        self.advance()
+                                        case_body = self.parseWoogieBody()
+                                        cases.append(WoogieNode(case_expr, case_body))
+                                elif self.current_token.type == 'default':
+                                    self.advance()
+                                    if self.current_token.type == ':':
+                                        self.advance()
+                                        default_body = self.parseWoogieBody()
+                                        cases.append(DefaultCaseNode(default_body))
+                            self.advance()
+                            body.add_child(BoogieNode(expression, cases))
+                elif self.current_token.type == '{':
+                    self.advance()
+                    cases = []
+                    while self.current_token.type != '}':
+                        if self.current_token.type == 'woogie':
+                            self.advance()
+                            case_expr = self.parseExpr()
+                            if self.current_token.type == ':':
+                                self.advance()
+                                case_body = self.parseWoogieBody()
+                                cases.append(WoogieTrueNode(case_expr, case_body))
+                        elif self.current_token.type == 'default':
+                            self.advance()
+                            if self.current_token.type == ':':
+                                self.advance()
+                                default_body = self.parseWoogieBody()
+                                cases.append(DefaultCaseNode(default_body))
+                    self.advance()
+                    body.add_child(BoogieNode(None, cases))
+            else:
+                self.advance()
+        return body
+
+    def parseWoogieBody(self):
+        body = BodyNode()
+        while self.current_token.type not in ['woogie', 'default', '}']:
             if self.current_token.type in ['int', 'float', 'string', 'bool', 'curse', 'restrict']:
                 declaration = self.parseDeclaration()
                 if declaration:
