@@ -1626,19 +1626,29 @@ class PerformSustainNode(ASTNode): # do-while loop (perform-sustain)
         return f"PerformSustainNode({self.body}, {self.condition})"
 
 class CycleNode(ASTNode): # for-loop (cycle)
-    def __init__(self, init, condition, increment, body):
+    def __init__(self, cycle_condition, body):
         super().__init__("Cycle Statement")
-        self.init = init
-        self.condition = condition
-        self.increment = increment
+        self.cycle_condition = cycle_condition
         self.body = body
-        self.add_child(init)
-        self.add_child(condition)
-        self.add_child(increment)
+        self.add_child(cycle_condition)
         self.add_child(body)
 
     def __repr__(self):
-        return f"CycleNode({self.init}, {self.condition}, {self.increment}, {self.body})"
+        return f"CycleNode({self.cycle_condition}, {self.body})"
+
+class CycleConditionNode(ASTNode): # for-loop initialization, condition, and iteration
+    def __init__(self, init, condition, iteration):
+        super().__init__("Cycle Condition")
+        self.init = init
+        self.condition = condition
+        self.iteration = iteration
+        self.add_child(init)
+        self.add_child(condition)
+        self.add_child(iteration)
+
+    def __repr__(self):
+        return f"{self.init}; {self.condition}; {self.iteration}"
+
     
 ##################
 ## AST Traverser
@@ -2273,9 +2283,68 @@ class Parser:
                                 cases.append(DefaultCaseNode(default_body))
                     self.advance()
                     body.add_child(BoogieNode(None, cases))
+            elif self.current_token.type == 'cycle':
+                self.advance()
+                if self.current_token.type == '(':
+                    self.advance()
+                    cycle_condition = self.parseCycleCondition()
+                    if self.current_token.type == ')':
+                        self.advance()
+                        if self.current_token.type == '{':
+                            self.advance()
+                            cycle_body = self.parseBody()
+                            self.advance()
+                            body.add_child(CycleNode(cycle_condition, cycle_body)) 
+            elif self.current_token.type == 'sustain':
+                self.advance()
+                if self.current_token.type == '(':
+                    self.advance()
+                    condition = self.parseExpr()
+                    if self.current_token.type == ')':
+                        self.advance()
+                        if self.current_token.type == '{':
+                            self.advance()
+                            sustain_body = self.parseBody()
+                            self.advance()
+                            body.add_child(SustainNode(condition, sustain_body))
+            elif self.current_token.type == 'perform':
+                print("Hey i reached 2311")
+                self.advance()
+                if self.current_token.type == '{':
+                    self.advance()
+                    perform_body = self.parseBody()
+                    self.advance()
+                    if self.current_token.type == 'sustain':
+                        self.advance()
+                        if self.current_token.type == '(':
+                            self.advance()
+                            condition = self.parseExpr()
+                            if self.current_token.type == ')':
+                                self.advance()
+                                if self.current_token.type == ';':
+                                    self.advance()
+                                    body.add_child(PerformSustainNode(perform_body, condition))
             else:
                 self.advance()
         return body
+    
+    def parseCycleCondition(self):
+        if self.current_token.type in ['int', 'float', 'string', 'bool']:
+            init = self.parseDeclaration()
+        elif self.current_token.type == 'id':
+            init = self.parseIdCall()
+        else:
+            raise InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected variable declaration or reassignment")
+        if self.current_token.type == ';':
+            self.advance()
+            condition = self.parseExpr()
+            if self.current_token.type == ';':
+                self.advance()
+                iteration = self.parseExpr()
+                return CycleConditionNode(init, condition, iteration)
+        else:
+            print(f"Encountered: {self.current_token.type}") 
+            raise InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected ';'")
 
     def parseWoogieBody(self):
         body = BodyNode()
