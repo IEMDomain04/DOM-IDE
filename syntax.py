@@ -1228,7 +1228,7 @@ class ASTNode:
 
     def print_tree(self):
         spaces = ' ' * self.get_level() * 3 
-        prefix = spaces + "|__" if self.parent else spaces
+        prefix = spaces + "ᴸ---" if self.parent else spaces
         print(prefix + str(self.data))
         if self.children:
             for child in self.children:
@@ -1289,6 +1289,306 @@ class UnaryOperator(ASTNode): # unary operator
     def __init__(self, op):
         super().__init__(f"Unary Operator: {op.type}")
         self.op = op.type
+
+class RestrictNode(ASTNode): # for restrict keyword
+    def __init__(self):
+        super().__init__("Restrict")
+
+class DatatypeNode(ASTNode): # for datatype keywords
+    def __init__(self, datatype):
+        super().__init__(f"Datatype: {datatype}")
+        self.datatype = datatype
+
+class IdNode(ASTNode): # for identifier names
+    def __init__(self, name):
+        super().__init__(f"Identifier: {name}")
+        self.name = name
+
+class VarNode(ASTNode): # for variables
+    def __init__(self, name):
+        super().__init__(f"Variable: {name}")
+        self.name = name
+
+    def __repr__(self):
+        return f"{self.name}"
+
+class VarDecNode(ASTNode): # for variable assignments
+    def __init__(self, restrict, datatype, name, value):
+        super().__init__("Variable Declaration")
+        self.restrict = restrict
+        self.datatype = datatype
+        self.name = name
+        self.value = value
+        if restrict:
+            self.add_child(RestrictNode())
+        self.add_child(DatatypeNode(datatype))
+        self.add_child(IdNode(name))
+        self.add_child(value)
+
+    def __repr__(self):
+        restrict_str = " restrict" if self.restrict else ""
+        return f"{self.datatype} {self.name} = {self.value}{restrict_str}"
+
+class VarAssignNode(ASTNode): # for variable assignments
+    def __init__(self, name, value):
+        super().__init__("Variable Assignment")
+        self.name = name
+        self.value = value
+        self.add_child(IdNode(name))
+        self.add_child(value)
+
+    def __repr__(self):
+        return f"{self.name} = {self.value}"
+
+class ClanDecNode(ASTNode): # for arrays
+    def __init__(self, restrict, datatype, name, size, initial_values=None):
+        super().__init__("Clan Declaration")
+        self.restrict = restrict
+        self.datatype = datatype
+        self.name = name
+        self.size = size
+        self.initial_values = initial_values or []
+        self.add_child(DatatypeNode(datatype))
+        self.add_child(IdNode(name))
+        self.add_child(size)
+        if initial_values:
+            self.add_child(ClanLiteralNode(initial_values))
+
+    def __repr__(self):
+        if self.initial_values:
+            return f"{self.datatype} {self.name}[{self.size}] = {self.initial_values}"
+        else:
+            return f"{self.datatype} {self.name}[{self.size}]"
+
+class ClanLiteralNode(ASTNode): # for clan literals
+    def __init__(self, values):
+        super().__init__(f"Clan Literal: {{{', '.join(str(value.data) for value in values)}}}")
+        self.values = values
+        for value in values:
+            self.add_child(value)
+    
+class ClanIndexNode(ASTNode): # for array indexing
+    def __init__(self, index):
+        super().__init__("Clan Index")
+        self.index = index
+        self.add_child(index)
+
+    def __repr__(self):
+        return f"{self.index}"
+
+class ClanSizeNode(ASTNode): # for array size
+    def __init__(self, size):
+        super().__init__("Clan Size")
+        self.size = size
+        self.add_child(size)
+    
+class ClanAccessNode(ASTNode): # for array access
+    def __init__(self, name, index):
+        super().__init__("Clan Access")
+        self.name = name
+        self.index = index
+        self.add_child(IdNode(name))
+        self.add_child(index)
+
+class ClanIndexAssignNode(ASTNode): # for array index assignments
+    def __init__(self, name, index, values):
+        super().__init__("Clan Index Assign")
+        self.name = name
+        self.index = index
+        self.values = values
+        self.add_child(IdNode(name))
+        self.add_child(index)
+        for value in values:
+            self.add_child(value)
+
+    def __repr__(self):
+        return f"{self.name}[{self.index}] = {self.values}"
+    
+class ClanAssignNode(ASTNode): # for assigning the whole array
+    def __init__(self, name, values):
+        super().__init__("Clan Assign")
+        self.name = name
+        self.values = values
+        self.add_child(IdNode(name))
+        self.add_child(ClanLiteralNode(values))
+
+    def __repr__(self):
+        return f"{self.name} = {self.values}"
+
+class CurseDecNode(ASTNode): # for functions
+    def __init__(self, datatype, name, parameters, body):
+        super().__init__("Curse Declaration")
+        self.datatype = datatype
+        self.name = name
+        self.parameters = parameters
+        self.body = body
+        self.add_child(DatatypeNode(datatype))
+        self.add_child(IdNode(name))
+        for param in parameters:
+            self.add_child(param)
+        self.add_child(body)
+
+    def __repr__(self):
+        return f"{self.datatype} {self.name}({self.parameters}) {self.body}"
+
+class CurseDomainNode(ASTNode): # for function domain
+    def __init__(self, body):
+        super().__init__("Main Curse")
+        self.body = body
+        self.add_child(body)
+
+    def __repr__(self):
+        return f"{self.body}"
+
+class ParamNode(ASTNode): # for function parameters
+    def __init__(self, datatype, name):
+        super().__init__("Parameter")
+        self.datatype = datatype
+        self.name = name
+        self.add_child(DatatypeNode(datatype))
+        self.add_child(IdNode(name))
+
+class ArgNode(ASTNode): # for function arguments
+    def __init__(self, value):
+        super().__init__("Argument")
+        self.value = value
+        self.add_child(value)
+
+class BodyNode(ASTNode): # for body of functions and vows and boogies and cycles and sustains and perform-sustains
+    def __init__(self):
+        super().__init__("Body")
+
+class CurseCallNode(ASTNode): # for curse calls
+    def __init__(self, name, arguments):
+        super().__init__("Curse Call")
+        self.name = name
+        self.arguments = arguments
+        self.add_child(IdNode(name))
+        if arguments:
+            args_node = ASTNode("Arguments")
+            for arg in arguments:
+                args_node.add_child(arg)
+            self.add_child(args_node)
+
+class StringNode(ASTNode): # for strings
+    def __init__(self, value):
+        super().__init__(f"String: {value}")
+        self.value = value
+
+class StringConcatNode(ASTNode): # for string concatenations
+    def __init__(self, left, op, right):
+        super().__init__("String Concatenation")
+        self.left = left
+        self.op = op.type
+        self.right = right
+        self.add_child(left)
+        self.add_child(right)
+
+    def __repr__(self):
+        return f"{self.left} {self.op} {self.right}"
+
+class InvokeNode(ASTNode): # for printing invoke("Hello, World!")
+    def __init__(self, value):
+        super().__init__("Invoke Statement")
+        self.value = value
+        self.add_child(value)
+
+class CaptureNode(ASTNode): # for user input, capture(id)
+    def __init__(self, name):
+        super().__init__("Capture Statement")
+        self.name = name
+        self.add_child(name)
+
+class CleaveNode(ASTNode): # for cleave statements, cleave(id, index1Start, index2End)
+    def __init__(self, name, index1, index2):
+        super().__init__("Cleave Statement")
+        self.name = name
+        self.index1 = index1
+        self.index2 = index2
+        self.add_child(name)
+        self.add_child(index1)
+        self.add_child(index2)
+
+class DismantleNode(ASTNode): # for dismantle statements, dismantle(id, delimiter)
+    def __init__(self, name, delimiter):
+        super().__init__("Dismantle Statement")
+        self.name = name
+        self.delimiter = delimiter
+        self.add_child(name)
+        self.add_child(delimiter)
+
+class LenNode(ASTNode): # for len statements, len(id)
+    def __init__(self, name):
+        super().__init__("Len Statement")
+        self.name = name
+        self.add_child(name)
+
+class RecallNode(ASTNode): # for return statements
+    def __init__(self, value):
+        super().__init("Recall Statement")
+        self.value = value
+        self.add_child(value)
+
+class DismissNode(ASTNode): # for break statements
+    def __init__(self):
+        super().__init("Dismiss")
+
+class HopNode(ASTNode): # for continue statements
+    def __init__(self):
+        super().__init("Hop")
+
+class ConditionalNode(ASTNode): # for if-else statements
+    def __init__(self, condition, body, else_body=None):
+        super().__init__("Conditional Statement")
+        self.condition = condition
+        self.body = body
+        self.else_body = else_body
+        self.add_child(condition)
+        self.add_child(body)
+        if else_body:
+            self.add_child(else_body)
+
+        self.add_child(body)
+    
+class WoogieNode(ASTNode): # for normal switch-case statements
+    def __init__(self, expression, woogie, default_case=None):
+        super().__init__("Woogie Statement")
+        self.expression = expression
+        self.woogie = woogie
+        self.default_case = default_case
+        self.add_child(expression)
+        for case_expr, case_body in woogie:
+            self.add_child(case_expr)
+            self.add_child(case_body)
+        if default_case:
+            self.add_child(default_case)
+
+class WoogieTrueNode(ASTNode): # for switch true (woogie true)
+    def __init__(self, expression, woogie, default_case=None):
+        super().__init__("Woogie")
+        self.expression = expression
+        self.woogie = woogie
+        self.default_case = default_case
+        self.add_child(expression)
+        for case_expr, case_body in woogie:
+            self.add_child(case_expr)
+            self.add_child(case_body)
+        if default_case:
+            self.add_child(default_case)
+
+class WoogieStatementNode(ASTNode): # for cases
+    def __init__(self, expression, body):
+        super().__init__("Woogie Statement")
+        self.expression = expression
+        self.body = body
+        self.add_child(expression)
+        self.add_child(body)
+
+class DefaultCaseNode(ASTNode): # for default cases
+    def __init__(self, body):
+        super().__init__("Default Case")
+        self.body = body
+        self.add_child(body)
 
 class VowNode(ASTNode): # if-else (vow-else)
     def __init__(self, condition, body, else_body=None):
@@ -1353,146 +1653,6 @@ class CycleNode(ASTNode): # for-loop (cycle)
 
     def __repr__(self):
         return f"CycleNode({self.init}, {self.condition}, {self.increment}, {self.body})"
-    
-class ClanDecNode(ASTNode): # for arrays
-    def __init__(self, restrict, datatype, name, size, initial_values=None):
-        super().__init__("Clan Declaration")
-        self.restrict = restrict
-        self.datatype = datatype
-        self.name = name
-        self.size = size
-        self.initial_values = initial_values or []
-        self.add_child(DatatypeNode(datatype))
-        self.add_child(IdNode(name))
-        self.add_child(size)
-        if initial_values:
-            self.add_child(ClanLiteralNode(initial_values))
-
-    def __repr__(self):
-        if self.initial_values:
-            return f"{self.datatype} {self.name}[{self.size}] = {self.initial_values}"
-        else:
-            return f"{self.datatype} {self.name}[{self.size}]"
-
-class ClanLiteralNode(ASTNode): # for clan literals
-    def __init__(self, values):
-        super().__init__(f"Clan Literal: {{{', '.join(str(value.data) for value in values)}}}")
-        self.values = values
-        for value in values:
-            self.add_child(value)
-
-class ClanAssignNode(ASTNode): # for array assignments
-    def __init__(self, name, index, value):
-        super().__init__("Clan Assignment")
-        self.index = index
-        self.value = value
-        self.add_child(IdNode(name))
-        self.add_child(index)
-        self.add_child(value)
-
-    def __repr__(self):
-        return f"{self.name}[{self.index}] = {self.value}"
-    
-class ClanIndexNode(ASTNode): # for array indexing
-    def __init__(self, index):
-        super().__init__("Clan Index")
-        self.index = index
-        self.add_child(index)
-
-    def __repr__(self):
-        return f"{self.index}"
-
-class ClanSizeNode(ASTNode): # for array size
-    def __init__(self, size):
-        super().__init__("Clan Size")
-        self.size = size
-        self.add_child(size)
-    
-class ClanAccessNode(ASTNode): # for array access
-    def __init__(self, name, index):
-        super().__init__("Clan Access")
-        self.name = name
-        self.index = index
-        self.add_child(IdNode(name))
-        self.add_child(index)
-
-class VarNode(ASTNode): # for variables
-    def __init__(self, name):
-        super().__init__(f"Variable: {name}")
-        self.name = name
-
-    def __repr__(self):
-        return f"{self.name}"
-
-class RestrictNode(ASTNode): # for restrict keyword
-    def __init__(self):
-        super().__init__("Restrict")
-
-class DatatypeNode(ASTNode): # for datatype keywords
-    def __init__(self, datatype):
-        super().__init__(f"Datatype: {datatype}")
-        self.datatype = datatype
-
-class IdNode(ASTNode): # for identifier names
-    def __init__(self, name):
-        super().__init__(f"Identifier: {name}")
-        self.name = name
-
-class VarDecNode(ASTNode): # for variable assignments
-    def __init__(self, restrict, datatype, name, value):
-        super().__init__("Variable Declaration")
-        self.restrict = restrict
-        self.datatype = datatype
-        self.name = name
-        self.value = value
-        if restrict:
-            self.add_child(RestrictNode())
-        self.add_child(DatatypeNode(datatype))
-        self.add_child(IdNode(name))
-        self.add_child(value)
-
-    def __repr__(self):
-        restrict_str = " restrict" if self.restrict else ""
-        return f"{self.datatype} {self.name} = {self.value}{restrict_str}"
-
-class CurseDecNode(ASTNode): # for functions
-    def __init__(self, datatype, name, parameters, body):
-        super().__init__("Curse Declaration")
-        self.datatype = datatype
-        self.name = name
-        self.parameters = parameters
-        self.body = body
-        self.add_child(DatatypeNode(datatype))
-        self.add_child(IdNode(name))
-        for param in parameters:
-            self.add_child(param)
-        self.add_child(body)
-
-    def __repr__(self):
-        return f"{self.datatype} {self.name}({self.parameters}) {self.body}"
-    
-class ParamNode(ASTNode): # for function parameters
-    def __init__(self, datatype, name):
-        super().__init__("Parameter")
-        self.datatype = datatype
-        self.name = name
-        self.add_child(DatatypeNode(datatype))
-        self.add_child(IdNode(name))
-
-class ArgNode(ASTNode): # for function arguments
-    def __init__(self, value):
-        super().__init__("Argument")
-        self.value = value
-        self.add_child(value)
-
-class BodyNode(ASTNode): # for body of functions and vows and boogies and cycles and sustains and perform-sustains
-    def __init__(self):
-        super().__init__("Body")
-
-class CurseCallNode(ASTNode): # for curse calls
-    def __init__(self):
-        super().__init__("Curse Call")
-    
     
 ##################
 ## AST Traverser
@@ -1666,10 +1826,13 @@ class Parser:
                 declaration = self.parseDeclaration()
                 if declaration:
                     root.add_child(declaration)
+            elif self.current_token is not None and self.current_token.type == 'id':
+                assignment = self.parseIdCall()
+                if assignment:
+                    root.add_child(assignment)
             else: 
                 self.advance()
         return root
-    
 
     def parseFactor(self):
         tok = self.current_token
@@ -1733,6 +1896,115 @@ class Parser:
             left = node_class(left, op, right)
         return left
     
+    def parseIdCall(self):
+        if self.current_token.type == 'id':
+            name = self.current_token.value
+            self.advance()
+            if self.current_token.type in ['=', '+=', '-=', '*=', '/=', '%=']:
+                op = self.current_token.type
+                self.advance()
+                if self.current_token.type == '{': # check later for previous node type
+                    self.advance()
+                    values = []
+                    while self.current_token.type != '}':
+                        values.append(self.parseExpr())
+                        if self.current_token.type == ',':
+                            self.advance()
+                    self.advance()
+                    return ClanAssignNode(name, values)
+                elif self.current_token.type == 'id' and self.tokens[self.token_idx + 1].type == '(':
+                    value = self.parseIdCall()
+                    return VarAssignNode(name, value)
+                elif self.current_token.type == 'id' and self.tokens[self.token_idx + 1].type == '[':
+                    clan_id = self.current_token.value
+                    self.advance()
+                    self.advance() # self advanced two times to reach the actual index value
+                    index = self.parseExpr()
+                    index_node = ClanIndexNode(index)
+                    value = ClanAccessNode(clan_id, index_node)
+                    return VarAssignNode(name, value)
+                elif self.current_token.type == 'cleave':
+                    self.advance()
+                    if self.current_token.type == '(':
+                        self.advance()
+                        cleave_id = IdNode(self.current_token.value) # check node types after advancing
+                        self.advance() 
+                        if self.current_token.type == ',':
+                            self.advance()
+                            index1 = self.parseExpr()
+                            if self.current_token.type == ',':
+                                self.advance()
+                                index2 = self.parseExpr()
+                                if self.current_token.type == ')':
+                                    self.advance()
+                                    return VarAssignNode(name, CleaveNode(cleave_id, index1, index2))
+                elif self.current_token.type == 'dismantle':
+                    self.advance()
+                    if self.current_token.type == '(':
+                        self.advance()
+                        dismantle_id = IdNode(self.current_token.value) # check node types after advancing
+                        self.advance()
+                        if self.current_token.type == ',':
+                            self.advance()
+                            delimiter = StringNode(self.current_token.value)
+                            self.advance()
+                            if self.current_token.type == ')':
+                                self.advance()
+                                return VarAssignNode(name, DismantleNode(dismantle_id, delimiter))
+                elif self.current_token.type == 'len':
+                    self.advance()
+                    if self.current_token.type == '(':
+                        self.advance()  
+                        len_id = IdNode(self.current_token.value)
+                        self.advance()
+                        if self.current_token.type == ')': # check if no more than 2 args
+                            self.advance()
+                            return VarAssignNode(name, LenNode(len_id))
+                else:
+                    value = self.parseExpr()
+                    if op == '=':
+                        return VarAssignNode(name, value)
+                    else:
+                        # Transform shorthand assignment into equivalent expression
+                        bin_op = op[0]  # Get the operator part of the shorthand assignment
+                        left = VarNode(name)
+                        right = value
+                        bin_op_node = BinOpNode(left, type('Token', (object,), {'type': bin_op})(), right)
+                        return VarAssignNode(name, bin_op_node)
+            elif self.current_token.type == '[':
+                self.advance()
+                index = self.parseExpr()
+                index_node = ClanIndexNode(index)
+                if self.current_token.type == ']':
+                    self.advance()
+                    if self.current_token.type == '=':
+                        self.advance()
+                        if self.current_token.type == '{':
+                            self.advance()
+                            values = []
+                            while self.current_token.type != '}':
+                                values.append(self.parseExpr())
+                                if self.current_token.type == ',':
+                                    self.advance()
+                            return ClanIndexAssignNode(name, index_node, values)
+            elif self.current_token.type == '(':
+                self.advance()
+                args = []
+                while self.current_token.type != ')':
+                    if self.current_token.type == 'string_literal':
+                        args.append(StringNode(self.current_token.value))
+                        self.advance()
+                    elif self.current_token.type == 'id':
+                        value = self.parseIdCall()
+                        args.append(value)
+                    else:
+                        args.append(self.parseExpr())
+                    if self.current_token.type == ',':
+                        self.advance()
+                self.advance()
+                return CurseCallNode(name, args)
+        return None
+    
 
     def parseDeclaration(self):
         if self.current_token.type in ['int', 'float', 'string', 'bool']:
@@ -1744,8 +2016,57 @@ class Parser:
                 self.advance()
                 if self.current_token.type == '=':
                     self.advance()
-                    value = self.parseExpr()
-                    return VarDecNode(None, datatype, name, value)
+                    if self.current_token.type == 'id' and self.tokens[self.token_idx + 1].type == '(':
+                        value = self.parseIdCall()
+                        return VarDecNode(None, datatype, name, value)
+                    elif self.current_token.type == 'id' and self.tokens[self.token_idx + 1].type == '[':
+                        clan_id = self.current_token.value
+                        self.advance()
+                        self.advance()
+                        index = self.parseExpr()
+                        index_node = ClanIndexNode(index)
+                        value = ClanAccessNode(clan_id, index_node)
+                        return VarDecNode(None, datatype, name, value)
+                    elif self.current_token.type == 'cleave':
+                        self.advance()
+                        if self.current_token.type == '(':
+                            self.advance()
+                            cleave_id = IdNode(self.current_token.value) # check node types after advancing
+                            self.advance()
+                            if self.current_token.type == ',':
+                                self.advance()
+                                index1 = self.parseExpr()
+                                if self.current_token.type == ',':
+                                    self.advance()
+                                    index2 = self.parseExpr()
+                                    if self.current_token.type == ')':
+                                        self.advance()
+                                        return VarDecNode(None, datatype, name, CleaveNode(cleave_id, index1, index2))
+                    elif self.current_token.type == 'dismantle':
+                        self.advance()
+                        if self.current_token.type == '(':
+                            self.advance()
+                            dismantle_id = IdNode(self.current_token.value)
+                            self.advance()
+                            if self.current_token.type == ',':
+                                self.advance()
+                                delimiter = StringNode(self.current_token.value)
+                                self.advance()
+                                if self.current_token.type == ')':
+                                    self.advance()
+                                    return VarDecNode(None, datatype, name, DismantleNode(dismantle_id, delimiter))
+                    elif self.current_token.type == 'len':
+                        self.advance()
+                        if self.current_token.type == '(':
+                            self.advance()
+                            len_id = IdNode(self.current_token.value)
+                            self.advance()
+                            if self.current_token.type == ')':
+                                self.advance()
+                                return VarDecNode(None, datatype, name, LenNode(len_id))
+                    else:
+                        value = self.parseExpr()
+                        return VarDecNode(None, datatype, name, value)
                 elif self.current_token.type == '[':
                     self.advance()
                     size = self.parseExpr()
@@ -1763,6 +2084,21 @@ class Parser:
                                         self.advance()
                                 self.advance()
                         return ClanDecNode(None, datatype, name, clan_size_node, initial_values)
+                elif self.current_token.type == '[...]':
+                    self.advance()
+                    size = self.parseExpr()
+                    clan_size_node = ClanSizeNode(size)
+                    initial_values = []
+                    if self.current_token.type == '=':
+                        self.advance()
+                        if self.current_token.type == '{':
+                            self.advance()
+                            while self.current_token.type != '}':
+                                initial_values.append(self.parseExpr())
+                                if self.current_token.type == ',':
+                                    self.advance()
+                            self.advance()
+                    return ClanDecNode(None, datatype, name, clan_size_node, initial_values)
                 else:
                     return VarNode(name)
         elif self.current_token.type == 'curse':
@@ -1787,6 +2123,16 @@ class Parser:
                         self.advance()
                         body = self.parseBody()
                         return CurseDecNode(None, name, parameters, body)
+            elif self.current_token.type == 'domain':
+                self.advance()
+                if self.current_token.type == '(':
+                    self.advance()
+                    if self.current_token.type == ')':
+                        self.advance()
+                        if self.current_token.type == '{':
+                            self.advance()
+                            body = self.parseBody()
+                            return CurseDomainNode(body)
         elif self.current_token.type == 'restrict':
             self.advance()
             if self.current_token.type in ['int', 'float', 'string', 'bool']:
@@ -1800,6 +2146,72 @@ class Parser:
                         value = self.parseExpr()
                         return VarDecNode('restrict', datatype, name, value)
         return None
+    
+    def parseBody(self):
+        body = BodyNode()
+        while self.current_token.type != '}':
+            if self.current_token.type in ['int', 'float', 'string', 'bool', 'curse', 'restrict']:
+                declaration = self.parseDeclaration()
+                if declaration:
+                    body.add_child(declaration)
+            elif self.current_token.type == 'id':
+                assignment = self.parseIdCall()
+                if assignment:
+                    body.add_child(assignment)
+            elif self.current_token.type == 'invoke':
+                self.advance()
+                if self.current_token.type == '(':
+                    self.advance()
+                    value = self.parseInvokeArgument()
+                    if self.current_token.type == ')':
+                        self.advance()
+                        body.add_child(InvokeNode(value))
+            elif self.current_token.type == 'capture':
+                self.advance()
+                if self.current_token.type == '(':
+                    self.advance()
+                    if self.current_token.type == 'id':
+                        name = IdNode(self.current_token.value)
+                        self.advance()
+                        if self.current_token.type == ')':
+                            self.advance()
+                            body.add_child(CaptureNode(name))
+            elif self.current_token.type == 'dismiss':
+                self.advance()
+                body.add_child(DismissNode())
+            elif self.current_token.type == 'hop':
+                self.advance()
+                body.add_child(HopNode())
+            elif self.current_token.type == 'recall': # check later for all possibilities
+                self.advance()
+                value = self.parseExpr()
+                body.add_child(RecallNode(value))
+            elif self.current_token.type == 'vow':
+                self.advance()
+                condition = self.parseExpr()
+            else:
+                self.advance()
+        return body
+
+    def parseInvokeArgument(self):
+        if self.current_token.type == 'string_literal':
+            return self.parseString()
+        else:
+            return self.parseExpr()
+
+    def parseString(self):
+        left = StringNode(self.current_token.value)
+        self.advance()
+        while self.current_token.type == '+':
+            op = self.current_token
+            self.advance()
+            if self.current_token.type == 'string_literal':
+                right = StringNode(self.current_token.value)
+                self.advance()
+            else:
+                right = self.parseFactor()
+            left = StringConcatNode(left, op, right)
+        return left
 
 def is_non_terminal(text): # (boolean) checks if the given string is a non-terminal
     return text.startswith('<') and text.endswith('>')
