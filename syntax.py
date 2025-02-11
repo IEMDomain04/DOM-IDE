@@ -1525,30 +1525,17 @@ class LenNode(ASTNode): # for len statements, len(id)
 
 class RecallNode(ASTNode): # for return statements
     def __init__(self, value):
-        super().__init("Recall Statement")
+        super().__init__("Recall Statement")
         self.value = value
         self.add_child(value)
 
 class DismissNode(ASTNode): # for break statements
     def __init__(self):
-        super().__init("Dismiss")
+        super().__init__("Dismiss")
 
 class HopNode(ASTNode): # for continue statements
     def __init__(self):
-        super().__init("Hop")
-
-class ConditionalNode(ASTNode): # for if-else statements
-    def __init__(self, condition, body, else_body=None):
-        super().__init__("Conditional Statement")
-        self.condition = condition
-        self.body = body
-        self.else_body = else_body
-        self.add_child(condition)
-        self.add_child(body)
-        if else_body:
-            self.add_child(else_body)
-
-        self.add_child(body)
+        super().__init__("Hop")
     
 class WoogieNode(ASTNode): # for normal switch-case statements
     def __init__(self, expression, woogie, default_case=None):
@@ -1591,18 +1578,35 @@ class DefaultCaseNode(ASTNode): # for default cases
         self.add_child(body)
 
 class VowNode(ASTNode): # if-else (vow-else)
-    def __init__(self, condition, body, else_body=None):
+    def __init__(self, condition, body, else_vows=None, else_body=None):
         super().__init__("Vow Statement")
         self.condition = condition
         self.body = body
+        self.else_vows = else_vows or []
         self.else_body = else_body
         self.add_child(condition)
         self.add_child(body)
+        for else_vow in self.else_vows:
+            self.add_child(else_vow)
         if else_body:
             self.add_child(else_body)
 
     def __repr__(self):
         return f"VowNode({self.condition}, {self.body}, {self.else_body})"
+
+class ElseVow(ASTNode):
+    def __init__(self, condition, body):
+        super().__init__("Else Vow")
+        self.condition = condition
+        self.body = body
+        self.add_child(condition)
+        self.add_child(body)
+
+class ElseNode(ASTNode):
+    def __init__(self, body):
+        super().__init__("Else")
+        self.body = body
+        self.add_child(body)
 
 class BoogieNode(ASTNode): # switch-case (boogie)
     def __init__(self, expression, cases):
@@ -1732,6 +1736,17 @@ class Parser:
     def reset(self):
         self.token_idx = -1
         self.advance()
+
+    def peek(self):
+        current_idx = self.token_idx
+        while True:
+            current_idx += 1
+            if current_idx < len(self.tokens):
+                next_token = self.tokens[current_idx]
+                if next_token.type not in ['\n', '\t', ' ', '\\n', '\\t', 'space']:
+                    return next_token
+            else:
+                return None
 
 ###################
 ## Syntax Analyzer
@@ -2016,10 +2031,10 @@ class Parser:
                 self.advance()
                 if self.current_token.type == '=':
                     self.advance()
-                    if self.current_token.type == 'id' and self.tokens[self.token_idx + 1].type == '(':
+                    if self.current_token.type == 'id' and self.peek().type == '(':
                         value = self.parseIdCall()
                         return VarDecNode(None, datatype, name, value)
-                    elif self.current_token.type == 'id' and self.tokens[self.token_idx + 1].type == '[':
+                    elif self.current_token.type == 'id' and self.peek().type == '[':
                         clan_id = self.current_token.value
                         self.advance()
                         self.advance()
@@ -2188,7 +2203,38 @@ class Parser:
                 body.add_child(RecallNode(value))
             elif self.current_token.type == 'vow':
                 self.advance()
-                condition = self.parseExpr()
+                if self.current_token.type == '(':
+                    self.advance()
+                    condition = self.parseExpr()
+                    if self.current_token.type == ')':
+                        self.advance()
+                        if self.current_token.type == '{':
+                            self.advance()
+                            body_node = self.parseBody()
+                            self.advance()  # advance past the closing brace '}'
+                            else_vows = []
+                            while self.current_token.type == 'else' and self.peek().type == 'vow':
+                                self.advance()
+                                self.advance()
+                                if self.current_token.type == '(':
+                                    self.advance()
+                                    else_condition = self.parseExpr()
+                                    if self.current_token.type == ')':
+                                        self.advance()
+                                        if self.current_token.type == '{':
+                                            self.advance()
+                                            else_body_node = self.parseBody()
+                                            self.advance()  # Advance past the closing '}'
+                                            else_vows.append(ElseVow(else_condition, else_body_node))
+                            if self.current_token.type == 'else':
+                                self.advance()
+                                if self.current_token.type == '{':
+                                    self.advance()
+                                    else_body_node = self.parseBody()
+                                    self.advance()  # Advance past the closing '}'
+                                    body.add_child(VowNode(condition, body_node, else_vows, ElseNode(else_body_node)))
+                            else:
+                                body.add_child(VowNode(condition, body_node, else_vows))
             else:
                 self.advance()
         return body
