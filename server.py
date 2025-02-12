@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from lexer import run as lexer
 from syntax import parse_run as syntax
+from semantic import semantic_run as semantic
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -25,9 +26,21 @@ def run_syntax():
     text = data.get('text', '')
     tokens, lexer_errors = lexer(text)  # Call lexer with text
     if lexer_errors:  
-        return jsonify({'syntax_tree': "Failure from Syntax Analyzer"})
-    syntax_result, ast = syntax(tokens)  # Call syntax with tokens
-    return jsonify({'syntax_tree': syntax_result})
+        return jsonify({'result': "Failure from Syntax Analyzer"})
+    syntax_result, syntax_error = syntax(tokens)
+    if syntax_error:
+        return jsonify({'result': syntax_error})
+    return jsonify({'result': syntax_result})
+
+@app.route('/api/semantic', methods=['POST'])
+def run_semantic():
+    data = request.json
+    text = data.get('text', '')
+    tokens, lexer_errors = lexer(text)
+    if lexer_errors:  
+        return jsonify({'semantic_result': "Failure from Semantic Analyzer", 'ast': None})
+    semantic_result, ast = semantic(tokens)
+    return jsonify({'semantic_result': semantic_result, 'ast': ast.to_dict() if ast else None})
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -3,7 +3,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import Topnav from "./components/Topnav";
 import { handleTokenizerClick } from "./lexical/lexical";
-import { handleSyntaxClick } from "./syntax/syntax"; // Import the function
+import { handleSyntaxClick } from "./syntax/syntax"; 
+import { handleSemanticClick } from "./semantic/semantic";
 
 interface Token {
   lexeme: string;
@@ -74,12 +75,6 @@ curse domain(){
     setTerminalOutput("\n============= COMPILER COMING SOON ==============");
   };
 
-  // Function to handle the semantic button click
-  const handleSemanticClick = async () => {
-    setOutputData([]);
-    setTerminalOutput("\n============= SEMANTIC COMING SOON ==============");
-  };
-
   // Sync the scroll position between the textarea and line numbers container
   const handleScroll = () => {
     const textarea = textareaRef.current;
@@ -113,7 +108,7 @@ curse domain(){
           onRunClick={handleRunClick}
           onTokenizerClick={() => textareaRef.current && handleTokenizerClick(textareaRef as React.RefObject<HTMLTextAreaElement>, setOutputData, setTerminalOutput)}
           onSyntaxClick={() => textareaRef.current && handleSyntaxClick(textareaRef as React.RefObject<HTMLTextAreaElement>, setTerminalOutput)}
-          onSemanticClick={handleSemanticClick}
+          onSemanticClick={() => textareaRef.current && handleSemanticClick(textareaRef as React.RefObject<HTMLTextAreaElement>, setTerminalOutput)}
           toggleDarkMode={toggleDarkMode}
           isDarkMode={isDarkMode}
           textareaRef={textareaRef}
