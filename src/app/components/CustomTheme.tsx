@@ -95,7 +95,7 @@ const CustomTheme = () => {
                     suggestions: [
                         { label: "expansion (exp)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "expansion;", documentation: "Defines the start of the script.", range },
                         { label: "curse (cur)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "curse", documentation: "Defines a function or domain.", range },
-                        { label: "domain (dom)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "domain", documentation: "Represents a domain definition.", range },
+                        { label: "domain (dom)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "domain()", documentation: "Represents a domain definition.", range },
         
                         // Data Types
                         { label: "null (nul)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "null", documentation: "Represents a null value.", range },
@@ -117,15 +117,15 @@ const CustomTheme = () => {
                         { label: "false (fal)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "false", documentation: "Boolean false value.", range },
         
                         // Conditional Statements
-                        { label: "vow (vow)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "vow", documentation: "Defines a condition block.", range },
+                        { label: "vow (vow)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "vow()", documentation: "Defines a condition block.", range },
                         { label: "else (els)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "else", documentation: "Defines the alternative condition.", range },
-                        { label: "boogie (boog)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "boogie", documentation: "Defines a specific condition.", range },
+                        { label: "boogie (boog)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "boogie()", documentation: "Defines a specific condition.", range },
                         { label: "woogie (woo)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "woogie", documentation: "Defines an alternative condition.", range },
         
                         // Looping Statements
-                        { label: "cycle (cyc)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "cycle", documentation: "Begins a loop cycle.", range },
+                        { label: "cycle (cyc)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "cycle()", documentation: "Begins a loop cycle.", range },
                         { label: "sustain (sus)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "sustain", documentation: "Maintains a looping process.", range },
-                        { label: "perform (per)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "perform", documentation: "Executes a repeated action.", range },
+                        { label: "perform (per)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "perform()", documentation: "Executes a repeated action.", range },
         
                         // Loop Control Statements
                         { label: "dismiss (dis)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "dismiss", documentation: "Exits a loop.", range },
