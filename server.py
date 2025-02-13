@@ -26,11 +26,11 @@ def run_syntax():
     text = data.get('text', '')
     tokens, lexer_errors = lexer(text)  # Call lexer with text
     if lexer_errors:  
-        return jsonify({'result': "Failure from Syntax Analyzer"})
+        return jsonify({'result': "Failure from Syntax Analyzer", 'error': None})
     syntax_result, syntax_error = syntax(tokens)
     if syntax_error:
-        return jsonify({'result': syntax_error})
-    return jsonify({'result': syntax_result})
+        return jsonify({'result': syntax_result, 'error': syntax_error})
+    return jsonify({'result': syntax_result, 'error': None})
 
 @app.route('/api/semantic', methods=['POST'])
 def run_semantic():
@@ -38,9 +38,19 @@ def run_semantic():
     text = data.get('text', '')
     tokens, lexer_errors = lexer(text)
     if lexer_errors:  
-        return jsonify({'semantic_result': "Failure from Semantic Analyzer", 'ast': None})
-    semantic_result, ast = semantic(tokens)
-    return jsonify({'semantic_result': semantic_result, 'ast': ast.to_dict() if ast else None})
+        return jsonify({'semantic_result': "Failure from Semantic Analyzer", 'errors': None})
+    syntax_result, syntax_error = syntax(tokens)
+
+    if syntax_error:
+        return jsonify({'semantic_result': "Failure from Semantic Analyzer", 'errors': None})
+    
+    ast, errors = semantic(tokens)
+    if errors:  
+        error_messages = [f"Error {i+1}: {error.as_string()}" for i, error in enumerate(errors)]
+        return jsonify({'semantic_result': "AST Building Failed", 'errors': error_messages})
+    if ast:
+        return jsonify({'semantic_result': "Successful from Semantic Analyzer", 'errors': None})
+    return jsonify({'semantic_result': "No AST Built", 'errors': None})
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -3,6 +3,7 @@
 ##############
 from lexer import run as lexer_run
 from lexer import string_with_arrows 
+from semantic import semantic_run
 
 ############## 
 # CONSTANTS 
@@ -10,7 +11,7 @@ from lexer import string_with_arrows
 
 CFG = {
     "<program>": [              
-        ["expansion", ";", "<global_dec>"] ########### 1 
+        ["expansion", ";", "<global_dec>", "<function_def>"] ########### 1 
     ],
     "<global_dec>": [           
         ["<global_type_dec>", "<global_dec>"],
@@ -19,8 +20,12 @@ CFG = {
     
     "<global_type_dec>": [
         ["<datatype>", "<curse_or_var>"], ########### 
-        ["curse", "<init_void_curse>"], ###########
         ["restrict", "<datatype>", "id", "<type_choice>"], ###########
+    ],
+
+    "<function_def>": [
+        ["curse", "<init_void_curse>"], ########### 2
+        []
     ],
 
     "<curse_or_var>": [
@@ -440,9 +445,9 @@ PREDICT_SET = {
         "int": ["<global_dec>", 0],
         "float": ["<global_dec>", 0],
         "string": ["<global_dec>", 0],
-        "bool": ["<global_dec>", 0],    
-        "curse": ["<global_dec>",0],
         "restrict": ["<global_dec>", 0],
+        "bool": ["<global_dec>", 0],    
+        "curse": ["<global_dec>", 1],
         "Ø": ["<global_dec>", 1]
     }, 
 
@@ -451,8 +456,12 @@ PREDICT_SET = {
         "float": ["<global_type_dec>", 0],
         "string": ["<global_type_dec>", 0],
         "bool": ["<global_type_dec>", 0],
-        "curse": ["<global_type_dec>", 1],
-        "restrict": ["<global_type_dec>", 2]
+        "restrict": ["<global_type_dec>", 1]
+    },
+
+    "<function_def>": { ############# verified
+        "curse": ["<function_def>", 0],
+        "Ø": ["<function_def>", 1]
     },
 
     "<curse_or_var>": { ############# verified
@@ -490,7 +499,8 @@ PREDICT_SET = {
     
     "<init_void_curse>": { ############# verified
         "id": ["<init_void_curse>", 0],
-        "domain": ["<init_void_curse>", 1]
+        "domain": ["<init_void_curse>", 1],
+        "Ø": ["<init_void_curse>", 1]
     },
 
     "<param>": { ############# verified
@@ -1244,7 +1254,7 @@ class SyntaxAnalyzer:
 
     def syntax_analyzer(self):
         stack = ["<program>"]
-        error = "";
+        error = None
 
         while stack:
             top = stack[-1]
@@ -1268,10 +1278,10 @@ class SyntaxAnalyzer:
                 else:
                         if self.current_token.type == 'Ø':
                             error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                               f"Unexpected File termination here\n[FOR DEV: Invalid key '{self.current_token.type}' for production '{top}']").as_string()
+                                               f"Unexpected File termination here\n[FOR DEV: Invalid key '{self.current_token.type}' for production '{top}']") 
                         else:
                             error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                               f"Unexpected token '{self.current_token.type}' \n[FOR DEV: Invalid key '{self.current_token.type}' for production '{top}']").as_string()
+                                               f"Unexpected token '{self.current_token.type}' \n[FOR DEV: Invalid key '{self.current_token.type}' for production '{top}']") 
                         print(self.current_token.pos_start.idx, self.current_token.pos_start.col)
                         break
                 print(f"3. Production Key: {production_key}")
@@ -1286,20 +1296,20 @@ class SyntaxAnalyzer:
                         # Append/push its values in reverse order into the stack
                         for symbol in reversed(CFG[production_key[0]][production_key[1]]):
                             stack.append(symbol)
-                            print(f"5. Symbol Pushed: {symbol}")
+                        print(f"5. New Stack: {stack}")
                     else:
                         if self.current_token.type == 'Ø':
                             break
                         else:
                             error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                                    f"No production rule for '{production}'").as_string()
+                                                    f"No production rule for '{production}'") 
                             break
                 else:
                     if self.current_token.type == 'Ø':
                         break
                     else: 
                         error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                               f"Syntax Error: No prediction for '{production_key}'").as_string()
+                                               f"Syntax Error: No prediction for '{production_key}'") 
                         break
             else:
                 # Check if the top of the stack is equal to the current token
@@ -1310,11 +1320,11 @@ class SyntaxAnalyzer:
                 else:
                     if self.current_token.type == 'Ø':
                         error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                               f"Unexpected File termination here\n[FOR DEV: Unmatched Token, got '{self.current_token.type}', expected '{top}']").as_string()
+                                               f"Unexpected File termination here\n[FOR DEV: Unmatched Token, got '{self.current_token.type}', expected '{top}']") 
                         break
                     else:
                         error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                                f"Expected '{top}', got '{self.current_token.type}'").as_string()
+                                                f"Expected '{top}', got '{self.current_token.type}'") 
                         break
 
         if error:
@@ -1325,18 +1335,10 @@ def is_non_terminal(text): # (boolean) checks if the given string is a non-termi
     return text.startswith('<') and text.endswith('>')
 
 def parse_run(tokens):
-    #visitor = MyASTVisitor()
     syntax_analysis = SyntaxAnalyzer(tokens)
     error = syntax_analysis.syntax_analyzer()
-    # ast = parser.build_ast()
-    # if ast:
-    #     ast.print_tree()
-    # else:
-    #     print("No AST built")
-    
-    #visitor.visit(ast)
 
     if error:
         print(error)
-        return "Failure from Syntax Analyzer", error
+        return "Failure from Syntax Analyzer", error.as_string()
     return "Successful from Syntax Analyzer", None

@@ -12,9 +12,9 @@ export const handleSyntaxClick = async (
         const url = window.location.hostname === 'localhost' ? 'http://127.0.0.1:5000/api/syntax' : '/api/syntax';
         const response = await axios.post(url, { text });
       console.log('Response from /api/syntax:', response.data); // Add logging
-      const { result, errors } = response.data;
-      if (errors) {
-        setTerminalOutput(errors.join('\n'));
+      const { result, error } = response.data;
+      if (error){
+        setTerminalOutput(error);
       } else {
         setTerminalOutput(result);
       }

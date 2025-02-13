@@ -12,11 +12,11 @@ export const handleSemanticClick = async (
           const url = window.location.hostname === 'localhost' ? 'http://127.0.0.1:5000/api/semantic' : '/api/semantic';
           const response = await axios.post(url, { text });
         console.log('Response from /api/semantic:', response.data); // Add logging
-        const { semantic_result, ast } = response.data;
-        if (semantic_result || ast ) {
-          setTerminalOutput(semantic_result);
+        const { semantic_result, errors } = response.data;
+        if (errors) {
+          setTerminalOutput(errors);
         } else {
-            setTerminalOutput("No result returned...");
+          setTerminalOutput(semantic_result);
         }
       } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
