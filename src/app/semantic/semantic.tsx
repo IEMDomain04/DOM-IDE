@@ -13,7 +13,7 @@ export const handleSemanticClick = async (
           const response = await axios.post(url, { text });
         console.log('Response from /api/semantic:', response.data); // Add logging
         const { semantic_result, ast } = response.data;
-        if (semantic_result) {
+        if (semantic_result || ast ) {
           setTerminalOutput(semantic_result);
         } else {
             setTerminalOutput("No result returned...");

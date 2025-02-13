@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 
 interface TopnavProps {
   onRunClick: () => void;
@@ -111,7 +112,7 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
       <div className={`flex justify-between px-10 py-3 ${isDarkMode ? 'bg-dark-foreground' : 'bg-light-foreground'}`}>
         {/* Logo and Title of Compiler */}
         <div className="flex gap-x-2 items-center">
-          <img src="/dom-icon.svg" width={20} height={20} alt="Dom icon" />
+          <Image src="/dom-icon.svg" width={20} height={20} alt="Dom icon" />
           <h1 className='text-xl font-jujutsu pr-5'>DOM COMPILER</h1>
 
           {/* Saves and runs */}
@@ -123,7 +124,7 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
           ))}
           <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950"
             onClick={onRunClick}>
-            <img className='h-auto w-3' src={`/run-icon.svg`} alt="Run img" />
+            <Image src="/run-icon.svg" width={20} height={10} alt="Run img" />
             <h1 className='text-xs'>Run</h1>
           </div>
         </div>
@@ -136,9 +137,11 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
               <h1 className='text-xs'>{compilerButtons.name}</h1>
             </div>
           ))}
-          <img
+          <Image
             className='px-1 py-1 rounded cursor-pointer hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950'
             src={isDarkMode ? "/lightmode-icon.svg" : "/darkmode-icon.svg"}
+            width={25} 
+            height={10}
             alt="light-dark icon"
             onClick={toggleDarkMode}
           />
