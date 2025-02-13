@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from "react";
 import Topnav from "./components/Topnav";
+import CodeEditor from "./components/CodeEditor";
+import React, { useState, useRef, useEffect } from "react";
 import { handleTokenizerClick } from "./lexical/lexical";
 import { handleSyntaxClick } from "./syntax/syntax"; 
 import { handleSemanticClick } from "./semantic/semantic";
@@ -114,31 +115,8 @@ curse domain(){
           textareaRef={textareaRef}
           updateLineCount={updateLineCount} // Pass the function as a prop
         />
-        {/*Text Area and Line of Numbers*/}
-        <div className="flex flex-grow border border-none overflow-hidden pt-12">
-          {/* Line of numbers and Textarea */}
-          <div className="flex flex-grow overflow-hidden">
-            {/* Line of numbers */}
-            <div ref={lineNumbersRef} className={`w-fit text-right py-2 px-5 leading-6 border-r-2 border-black ${isDarkMode ? 'text-white' : 'text-black'}`} style={{ overflow: 'hidden' }}>
-              {[...Array(lineCount)].map((_, i) => (
-                <div key={i} className="h-6">
-                  {i + 1}
-                </div>
-              ))}
-            </div>
-
-            {/* Textarea */}
-            <textarea
-              ref={textareaRef}
-              className={`flex-grow text-sm leading-6 font-mono py-2 px-4 focus:outline-none focus:ring-2 focus:ring-stone-700 ${isDarkMode ? 'text-white bg-transparent' : 'text-black bg-transparent'}`}
-              placeholder="Coding..."
-              onChange={handleTextChange}
-              onKeyDown={handleKeyDown}
-              style={{ resize: 'none', borderRight: '2px solid #131314' }}
-              spellCheck="false"
-            ></textarea>
-          </div>
-        </div>
+        
+        <CodeEditor />
 
         {/* Terminal Section */}
         {terminalOutput && (
