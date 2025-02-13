@@ -49,6 +49,7 @@ CFG = {
 
     "<assign>": [
         ["=", "<expression>"], ########### 
+        []
     ],
 
     "<multi-assign>": [
@@ -245,11 +246,6 @@ CFG = {
         []
     ],
 
-    # "<conditional_looping_conditions>": [
-    #     ["id"],
-    #     ["<expression>"]
-    # ],
-
     "<looping_stm>": [
         ["<cycle-loop>"],
         ["<sustain-loop>"],
@@ -265,12 +261,6 @@ CFG = {
         ["<datatype>", "id", "=", "<expression>"]
     ],
 
-    # "<cycle_ini_val>": [
-    #     ["id"],
-    #     ["int_literal"],
-    #     ["<expression>"]
-    # ],
-
     "<cycle_condition>": [
         ["<expression>"],
         ["<not_op>", "(", "<cycle_condition>", ")"]
@@ -278,7 +268,24 @@ CFG = {
 
     "<iteration>": [
         ["<pre>", "id"],
-        ["id", "<post>"]
+        ["id", "<iteration_tail>"]
+    ],
+
+    "<iteration_tail>": [
+        ["++"],
+        ["--"],
+        ["<assign_op>", "<ite_val>"]
+    ],
+
+    "<ite_val>": [
+        ["id", "<val_tail>"],
+        ["int_literal"],
+        ["float_literal"]
+    ],
+
+    "<val_tail>": [
+        ["<arith_op>", "<ite_val>"],
+        []
     ],
 
     "<sustain-loop>": [
@@ -354,11 +361,10 @@ CFG = {
 
     "<literal>": [
         ["int_literal"],                            ########### 
+        ["float_literal"],                          ########### 228
         ["string_literal"],                         ########### 226
         ["bool_literal"],                           ########### 227
-        ["float_literal"],                          ########### 228
         ["null_literal"],                           ########### 229
-        []                                       ########### 230
     ],
 
     "<datatype>": [
@@ -426,21 +432,21 @@ CFG = {
 }
 
 PREDICT_SET = {
-    "<program>": {
+    "<program>": { ############# verified
         "expansion": ["<program>", 0]
     },
 
-    "<global_dec>": {
+    "<global_dec>": { ############# verified
         "int": ["<global_dec>", 0],
-        "string": ["<global_dec>", 0],
         "float": ["<global_dec>", 0],
+        "string": ["<global_dec>", 0],
         "bool": ["<global_dec>", 0],    
         "curse": ["<global_dec>",0],
         "restrict": ["<global_dec>", 0],
         "Ø": ["<global_dec>", 1]
     }, 
 
-    "<global_type_dec>": {
+    "<global_type_dec>": { ############# verified
         "int": ["<global_type_dec>", 0],
         "float": ["<global_type_dec>", 0],
         "string": ["<global_type_dec>", 0],
@@ -449,21 +455,16 @@ PREDICT_SET = {
         "restrict": ["<global_type_dec>", 2]
     },
 
-    "<curse_or_var>": {
+    "<curse_or_var>": { ############# verified
         "curse": ["<curse_or_var>", 0],
         "id": ["<curse_or_var>", 1]
     },
-
-    # "<restrict>": {
-    #     "restrict": ["<restrict>", 0],
-    #     "id": ["<restrict>", 1]
-    # },
-
-    "<nonvoid_curse_dec>": {
+ 
+    "<nonvoid_curse_dec>": { ############# verified
         "(": ["<nonvoid_curse_dec>", 0]
     },
 
-    "<type_choice>": {
+    "<type_choice>": { ############# verified
         "=": ["<type_choice>", 0],
         ",": ["<type_choice>", 0],
         "[": ["<type_choice>", 1],
@@ -471,26 +472,28 @@ PREDICT_SET = {
         ";": ["<type_choice>", 2]
     },
 
-    "<var_dec>": {
+    "<var_dec>": {  ############# verified
         "=": ["<var_dec>", 0],
-        ",": ["<var_dec>", 0]
+        "," : ["<var_dec>", 0],
     },
 
-    "<assign>": {
-        "=": ["<assign>", 0]
+    "<assign>": { ############# verified
+        "=": ["<assign>", 0],
+        ",": ["<assign>", 1],
+        ";": ["<assign>", 1]
     },
 
-    "<multi-assign>": {
+    "<multi-assign>": { ############# verified
         ",": ["<multi-assign>", 0],
         ";": ["<multi-assign>", 1],
     },
     
-    "<init_void_curse>": {
+    "<init_void_curse>": { ############# verified
         "id": ["<init_void_curse>", 0],
         "domain": ["<init_void_curse>", 1]
     },
 
-    "<param>": {
+    "<param>": { ############# verified
         "int": ["<param>", 0],
         "float": ["<param>", 0],
         "string": ["<param>", 0],
@@ -498,43 +501,44 @@ PREDICT_SET = {
         ")": ["<param>", 1],
     },
 
-    "<more_param>": {
+    "<more_param>": { ############# verified
         ",": ["<more_param>", 0],
         ")": ["<more_param>", 1],
     },
 
-    "<clan_dec>": { #############
+    "<clan_dec>": { ############# verified
         "[": ["<clan_dec>", 0],
         "[...]": ["<clan_dec>", 0]
     },
 
-    "<clan_size>": { #############
+    "<clan_size>": { ############# verified
         "[": ["<clan_size>", 0],
         "[...]": ["<clan_size>", 1]
     },
     
-    "<two_dimensional>": { #############
+    "<two_dimensional>": { ############# verified
         "[": ["<two_dimensional>", 0],
         "=": ["<two_dimensional>", 1],
         ";": ["<two_dimensional>", 1],
     },
 
-    "<clan_assign>": { #############
+    "<clan_assign>": { ############# verified
         "=": ["<clan_assign>", 0],
-        ";": ["<clan_assign>", 1],
-        "Ø": ["<clan_assign>", 1]
+        "Ø": ["<clan_assign>", 1],
+        ";": ["<clan_assign>", 1]
     },
 
-    "<clan_literal>": { #############
+    "<clan_literal>": { ############# verified
         "{": ["<clan_literal>", 0]
     },
 
-    "<clan_item>": { #############
+    "<clan_item>": { ############# verified
+        "(": ["<clan_item>", 0],
+        "id": ["<clan_item>", 0],
         "int_literal": ["<clan_item>", 0],
         "string_literal": ["<clan_item>", 0],
         "bool_literal": ["<clan_item>", 0],
         "float_literal": ["<clan_item>", 0],
-        "id": ["<clan_item>", 0],
         "++": ["<clan_item>", 0],
         "--": ["<clan_item>", 0],
         "invoke": ["<clan_item>", 0],
@@ -543,22 +547,36 @@ PREDICT_SET = {
         "dismantle": ["<clan_item>", 0],
         "len": ["<clan_item>", 0],
         "!": ["<clan_item>", 0],
-        "(": ["<clan_item>", 0],
         "{": ["<clan_item>", 1],
         "}": ["<clan_item>", 2]
     },
 
-    "<more_item>": { #############
+    "<more_item>": { ############# verified
         ",": ["<more_item>", 0],
         "}": ["<more_item>", 1]
     },
 
-    "<clan_multi_item>": { #############
+    "<clan_multi_item>": { ############# verified
         ",": ["<clan_multi_item>", 0],
+        "(" : ["<clan_multi_item>", 1],
+        "id": ["<clan_multi_item>", 1],
+        "int_literal": ["<clan_multi_item>", 1],
+        "string_literal": ["<clan_multi_item>", 1],
+        "bool_literal": ["<clan_multi_item>", 1],
+        "float_literal": ["<clan_multi_item>", 1],
+        "++": ["<clan_multi_item>", 1],
+        "--": ["<clan_multi_item>", 1],
+        "invoke": ["<clan_multi_item>", 1],
+        "capture": ["<clan_multi_item>", 1],
+        "cleave": ["<clan_multi_item>", 1],
+        "dismantle": ["<clan_multi_item>", 1],
+        "len": ["<clan_multi_item>", 1],
+        "!": ["<clan_multi_item>", 1],
+        "{": ["<clan_multi_item>", 1],
         "}": ["<clan_multi_item>", 1]
     },
 
-    "<expression>": { #############
+    "<expression>": { ############# verified
         "(": ["<expression>", 0],
         "id": ["<expression>", 1],
         "int_literal": ["<expression>", 1],
@@ -575,7 +593,7 @@ PREDICT_SET = {
         "!": ["<expression>", 2],
     },
 
-    "<operand>": { #############
+    "<operand>": { ############# verified
         "++": ["<operand>", 0],
         "--": ["<operand>", 0],
         "id": ["<operand>", 1],
@@ -591,7 +609,7 @@ PREDICT_SET = {
         "!": ["<operand>", 2],
     },
 
-    "<value>": { #############
+    "<value>": { ############# verified
         "string_literal": ["<value>", 0],
         "float_literal": ["<value>", 0],
         "bool_literal": ["<value>", 0],
@@ -604,40 +622,73 @@ PREDICT_SET = {
         "len": ["<value>", 6],
     },
 
-    "<curse_or_clan>": { #############
+    "<curse_or_clan>": { ############# verified
         "(" : ["<curse_or_clan>", 0],
         "[": ["<curse_or_clan>", 1],
+        ",": ["<curse_or_clan>", 2],
+        ";": ["<curse_or_clan>", 2],
+        "]": ["<curse_or_clan>", 2],
+        ")": ["<curse_or_clan>", 2],
+        "id": ["<curse_or_clan>", 2],
+        "int_literal": ["<curse_or_clan>", 2],
+        "string_literal": ["<curse_or_clan>", 2],
+        "bool_literal": ["<curse_or_clan>", 2],
+        "float_literal": ["<curse_or_clan>", 2],
+        "++": ["<curse_or_clan>", 2],
+        "--": ["<curse_or_clan>", 2],
+        "invoke": ["<curse_or_clan>", 2],
+        "capture": ["<curse_or_clan>", 2],
+        "cleave": ["<curse_or_clan>", 2],
+        "dismantle": ["<curse_or_clan>", 2],
+        "len": ["<curse_or_clan>", 2],
+        "!": ["<curse_or_clan>", 2],
+        "{": ["<curse_or_clan>", 2],
+        "}": ["<curse_or_clan>", 2],
         "+": ["<curse_or_clan>", 2],
         "-": ["<curse_or_clan>", 2],
         "*": ["<curse_or_clan>", 2],
+        "**": ["<curse_or_clan>", 2],
         "/": ["<curse_or_clan>", 2],
         "%": ["<curse_or_clan>", 2],
-        "!=": ["<curse_or_clan>", 2],
-        "**": ["<curse_or_clan>", 2],
         "==": ["<curse_or_clan>", 2],
+        "!=": ["<curse_or_clan>", 2],
         ">": ["<curse_or_clan>", 2],
         "<": ["<curse_or_clan>", 2],
         ">=": ["<curse_or_clan>", 2],
         "<=": ["<curse_or_clan>", 2],
         "&&": ["<curse_or_clan>", 2],
         "||": ["<curse_or_clan>", 2],
-        "!": ["<curse_or_clan>", 2],
-        ")": ["<curse_or_clan>", 2],
-        ";": ["<curse_or_clan>", 2],
-        "++": ["<curse_or_clan>", 2],
-        "--": ["<curse_or_clan>", 2],
-        ",": ["<curse_or_clan>", 2],
-        "]": ["<curse_or_clan>", 2]
+        ":" : ["<curse_or_clan>", 2]
     },
 
-    "<more_clan>": { #############
+    "<more_clan>": { ############# verified
         "[": ["<more_clan>", 0],
+        "," : ["<more_clan>", 1],
+        ";": ["<more_clan>", 1],
+        "]": ["<more_clan>", 1],
+        "(" : ["<more_clan>", 1],
+        ")": ["<more_clan>", 1],
+        "id": ["<more_clan>", 1],
+        "int_literal": ["<more_clan>", 1],
+        "string_literal": ["<more_clan>", 1],
+        "bool_literal": ["<more_clan>", 1],
+        "float_literal": ["<more_clan>", 1],
+        "++": ["<more_clan>", 1],
+        "--": ["<more_clan>", 1],
+        "invoke": ["<more_clan>", 1],
+        "capture": ["<more_clan>", 1],
+        "cleave": ["<more_clan>", 1],
+        "dismantle": ["<more_clan>", 1],
+        "len": ["<more_clan>", 1],
+        "!": ["<more_clan>", 1],
+        "{": ["<more_clan>", 1],
+        "}": ["<more_clan>", 1],
         "+": ["<more_clan>", 1],
         "-": ["<more_clan>", 1],
         "*": ["<more_clan>", 1],
+        "**": ["<more_clan>", 1],
         "/": ["<more_clan>", 1],
         "%": ["<more_clan>", 1],
-        "**": ["<more_clan>", 1],
         "==": ["<more_clan>", 1],
         "!=": ["<more_clan>", 1],
         ">": ["<more_clan>", 1],
@@ -646,44 +697,54 @@ PREDICT_SET = {
         "<=": ["<more_clan>", 1],
         "&&": ["<more_clan>", 1],
         "||": ["<more_clan>", 1],
-        "!": ["<more_clan>", 1],
-        ";": ["<more_clan>", 1],
-        ")": ["<more_clan>", 1],
+        ":" : ["<more_clan>", 1]
     },
 
-    "<more_logic>": { #############
-        "+": ["<more_logic>", 0], # verified
-        "-": ["<more_logic>", 0], # verified
-        "*": ["<more_logic>", 0], # verified
-        "/": ["<more_logic>", 0], # verified
-        "%": ["<more_logic>", 0], # verified
-        "**": ["<more_logic>", 0], # verified
-        "==": ["<more_logic>", 0], # verified
-        "!=": ["<more_logic>", 0], # verified
-        ">": ["<more_logic>", 0], # verified
-        "<": ["<more_logic>", 0], # verified
-        ">=": ["<more_logic>", 0], # verified
-        "<=": ["<more_logic>", 0], # verified
-        "&&": ["<more_logic>", 0], # verified
-        "||": ["<more_logic>", 0], # verified
-        "!": ["<more_logic>", 0], # verified
-        ")": ["<more_logic>", 1],  # verified
-        ",": ["<more_logic>", 1], # verified
-        ";": ["<more_logic>", 1], # verified
-        "(": ["<more_logic>", 1],  # verified
-        ":": ["<more_logic>", 1], # verified
-        "]": ["<more_logic>", 1]  # verified
-
-        # :, , , id, int_lit, string_lit, bool_lit, float_lit, ++, --, invoke, capture, cleave, dismantle, len
+    "<more_logic>": { ############ Not sure if ambiguous
+        "+": ["<more_logic>", 0], 
+        "-": ["<more_logic>", 0], 
+        "*": ["<more_logic>", 0], 
+        "/": ["<more_logic>", 0], 
+        "%": ["<more_logic>", 0], 
+        "**": ["<more_logic>", 0], 
+        "==": ["<more_logic>", 0], 
+        "!=": ["<more_logic>", 0], 
+        ">": ["<more_logic>", 0], 
+        "<": ["<more_logic>", 0], 
+        ">=": ["<more_logic>", 0], 
+        "<=": ["<more_logic>", 0], 
+        "&&": ["<more_logic>", 0], 
+        "||": ["<more_logic>", 0], 
+        "!": ["<more_logic>", 0], 
+        ")": ["<more_logic>", 1],  
+        ",": ["<more_logic>", 1], 
+        "(": ["<more_logic>", 1],  
+        ";": ["<more_logic>", 1], 
+        ":": ["<more_logic>", 1], 
+        "]": ["<more_logic>", 1],
+        ":": ["<more_logic>", 1],
+        ",": ["<more_logic>", 1],
+        "id": ["<more_logic>", 1],
+        "int_literal": ["<more_logic>", 1],
+        "string_literal": ["<more_logic>", 1],
+        "bool_literal": ["<more_logic>", 1],
+        "float_literal": ["<more_logic>", 1],
+        "++": ["<more_logic>", 1],
+        "--": ["<more_logic>", 1],
+        "invoke": ["<more_logic>", 1],
+        "capture": ["<more_logic>", 1],
+        "cleave": ["<more_logic>", 1],
+        "dismantle": ["<more_logic>", 1],
+        "len": ["<more_logic>", 1]
     },
 
-    "<operator>": { #############
+    "<operator>": { ############# verified
         "+": ["<operator>", 0],
         "-": ["<operator>", 0],
         "*": ["<operator>", 0],
+        "**": ["<operator>", 0],
         "/": ["<operator>", 0],
         "%": ["<operator>", 0],
-        "**": ["<operator>", 0],
         "==": ["<operator>", 1],
         "!=": ["<operator>", 1],
         ">": ["<operator>", 1],
@@ -695,7 +756,7 @@ PREDICT_SET = {
         "!": ["<operator>", 2],
     },
 
-    "<body>": { #############
+    "<body>": { ############# verified
         "int": ["<body>", 0],
         "string": ["<body>", 0],
         "float": ["<body>", 0],
@@ -714,7 +775,7 @@ PREDICT_SET = {
         "Ø": ["<body>", 1]
     },
         
-    "<statement>": { #############
+    "<statement>": { ############# verified
         "int": ["<statement>", 0],
         "string": ["<statement>", 0],
         "float": ["<statement>", 0],
@@ -736,41 +797,41 @@ PREDICT_SET = {
         "Ø": ["<statement>", 10]
     },
 
-    "<local_dec>": {
+    "<local_dec>": { ############# verified
         "int": ["<local_dec>", 0],
-        "string": ["<local_dec>", 0],
         "float": ["<local_dec>", 0],
+        "string": ["<local_dec>", 0],
         "bool": ["<local_dec>", 0],
         "curse": ["<local_dec>", 1]
     },
 
-    "<local_void_curse>": {
+    "<local_void_curse>": { ############# verified
         "id": ["<local_void_curse>", 0]
     },
 
-    "<recall_stm>": {
+    "<recall_stm>": { ############# verified
         "recall": ["<recall_stm>", 0],
     },
 
-    "<recall_val>": {
+    "<recall_val>": { ############# verified
         "(" : ["<recall_val>", 0],
-        "++": ["<recall_val>", 0],
-        "--": ["<recall_val>", 0],
         "id": ["<recall_val>", 0],
         "int_literal": ["<recall_val>", 0],
         "string_literal": ["<recall_val>", 0],
         "bool_literal": ["<recall_val>", 0],
         "float_literal": ["<recall_val>", 0],
-        "dismantle": ["<recall_val>", 0],
+        "++": ["<recall_val>", 0],
+        "--": ["<recall_val>", 0],
+        "invoke": ["<recall_val>", 0],
+        "capture": ["<recall_val>", 0],
         "cleave": ["<recall_val>", 0],
+        "dismantle": ["<recall_val>", 0],
         "len": ["<recall_val>", 0],
         "!": ["<recall_val>", 0],
-        "capture": ["<recall_val>", 0],
-        "invoke": ["<recall_val>", 0],
         ";": ["<recall_val>", 1]
     },
 
-    "<id_call>": {
+    "<id_call>": { ############# verified
         "=": ["<id_call>", 0],
         "+=": ["<id_call>", 0],
         "-=": ["<id_call>", 0],
@@ -783,51 +844,50 @@ PREDICT_SET = {
         "--": ["<id_call>", 4]
     },
 
-    "<arguments>": {
+    "<arguments>": { ############# verified
         "(" : ["<arguments>", 0],
-        "++": ["<arguments>", 0],
-        "--": ["<arguments>", 0],
         "id": ["<arguments>", 0],
         "int_literal": ["<arguments>", 0],
         "string_literal": ["<arguments>", 0],
         "bool_literal": ["<arguments>", 0],
         "float_literal": ["<arguments>", 0],
-        "dismantle": ["<arguments>", 0],
+        "++": ["<arguments>", 0],
+        "--": ["<arguments>", 0],
+        "invoke": ["<arguments>", 0],
+        "capture": ["<arguments>", 0],
         "cleave": ["<arguments>", 0],
+        "dismantle": ["<arguments>", 0],
         "len": ["<arguments>", 0],
         "!": ["<arguments>", 0],
-        "capture": ["<arguments>", 0],
-        "invoke": ["<arguments>", 0],
         ")": ["<arguments>", 1]
     },
 
-    "<more_arguments>": {
+    "<more_arguments>": { ############# verified
         ",": ["<more_arguments>", 0],
         ")": ["<more_arguments>", 1]
     },
 
-    "<conditional_stm>": {
+    "<conditional_stm>": { ############# verified
         "vow": ["<conditional_stm>", 0],
         "boogie": ["<conditional_stm>", 1]
     },
 
-    "<vow_statement>": {
+    "<vow_statement>": { ############# verified
         "vow": ["<vow_statement>", 0]
     },
 
-    "<vow_next>": {
+    "<vow_next>": { ############# verified
         "else": ["<vow_next>", 0],
-        "}": ["<vow_next>", 1],
         "int": ["<vow_next>", 1],
-        "float": ["<vow_next>", 1],
         "string": ["<vow_next>", 1],
+        "float": ["<vow_next>", 1],
         "bool": ["<vow_next>", 1],
         "curse": ["<vow_next>", 1],
         "id": ["<vow_next>", 1],
         "invoke": ["<vow_next>", 1],
-        "capture": ["<vow_next>", 1],
         "cleave": ["<vow_next>", 1],
         "dismantle": ["<vow_next>", 1],
+        "capture": ["<vow_next>", 1],
         "len": ["<vow_next>", 1],
         "recall": ["<vow_next>", 1],
         "vow": ["<vow_next>", 1],
@@ -835,59 +895,65 @@ PREDICT_SET = {
         "cycle": ["<vow_next>", 1],
         "sustain": ["<vow_next>", 1],
         "perform": ["<vow_next>", 1],
+        "}": ["<vow_next>", 1],
+        "woogie": ["<vow_next>", 1],
+        "default": ["<vow_next>", 1],
         "dismiss": ["<vow_next>", 1],
         "hop": ["<vow_next>", 1]
     },
 
-    "<vow_tail>": {
+    "<vow_tail>": { ############# verified 
         "{": ["<vow_tail>", 0],
         "vow": ["<vow_tail>", 1],
-        "}": ["<vow_tail>", 2],
+        "int": ["<vow_tail", 2],
+        "string": ["<vow_tail", 2],
+        "float": ["<vow_tail", 2],
+        "bool": ["<vow_tail", 2],
+        "curse": ["<vow_tail", 2],
+        "id": ["<vow_tail", 2],
+        "invoke": ["<vow_tail", 2],
+        "cleave": ["<vow_tail", 2],
+        "dismantle": ["<vow_tail", 2],
+        "capture": ["<vow_tail", 2],
+        "len": ["<vow_tail", 2],
+        "recall": ["<vow_tail", 2],
+        "boogie": ["<vow_tail", 2],
+        "cycle": ["<vow_tail", 2],
+        "sustain": ["<vow_tail", 2],
+        "perform": ["<vow_tail", 2],
+        "}": ["<vow_tail", 2],
+        "woogie": ["<vow_tail", 2],
+        "default": ["<vow_tail", 2],
+        "dismiss": ["<vow_tail", 2],
+        "hop": ["<vow_tail", 2]
     },
 
-    "<boogie_tail>": {
+    "<boogie_tail>": { ############# verified
         "(": ["<boogie_tail>", 0],
         "{": ["<boogie_tail>", 1]
     },
 
-    "<more_woogie>": {
+    "<more_woogie>": { ############# verified
         "woogie": ["<more_woogie>", 0],
         "default": ["<more_woogie>", 1],
     },
-
-    "<more_true_woogie>": {
+ 
+    "<more_true_woogie>": { ############# verified
         "woogie": ["<more_true_woogie>", 0],
         "default": ["<more_true_woogie>", 1],
     },
 
-    "<conditional_looping_conditions>": {
-        "id": ["<conditional_looping_conditions>", 1],
-        "(": ["<conditional_looping_conditions>", 1],
-        "int_literal": ["<conditional_looping_conditions>", 1],
-        "string_literal": ["<conditional_looping_conditions>", 1],
-        "bool_literal": ["<conditional_looping_conditions>", 1],
-        "float_literal": ["<conditional_looping_conditions>", 1],
-        "len": ["<conditional_looping_conditions>", 1],
-        "!": ["<conditional_looping_conditions>", 1],
-        "invoke": ["<conditional_looping_conditions>", 1],
-        "capture": ["<conditional_looping_conditions>", 1],
-        "cleave": ["<conditional_looping_conditions>", 1],
-        "dismantle": ["<conditional_looping_conditions>", 1],
-        "++": ["<conditional_looping_conditions>", 1],
-        "--": ["<conditional_looping_conditions>", 1],
-    },
-
-    "<looping_stm>": {
+    "<looping_stm>": { ############# verified
         "cycle": ["<looping_stm>", 0],
         "sustain": ["<looping_stm>", 1],
         "perform": ["<looping_stm>", 2]
     },
     
-    "<cycle-loop>": {
+    "<cycle-loop>": { ############# verified
         "cycle": ["<cycle-loop>", 0]
     },
 
-    "<cycle_initialize>": {
+    "<cycle_initialize>": { ############# verified
         "id": ["<cycle_initialize>", 0],
         "int": ["<cycle_initialize>", 1],
         "float": ["<cycle_initialize>", 1],
@@ -895,33 +961,65 @@ PREDICT_SET = {
         "bool": ["<cycle_initialize>", 1]
     },
 
-     "<cycle_condition>": {
+     "<cycle_condition>": { ############# verified
+        "(": ["<cycle_condition>", 0],
         "id": ["<cycle_condition>", 0],
         "int_literal": ["<cycle_condition>", 0],
         "string_literal": ["<cycle_condition>", 0],
         "bool_literal": ["<cycle_condition>", 0],
         "float_literal": ["<cycle_condition>", 0],
-        "(": ["<cycle_condition>", 0],
         "++": ["<cycle_condition>", 0],
         "--": ["<cycle_condition>", 0],
+        "invoke": ["<cycle_condition>", 0],
+        "capture": ["<cycle_condition>", 0],
+        "cleave": ["<cycle_condition>", 0],
+        "dismantle": ["<cycle_condition>", 0],
+        "len": ["<cycle_condition>", 0],
         "!": ["<cycle_condition>", 1],
     },
 
-    "<iteration>": {
+    "<iteration>": { ############# verified
         "++": ["<iteration>", 0],
         "--": ["<iteration>", 0],
         "id": ["<iteration>", 1]
     },
 
-    "<sustain-loop>": {
+    "<iteration_tail>": { ############# verified
+        "++": ["<iteration_tail>", 0],
+        "--": ["<iteration_tail>", 1],
+        "=": ["<iteration_tail>", 2],
+        "+=": ["<iteration_tail>", 2],
+        "-=": ["<iteration_tail>", 2],
+        "*=": ["<iteration_tail>", 2],
+        "/=": ["<iteration_tail>", 2],
+        "%=": ["<iteration_tail>", 2]
+    },
+
+    "<ite_val>": { ############# verified
+        "id": ["<ite_val>", 0],
+        "int_literal": ["<ite_val>", 1],
+        "float_literal": ["<ite_val>", 2],
+    },
+
+    "<val_tail>": { ############# verified
+        "+": ["<val_tail>", 0],
+        "-": ["<val_tail>", 0],
+        "*": ["<val_tail>", 0],
+        "**": ["<val_tail>", 0],
+        "/": ["<val_tail>", 0],
+        "%": ["<val_tail>", 0],
+        ")": ["<val_tail>", 1]
+    },
+
+    "<sustain-loop>": { ############# verified
         "sustain": ["<sustain-loop>", 0]
     },
 
-    "<persustain-loop>": {
+    "<persustain-loop>": { ############# verified
         "perform": ["<persustain-loop>", 0]
     },
 
-    "<con_loop_body>": {
+    "<con_loop_body>": { ############# verified
         "int": ["<con_loop_body>", 0],
         "string": ["<con_loop_body>", 0],
         "float": ["<con_loop_body>", 0],
@@ -946,25 +1044,22 @@ PREDICT_SET = {
         "default": ["<con_loop_body>", 12],
     },
 
-    "<literal>": {  #############
+    "<literal>": {  ############# verified
         "int_literal": ["<literal>", 0],
-        "string_literal": ["<literal>", 1],
-        "bool_literal": ["<literal>", 2],
-        "float_literal": ["<literal>", 3],
-        "null_literal": ["<literal>", 4],
-        ";": ["<literal>", 5],
-        ",": ["<literal>", 5],
-        "Ø": ["<literal>", 5]
+        "float_literal": ["<literal>", 1],
+        "string_literal": ["<literal>", 2],
+        "bool_literal": ["<literal>", 3],
+        "null_literal": ["<literal>", 4]
     },
 
-    "<datatype>": { ############# 97 in first set
+    "<datatype>": { ############# verified
         "int": ["<datatype>", 0],
         "float": ["<datatype>", 1],
         "string": ["<datatype>", 2],
         "bool": ["<datatype>", 3]
     },
 
-    "<arith_op>": { #############
+    "<arith_op>": { ############# verified
         "+": ["<arith_op>", 0],
         "-": ["<arith_op>", 1],
         "*": ["<arith_op>", 2],
@@ -973,7 +1068,7 @@ PREDICT_SET = {
         "**": ["<arith_op>", 5]
     },
 
-    "<relational_op>": { #############
+    "<relational_op>": { ############# verified
         "==": ["<relational_op>", 0],
         "!=": ["<relational_op>", 1],
         ">": ["<relational_op>", 2],
@@ -982,32 +1077,34 @@ PREDICT_SET = {
         "<=": ["<relational_op>", 5]
     },
 
-    "<logic_op>": { #############
+    "<logic_op>": { ############# verified
         "&&": ["<logic_op>", 0],
         "||": ["<logic_op>", 1]
     },
-
-    "<not_op>": { #############
+ 
+    "<not_op>": { ############# verified
         "!": ["<not_op>", 0]
     },
 
-    "<more_not_op>": { #############
+    "<more_not_op>": { ############# verified
         "!": ["<more_not_op>", 0],
+        "(": ["<more_not_op>", 1],
         "id": ["<more_not_op>", 1],
+        "int_literal": ["<more_not_op>", 1],
+        "string_literal": ["<more_not_op>", 1],
+        "bool_literal": ["<more_not_op>", 1],
+        "float_literal": ["<more_not_op>", 1],
+        "++": ["<more_not_op>", 1],
+        "--": ["<more_not_op>", 1],
         "invoke": ["<more_not_op>", 1],
         "capture": ["<more_not_op>", 1],
         "cleave": ["<more_not_op>", 1],
         "dismantle": ["<more_not_op>", 1],
         "len": ["<more_not_op>", 1],
-        "int_literal": ["<more_not_op>", 1],
-        "string_literal": ["<more_not_op>", 1],
-        "bool_literal": ["<more_not_op>", 1],
-        "float_literal": ["<more_not_op>", 1],
-        "(": ["<more_not_op>", 1],
         "Ø": ["<more_not_op>", 1]
     },
 
-    "<assign_op>": { #############
+    "<assign_op>": { ############# verified
         "=": ["<assign_op>", 0],
         "+=": ["<assign_op>", 1],
         "-=": ["<assign_op>", 2],
@@ -1016,20 +1113,38 @@ PREDICT_SET = {
         "%=": ["<assign_op>", 5]
     },
 
-    "<pre>": {
+    "<pre>": { ############# verified
         "++": ["<pre>", 0],
         "--": ["<pre>", 1]
     },
 
-    "<post>": {
+    "<post>": { ############# verified
         "++": ["<post>", 0],
         "--": ["<post>", 1],
+        ",": ["<post>", 2],
+        ";": ["<post>", 2],
+        "]": ["<post>", 2],
+        "id": ["<post>", 2],
+        "int_literal": ["<post>", 2],
+        "string_literal": ["<post>", 2],
+        "bool_literal": ["<post>", 2],
+        "float_literal": ["<post>", 2],
+        "invoke": ["<post>", 2],
+        "capture": ["<post>", 2],
+        "cleave": ["<post>", 2],
+        "dismantle": ["<post>", 2],
+        "len": ["<post>", 2],
+        "!": ["<post>", 2],
+        "{": ["<post>", 2],
+        "}": ["<post>", 2],
+        ")": ["<post>", 2],
+        "(": ["<post>", 2],
         "+": ["<post>", 2],
         "-": ["<post>", 2],
         "*": ["<post>", 2],
+        "**": ["<post>", 2],
         "/": ["<post>", 2],
         "%": ["<post>", 2],
-        "**": ["<post>", 2],
         "==": ["<post>", 2],
         "!=": ["<post>", 2],
         ">": ["<post>", 2],
@@ -1038,20 +1153,8 @@ PREDICT_SET = {
         "<=": ["<post>", 2],
         "&&": ["<post>", 2],
         "||": ["<post>", 2],
-        "!": ["<post>", 2],
-        ")": ["<post>", 2],
-        ",": ["<post>", 2],
-        ";": ["<post>", 2],
-        "(": ["<post>", 2],
-        "=": ["<post>", 2],
-        "+=": ["<post>", 2],
-        "-=": ["<post>", 2],
-        "*=": ["<post>", 2],
-        "%=": ["<post>", 2],
-        "]": ["<post>", 2],
         ":": ["<post>", 2]
     }
-
 }
 
 ##############
@@ -1102,179 +1205,15 @@ def string_with_arrows(text, pos_start, pos_end):
     return result.replace('\t', ' ')
 
 ###################
-# AST Nodes
-###################
-
-class ASTNode:
-    def __init__(self, tok):
-        self.tok = tok
-
-    def __repr__(self):
-        return f"{self.tok}"
-
-class VowNode(ASTNode): # if-else (vow-else)
-    def __init__(self, condition, body, else_body=None):
-        self.condition = condition
-        self.body = body
-        self.else_body = else_body
-
-    def __repr__(self):
-        return f"VowNode({self.condition}, {self.body}, {self.else_body})"
-
-class BoogieNode(ASTNode): # switch-case (boogie)
-    def __init__(self, expression, cases):
-        self.expression = expression
-        self.cases = cases
-
-    def __repr__(self):
-        return f"BoogieNode({self.expression}, {self.cases})"
-
-class SustainNode(ASTNode): # while loop (sustain)
-    def __init__(self, condition, body):
-        self.condition = condition
-        self.body = body
-    
-    def __repr__(self):
-        return f"SustainNode({self.condition}, {self.body})"
-
-class PerformSustainNode(ASTNode): # do-while loop (perform-sustain)
-    def __init__(self, body, condition):
-        self.body = body
-        self.condition = condition
-
-    def __repr__(self):
-        return f"PerformSustainNode({self.body}, {self.condition})"
-
-class CycleNode(ASTNode): # for-loop (cycle)
-    def __init__(self, init, condition, increment, body):
-        self.init = init
-        self.condition = condition
-        self.increment = increment
-        self.body = body
-
-    def __repr__(self):
-        return f"CycleNode({self.init}, {self.condition}, {self.increment}, {self.body})"
-
-class BinOpNode(ASTNode): # binary operation
-    def __init__(self, left, op, right):
-        self.left = left
-        self.op = op
-        self.right = right
-
-    def __repr__(self):
-        return f"({self.left}, {self.op}, {self.right})"
-
-class NumNode(ASTNode): # for factor
-    def __init__(self, value):
-        self.value = value
-
-    def __repr__(self):
-        return f"{self.value}"
-
-class VarNode(ASTNode): # for variables
-    def __init__(self, name):
-        self.name = name
-
-    def __repr__(self):
-        return f"{self.name}"
-        
-class VarAssignNode(ASTNode): # for variable assignments
-    def __init__(self, restrict, datatype, name, value):
-        self.restrict = restrict
-        self.datatype = datatype
-        self.name = name
-        self.value = value
-
-    def __repr__(self):
-        restrict_str = " restrict" if self.restrict else ""
-        return f"{self.datatype} {self.name} = {self.value}{restrict_str}"
-    
-class ClanNode(ASTNode): # for arrays
-    def __init__(self, datatype, name, size):
-        self.datatype = datatype
-        self.name = name
-        self.size = size
-        self.initial_values = []
-
-    def __repr__(self):
-        if self.initial_values:
-            return f"{self.datatype} {self.name}[{self.size}] = {self.initial_values}"
-        else:
-            return f"{self.datatype} {self.name}[{self.size}]"
-    
-class ClanAssignNode(ASTNode): # for array assignments
-    def __init__(self, name, index, value):
-        self.name = name
-        self.index = index
-        self.value = value
-
-    def __repr__(self):
-        return f"{self.name}[{self.index}] = {self.value}"
-
-###################
-# AST Traverser
-###################
-
-class ASTVisitor:
-    def visit(self, node):
-        method_name = 'visit_' + type(node).__name__
-        visitor = getattr(self, method_name, self.generic_visit)
-        return visitor(node)
-
-    def generic_visit(self, node):
-        raise Exception(f'No visit_{type(node).__name__} method')
-
-    def visit_VowNode(self, node):
-        print(f"Visiting VowNode: {node.condition}")
-        self.visit(node.condition)
-        self.visit(node.body)
-        if node.else_body:
-            self.visit(node.else_body)
-
-    def visit_BoogieNode(self, node):
-        print(f"Visiting BoogieNode: {node.expression}")
-        self.visit(node.expression)
-        for case_expr, case_body in node.cases:
-            self.visit(case_expr)
-            self.visit(case_body)
-
-    def visit_SustainNode(self, node):
-        print(f"Visiting SustainNode: {node.condition}")
-        self.visit(node.condition)
-        self.visit(node.body)
-
-    def visit_PerformSustainNode(self, node):
-        print(f"Visiting PerformSustainNode: {node.condition}")
-        self.visit(node.body)
-        self.visit(node.condition)
-
-    def visit_CycleNode(self, node):
-        print(f"Visiting CycleNode: {node.init}")
-        self.visit(node.init)
-        self.visit(node.condition)
-        self.visit(node.increment)
-        self.visit(node.body)
-
-    def visit_BinOpNode(self, node):
-        print(f"Visiting BinOpNode: {node.op}")
-        self.visit(node.left)
-        self.visit(node.right)
-
-    def visit_NumNode(self, node):
-        print(f"Visiting NumNode: {node.value}, restrict={node.restrict}")
-
-    def visit_VarNode(self, node):
-        print(f"Visiting VarNode: {node.name}, restrict={node.restrict}")
-        
-###################
 # Syntax Analyzer 
 ###################
 
-class Parser:
+class SyntaxAnalyzer:
     def __init__(self, tokens):
         self.tokens = tokens
         self.token_idx = -1
         self.advance()
+        self.semantic_errors = []
 
     def advance(self):
         while True:
@@ -1287,6 +1226,21 @@ class Parser:
                 self.current_token = None
                 break
         return self.current_token
+    
+    def reset(self):
+        self.token_idx = -1
+        self.advance()
+
+    def peek(self):
+        current_idx = self.token_idx
+        while True:
+            current_idx += 1
+            if current_idx < len(self.tokens):
+                next_token = self.tokens[current_idx]
+                if next_token.type not in ['\n', '\t', ' ', '\\n', '\\t', 'space']:
+                    return next_token
+            else:
+                return None
 
     def syntax_analyzer(self):
         stack = ["<program>"]
@@ -1294,7 +1248,7 @@ class Parser:
 
         while stack:
             top = stack[-1]
-            print(f"1. Stack: {stack}")
+            #print(f"1. Stack: {stack}")
             if self.current_token is None or self.current_token.type == 'EOF':
                 self.current_token = type('Token', (object,), {
                     'type': 'Ø',
@@ -1355,6 +1309,8 @@ class Parser:
                     self.advance()  # Move to the next token
                 else:
                     if self.current_token.type == 'Ø':
+                        error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
+                                               f"Unexpected File termination here\n[FOR DEV: Unmatched Token, got '{self.current_token.type}', expected '{top}']").as_string()
                         break
                     else:
                         error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
@@ -1364,19 +1320,23 @@ class Parser:
         if error:
             return error
         return []
-    
-    def build_ast(self):
-        self.advance()
-        return self.parse()
 
-    
 def is_non_terminal(text): # (boolean) checks if the given string is a non-terminal
     return text.startswith('<') and text.endswith('>')
 
 def parse_run(tokens):
-    parser = Parser(tokens)
-    error = parser.syntax_analyzer()
+    #visitor = MyASTVisitor()
+    syntax_analysis = SyntaxAnalyzer(tokens)
+    error = syntax_analysis.syntax_analyzer()
+    # ast = parser.build_ast()
+    # if ast:
+    #     ast.print_tree()
+    # else:
+    #     print("No AST built")
+    
+    #visitor.visit(ast)
+
     if error:
         print(error)
-        return error
-    return "Successful from Syntax Analyzer"
+        return "Failure from Syntax Analyzer", error
+    return "Successful from Syntax Analyzer", None
