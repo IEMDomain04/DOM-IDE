@@ -918,112 +918,122 @@ class Parser:
         return left
     
     def parseIdCall(self):
-        if self.current_token.type == 'id':
-            name = self.current_token.value
+        if self.current_token.type != 'id':
+            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier")
+        name = self.current_token.value
+        self.advance()
+        
+        if self.current_token.type not in ['=', '+=', '-=', '*=', '/=', '%=', '++', '--', '(', '[']:
+            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '=', '+=', '-=', '*=', '/=', '%=', '++', '--', '(', '['")
+        
+        if self.current_token.type in ['=', '+=', '-=', '*=', '/=', '%=']:
+            op = self.current_token.type
             self.advance()
-            if self.current_token.type in ['=', '+=', '-=', '*=', '/=', '%=']:
-                op = self.current_token.type
+            if self.current_token.type == '{': # check later for previous node type
                 self.advance()
-                if self.current_token.type == '{': # check later for previous node type
-                    self.advance()
-                    values = []
-                    while self.current_token.type != '}':
-                        values.append(self.parseExpr())
-                        if self.current_token.type == ',':
-                            self.advance()
-                    self.advance()
-                    return ClanAssignNode(name, values)
-                elif self.current_token.type == 'id' and self.tokens[self.token_idx + 1].type == '(':
-                    value = self.parseIdCall()
-                    return VarAssignNode(name, value)
-                elif self.current_token.type == 'id' and self.tokens[self.token_idx + 1].type == '[':
-                    clan_id = self.current_token.value
-                    self.advance()
-                    self.advance() # self advanced two times to reach the actual index value
-                    index = self.parseExpr()
-                    index_node = ClanIndexNode(index)
-                    value = ClanAccessNode(clan_id, index_node)
-                    return VarAssignNode(name, value)
-                elif self.current_token.type == 'cleave':
-                    self.advance()
-                    if self.current_token.type == '(':
-                        self.advance()
-                        cleave_id = IdNode(self.current_token.value) # check node types after advancing
-                        self.advance() 
-                        if self.current_token.type == ',':
-                            self.advance()
-                            index1 = self.parseExpr()
-                            if self.current_token.type == ',':
-                                self.advance()
-                                index2 = self.parseExpr()
-                                if self.current_token.type == ')':
-                                    self.advance()
-                                    return VarAssignNode(name, CleaveNode(cleave_id, index1, index2))
-                elif self.current_token.type == 'dismantle':
-                    self.advance()
-                    if self.current_token.type == '(':
-                        self.advance()
-                        dismantle_id = IdNode(self.current_token.value) # check node types after advancing
-                        self.advance()
-                        if self.current_token.type == ',':
-                            self.advance()
-                            delimiter = StringNode(self.current_token.value)
-                            self.advance()
-                            if self.current_token.type == ')':
-                                self.advance()
-                                return VarAssignNode(name, DismantleNode(dismantle_id, delimiter))
-                elif self.current_token.type == 'len':
-                    self.advance()
-                    if self.current_token.type == '(':
-                        self.advance()  
-                        len_id = IdNode(self.current_token.value)
-                        self.advance()
-                        if self.current_token.type == ')': # check if no more than 2 args
-                            self.advance()
-                            return VarAssignNode(name, LenNode(len_id))
-                else:
-                    value = self.parseExpr()
-                    if op == '=':
-                        return VarAssignNode(name, value)
-                    else:
-                        # Transform shorthand assignment into equivalent expression
-                        bin_op = op[0]  # Get the operator part of the shorthand assignment
-                        left = VarNode(name)
-                        right = value
-                        bin_op_node = BinOpNode(left, type('Token', (object,), {'type': bin_op})(), right)
-                        return VarAssignNode(name, bin_op_node)
-            elif self.current_token.type == '[':
-                self.advance()
-                index = self.parseExpr()
-                index_node = ClanIndexNode(index)
-                if self.current_token.type == ']':
-                    self.advance()
-                    if self.current_token.type == '=':
-                        self.advance()
-                        if self.current_token.type == '{':
-                            self.advance()
-                            values = []
-                            while self.current_token.type != '}':
-                                values.append(self.parseExpr())
-                                if self.current_token.type == ',':
-                                    self.advance()
-                            return ClanIndexAssignNode(name, index_node, values)
-            elif self.current_token.type == '(':
-                self.advance()
-                args = []
-                while self.current_token.type != ')':
-                    if self.current_token.type == 'string_literal':
-                        args.append(StringNode(self.current_token.value))
-                        self.advance()
-                    elif self.current_token.type == 'id':
-                        value = self.parseIdCall()
-                        args.append(value)
-                    else:
-                        args.append(self.parseExpr())
+                values = []
+                while self.current_token.type != '}':
+                    values.append(self.parseExpr())
                     if self.current_token.type == ',':
                         self.advance()
                 self.advance()
-                return CurseCallNode(name, args)
+                return ClanAssignNode(name, values), None
+            elif self.current_token.type == 'id' and self.tokens[self.token_idx + 1].type == '(':
+                value, error = self.parseIdCall()
+                if error: return None, error
+                return VarAssignNode(name, value), None
+            elif self.current_token.type == 'id' and self.tokens[self.token_idx + 1].type == '[':
+                clan_id = self.current_token.value
+                self.advance()
+                self.advance() # self advanced two times to reach the actual index value
+                index = self.parseExpr()
+                index_node = ClanIndexNode(index)
+                value = ClanAccessNode(clan_id, index_node)
+                return VarAssignNode(name, value), None
+            elif self.current_token.type == 'cleave':
+                self.advance()
+                if self.current_token.type == '(':
+                    self.advance()
+                    cleave_id = IdNode(self.current_token.value) # check node types after advancing
+                    self.advance() 
+                    if self.current_token.type == ',':
+                        self.advance()
+                        index1 = self.parseExpr()
+                        if self.current_token.type == ',':
+                            self.advance()
+                            index2 = self.parseExpr()
+                            if self.current_token.type == ')':
+                                self.advance()
+                                return VarAssignNode(name, CleaveNode(cleave_id, index1, index2)), None
+            elif self.current_token.type == 'dismantle':
+                self.advance()
+                if self.current_token.type == '(':
+                    self.advance()
+                    dismantle_id = IdNode(self.current_token.value) # check node types after advancing
+                    self.advance()
+                    if self.current_token.type == ',':
+                        self.advance()
+                        delimiter = StringNode(self.current_token.value)
+                        self.advance()
+                        if self.current_token.type == ')':
+                            self.advance()
+                            return VarAssignNode(name, DismantleNode(dismantle_id, delimiter)), None
+            elif self.current_token.type == 'len':
+                self.advance()
+                if self.current_token.type == '(':
+                    self.advance()  
+                    len_id = IdNode(self.current_token.value)
+                    self.advance()
+                    if self.current_token.type == ')': # check if no more than 2 args
+                        self.advance()
+                        return VarAssignNode(name, LenNode(len_id)), None
+            else:
+                value = self.parseExpr()
+                if op == '=':
+                    return VarAssignNode(name, value), None
+                else:
+                    # Transform shorthand assignment into equivalent expression
+                    bin_op = op[0]  # Get the operator part of the shorthand assignment
+                    left = VarNode(name)
+                    right = value
+                    bin_op_node = BinOpNode(left, type('Token', (object,), {'type': bin_op})(), right)
+                    return VarAssignNode(name, bin_op_node), None
+        elif self.current_token.type == '[':
+            self.advance()
+            index = self.parseExpr()
+            index_node = ClanIndexNode(index)
+            if self.current_token.type == ']':
+                self.advance()
+                if self.current_token.type == '=':
+                    self.advance()
+                    if self.current_token.type == '{':
+                        self.advance()
+                        values = []
+                        while self.current_token.type != '}':
+                            values.append(self.parseExpr())
+                            if self.current_token.type == ',':
+                                self.advance()
+                        return ClanIndexAssignNode(name, index_node, values), None
+        elif self.current_token.type == '(':
+            self.advance()
+            args = []
+            while self.current_token.type != ')':
+                if self.current_token.type == 'string_literal':
+                    args.append(StringNode(self.current_token.value))
+                    self.advance()
+                elif self.current_token.type == 'id':
+                    value, error = self.parseIdCall()
+                    args.append(value)
+                else:
+                    args.append(self.parseExpr())
+                if self.current_token.type == ',':
+                    self.advance()
+            self.advance()
+            return CurseCallNode(name, args), None
+        elif self.current_token.type == '++' or self.current_token.type == '--':
+            op = self.current_token
+            self.advance()
+            return UnaryOpNode(op, VarNode(name), post=True), None
         return None
     
     def parseDeclaration(self):
@@ -1045,7 +1055,8 @@ class Parser:
                 if self.current_token.type == '=':
                     self.advance()
                     if self.current_token.type == 'id' and self.peek().type == '(':
-                        value = self.parseIdCall()
+                        value, error = self.parseIdCall()
+                        if error: return None, error
                         return VarDecNode(None, datatype, name, value), None
                     elif self.current_token.type == 'id' and self.peek().type == '[':
                         clan_id = self.current_token.value
@@ -1374,7 +1385,7 @@ class Parser:
                 if errors:
                     body_errors.append(errors)
             elif self.current_token.type == 'id':
-                assignment = self.parseIdCall()
+                assignment, errors = self.parseIdCall()
                 if assignment:
                     body.add_child(assignment)
             elif self.current_token.type == 'invoke':
@@ -1461,7 +1472,7 @@ class Parser:
                                     elif self.current_token.type == '(':
                                         self.advance()
                                         if self.current_token.type == 'id':
-                                            case_expr = self.parseIdCall()
+                                            case_expr, error = self.parseIdCall()
                                     else:
                                         raise ParseError(self.current_token.pos_start, self.current_token.pos_end, "Expected: int_literal, float_literal, or string_literal")
                                     if self.current_token.type == ':':
@@ -1541,14 +1552,16 @@ class Parser:
     
     def parseCycleCondition(self):
         cycle_errors = []
+        if self.current_token.type not in ['int', 'float', 'string', 'bool', 'id']:
+            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, "Expected: variable declaration or assignment")
         if self.current_token.type in ['int', 'float', 'string', 'bool']:
             init, errors = self.parseDeclaration()
             if errors:
                 cycle_errors.append(errors)
         elif self.current_token.type == 'id':
-            init = self.parseIdCall()
+            init, error = self.parseIdCall()
         else:
-            raise ParseError(self.current_token.pos_start, self.current_token.pos_end, "Expected: variable declaration or reassignment")
+            raise ParseError(self.current_token.pos_start, self.current_token.pos_end, "Expected: variable declaration or assignment")
         if self.current_token.type == ';':
             self.advance()
             condition = self.parseExpr()
@@ -1568,7 +1581,7 @@ class Parser:
                 if declaration:
                     body.add_child(declaration)
             elif self.current_token.type == 'id':
-                assignment = self.parseIdCall()
+                assignment, error = self.parseIdCall()
                 if assignment:
                     body.add_child(assignment)
             elif self.current_token.type == 'invoke':

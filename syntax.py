@@ -9,9 +9,10 @@ from semantic import semantic_run
 # CONSTANTS 
 ##############
 
+
 CFG = {
     "<program>": [              
-        ["expansion", ";", "<global_dec>", "<function_def>"] ########### 1 
+        ["expansion", ";", "<global_dec>"] ########### 1 
     ],
     "<global_dec>": [           
         ["<global_type_dec>", "<global_dec>"],
@@ -20,12 +21,8 @@ CFG = {
     
     "<global_type_dec>": [
         ["<datatype>", "<curse_or_var>"], ########### 
+        ["curse", "<init_void_curse>"], ###########
         ["restrict", "<datatype>", "id", "<type_choice>"], ###########
-    ],
-
-    "<function_def>": [
-        ["curse", "<init_void_curse>"], ########### 2
-        []
     ],
 
     "<curse_or_var>": [
@@ -445,9 +442,9 @@ PREDICT_SET = {
         "int": ["<global_dec>", 0],
         "float": ["<global_dec>", 0],
         "string": ["<global_dec>", 0],
-        "restrict": ["<global_dec>", 0],
         "bool": ["<global_dec>", 0],    
-        "curse": ["<global_dec>", 1],
+        "curse": ["<global_dec>",0],
+        "restrict": ["<global_dec>", 0],
         "Ø": ["<global_dec>", 1]
     }, 
 
@@ -456,12 +453,8 @@ PREDICT_SET = {
         "float": ["<global_type_dec>", 0],
         "string": ["<global_type_dec>", 0],
         "bool": ["<global_type_dec>", 0],
-        "restrict": ["<global_type_dec>", 1]
-    },
-
-    "<function_def>": { ############# verified
-        "curse": ["<function_def>", 0],
-        "Ø": ["<function_def>", 1]
+        "curse": ["<global_type_dec>", 1],
+        "restrict": ["<global_type_dec>", 2]
     },
 
     "<curse_or_var>": { ############# verified
@@ -499,8 +492,7 @@ PREDICT_SET = {
     
     "<init_void_curse>": { ############# verified
         "id": ["<init_void_curse>", 0],
-        "domain": ["<init_void_curse>", 1],
-        "Ø": ["<init_void_curse>", 1]
+        "domain": ["<init_void_curse>", 1]
     },
 
     "<param>": { ############# verified
@@ -1167,6 +1159,7 @@ PREDICT_SET = {
     }
 }
 
+
 ##############
 # ERRORS
 ############## 
@@ -1326,7 +1319,9 @@ class SyntaxAnalyzer:
                         error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
                                                 f"Expected '{top}', got '{self.current_token.type}'") 
                         break
-
+        if self.current_token.type != 'Ø':
+            error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
+                                       f"Expected end of file, got '{self.current_token.type}'")
         if error:
             return error
         return []
