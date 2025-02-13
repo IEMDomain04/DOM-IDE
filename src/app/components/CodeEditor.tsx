@@ -13,8 +13,8 @@ const CodeEditor = () => {
                 className="mt-14"
                 height="100vh"
                 theme="customTheme"
-                defaultLanguage="javascript"
-                defaultValue="// code.."
+                defaultLanguage="customLang"
+                defaultValue="# code.."
             />
 
         </main>
