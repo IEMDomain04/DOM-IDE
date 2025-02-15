@@ -85,11 +85,20 @@ class ASTNode:
             for child in self.children:
                 child.print_tree()
 
-    def to_dict(self):
-        return {
-            'data': self.data,
-            'children': [child.to_dict() for child in self.children]
-        }
+    def get_parent(self):
+        return self.parent
+    
+    def get_leftmost_sibling(self):
+        if self.parent:
+            return self.parent.children[0]
+        return None
+    
+    def get_right_sibling(self):
+        if self.parent:
+            idx = self.parent.children.index(self)
+            if idx < len(self.parent.children) - 1:
+                return self.parent.children[idx + 1]
+        return None
     
 class NumNode(ASTNode): # for numbers
     def __init__(self, value):
@@ -547,195 +556,250 @@ class ASTVisitor:
         return visitor(node, parent)
 
     def generic_visit(self, node, parent):
-        print(f"Visiting {type(node).__name__}")
+        if parent is None:
+            print(f"Visiting root node: {type(node).__name__}")
         self.visit_node(node, parent)
-        for child in node.children:
-            self.visit(child, node)
+        self.visit_children(node)
 
     def visit_node(self, node, parent):
         # This method can be overridden to perform specific actions on each node
         pass
 
+    def visit_children(self, node):
+        for child in node.children:
+            print(f"Child node: {type(child).__name__}, Parent node: {type(node).__name__}")
+            self.visit(child, node)
+
 class MyASTVisitor(ASTVisitor):
     def visit_NumNode(self, node, parent):
         print(f"Visiting NumNode with value: {node.value}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting NumNode")
+
+    def visit_DatatypeNode(self, node, parent):
+        print(f"Visiting DatatypeNode with type: {node.datatype}")
+        self.visit_children(node)
+        print(f"Exiting DatatypeNode")
 
     def visit_StringNode(self, node, parent):
         print(f"Visiting StringNode with value: {node.value}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting StringNode")
 
     def visit_BoolNode(self, node, parent):
         print(f"Visiting BoolNode with value: {node.value}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting BoolNode")
 
     def visit_NullNode(self, node, parent):
         print(f"Visiting NullNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting NullNode")
 
     def visit_ExponentNode(self, node, parent):
         print(f"Visiting ExponentNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting ExponentNode")
 
     def visit_BinOpNode(self, node, parent):
         print(f"Visiting BinOpNode with operator: {node.op}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting BinOpNode")
 
     def visit_RelOpNode(self, node, parent):
         print(f"Visiting RelOpNode with operator: {node.op}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting RelOpNode")
 
     def visit_LogOpNode(self, node, parent):
         print(f"Visiting LogOpNode with operator: {node.op}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting LogOpNode")
 
     def visit_UnaryOpNode(self, node, parent):
         print(f"Visiting UnaryOpNode with operator: {node.op.op}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting UnaryOpNode")
 
     def visit_IdNode(self, node, parent):
         print(f"Visiting IdNode with name: {node.name}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting IdNode")
 
     def visit_VarDecNode(self, node, parent):
-        print(f"Visiting VarDecNode with name: {node.name}")
-        self.generic_visit(node, parent)
+        print(f"Visiting VarDecNode with type: {node.datatype}")
+        self.visit_children(node)
+        print(f"Exiting VarDecNode")
 
     def visit_VarAssignNode(self, node, parent):
         print(f"Visiting VarAssignNode with name: {node.name}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting VarAssignNode")
 
     def visit_ClanDecNode(self, node, parent):
         print(f"Visiting ClanDecNode with name: {node.name}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting ClanDecNode")
 
     def visit_ClanLiteralNode(self, node, parent):
         print(f"Visiting ClanLiteralNode with values: {node.values}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting ClanLiteralNode")
 
     def visit_ClanIndexNode(self, node, parent):
         print(f"Visiting ClanIndexNode with index: {node.index}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting ClanIndexNode")
 
     def visit_ClanSizeNode(self, node, parent):
         print(f"Visiting ClanSizeNode with size: {node.size}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting ClanSizeNode")
 
     def visit_ClanAccessNode(self, node, parent):
         print(f"Visiting ClanAccessNode with name: {node.name}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting ClanAccessNode")
 
     def visit_ClanIndexAssignNode(self, node, parent):
         print(f"Visiting ClanIndexAssignNode with name: {node.name}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting ClanIndexAssignNode")
 
     def visit_ClanAssignNode(self, node, parent):
         print(f"Visiting ClanAssignNode with name: {node.name}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting ClanAssignNode")
 
     def visit_CurseDecNode(self, node, parent):
         print(f"Visiting CurseDecNode with name: {node.name}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting CurseDecNode")
 
     def visit_CurseDomainNode(self, node, parent):
         print(f"Visiting CurseDomainNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting CurseDomainNode")
 
     def visit_ParamNode(self, node, parent):
         print(f"Visiting ParamNode with name: {node.name}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting ParamNode")
 
     def visit_ArgNode(self, node, parent):
         print(f"Visiting ArgNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting ArgNode")
 
     def visit_BodyNode(self, node, parent):
         print(f"Visiting BodyNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting BodyNode")
 
     def visit_CurseCallNode(self, node, parent):
         print(f"Visiting CurseCallNode with name: {node.name}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting CurseCallNode")
 
     def visit_StringConcatNode(self, node, parent):
         print(f"Visiting StringConcatNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting StringConcatNode")
 
     def visit_InvokeNode(self, node, parent):
         print(f"Visiting InvokeNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting InvokeNode")
 
     def visit_CaptureNode(self, node, parent):
         print(f"Visiting CaptureNode with name: {node.name}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting CaptureNode")
 
     def visit_CleaveNode(self, node, parent):
         print(f"Visiting CleaveNode with name: {node.name}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting CleaveNode")
 
     def visit_DismantleNode(self, node, parent):
         print(f"Visiting DismantleNode with name: {node.name}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting DismantleNode")
 
     def visit_LenNode(self, node, parent):
         print(f"Visiting LenNode with name: {node.name}")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting LenNode")
 
     def visit_RecallNode(self, node, parent):
         print(f"Visiting RecallNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting RecallNode")
 
     def visit_DismissNode(self, node, parent):
         print(f"Visiting DismissNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting DismissNode")
 
     def visit_HopNode(self, node, parent):
         print(f"Visiting HopNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting HopNode")
 
     def visit_VowNode(self, node, parent):
         print(f"Visiting VowNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting VowNode")
 
     def visit_ElseVow(self, node, parent):
         print(f"Visiting ElseVow")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting ElseVow")
 
     def visit_ElseNode(self, node, parent):
         print(f"Visiting ElseNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting ElseNode")
 
     def visit_BoogieNode(self, node, parent):
         print(f"Visiting BoogieNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting BoogieNode")
 
     def visit_WoogieTrueNode(self, node, parent):
         print(f"Visiting WoogieTrueNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting WoogieTrueNode")
 
     def visit_WoogieNode(self, node, parent):
         print(f"Visiting WoogieNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting WoogieNode")
 
     def visit_DefaultCaseNode(self, node, parent):
         print(f"Visiting DefaultCaseNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting DefaultCaseNode")
 
     def visit_SustainNode(self, node, parent):
         print(f"Visiting SustainNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting SustainNode")
 
     def visit_PerformSustainNode(self, node, parent):
         print(f"Visiting PerformSustainNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting PerformSustainNode")
 
     def visit_CycleNode(self, node, parent):
         print(f"Visiting CycleNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting CycleNode")
 
     def visit_CycleConditionNode(self, node, parent):
         print(f"Visiting CycleConditionNode")
-        self.generic_visit(node, parent)
+        self.visit_children(node)
+        print(f"Exiting CycleConditionNode")
 
 ###################
 # Symbol Table
@@ -1107,9 +1171,39 @@ class Parser:
                     if self.current_token.type == 'id' and self.peek().type in ['++', '--', '(']:
                         value, error = self.parseIdCall()
                         if error: return None, error
+                        if self.peek() == ',':
+                            declarations = [VarDecNode(None, datatype, name, value)]
+                            while self.current_token.type == ',':
+                                self.advance()
+                                if self.current_token.type != 'id':
+                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier")
+                                name = self.current_token.value
+                                self.advance()
+                                if self.current_token.type == '=':
+                                    self.advance()
+                                    value = self.parseExpr()
+                                    declarations.append(VarDecNode(None, datatype, name, value))
+                                else:
+                                    declarations.append(VarDecNode(None, datatype, name, 0))
+                            return declarations, None
                         return VarDecNode(None, datatype, name, value), None
                     elif self.current_token.type == 'id' and self.peek().type in ['+', '-', '/', '%', '*', '**']:
                         value = self.parseExpr()
+                        if self.peek() == ',':
+                            declarations = [VarDecNode(None, datatype, name, value)]
+                            while self.current_token.type == ',':
+                                self.advance()
+                                if self.current_token.type != 'id':
+                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier")
+                                name = self.current_token.value
+                                self.advance()
+                                if self.current_token.type == '=':
+                                    self.advance()
+                                    value = self.parseExpr()
+                                    declarations.append(VarDecNode(None, datatype, name, value))
+                                else:
+                                    declarations.append(VarDecNode(None, datatype, name, 0))
+                            return declarations, None
                         return VarDecNode(None, datatype, name, value), None
                     elif self.current_token.type == 'id' and self.peek().type == '[':
                         clan_id = self.current_token.value
@@ -1120,10 +1214,39 @@ class Parser:
                         index = self.parseExpr()
                         index_node = ClanIndexNode(index)
                         value = ClanAccessNode(clan_id, index_node)
+                        if self.peek() == ',':
+                            declarations = [VarDecNode(None, datatype, name, value)]
+                            while self.current_token.type == ',':
+                                self.advance()
+                                if self.current_token.type != 'id':
+                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier")
+                                name = self.current_token.value
+                                self.advance()
+                                if self.current_token.type == '=':
+                                    self.advance()
+                                    value = self.parseExpr()
+                                    declarations.append(VarDecNode(None, datatype, name, value))
+                                else:
+                                    declarations.append(VarDecNode(None, datatype, name, 0))
                         return VarDecNode(None, datatype, name, value), None
                     elif self.current_token.type == 'id':
                         value = IdNode(self.current_token.value)
                         self.advance()
+                        if self.current_token.type == ',':
+                            declarations = [VarDecNode(None, datatype, name, value)]
+                            while self.current_token.type == ',':
+                                self.advance()
+                                if self.current_token.type != 'id':
+                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier")
+                                name = self.current_token.value
+                                self.advance()
+                                if self.current_token.type == '=':
+                                    self.advance()
+                                    value = self.parseExpr()
+                                    declarations.append(VarDecNode(None, datatype, name, value))
+                                else:
+                                    declarations.append(VarDecNode(None, datatype, name, 0))
+                            return declarations, None
                         return VarDecNode(None, datatype, name, value), None
                     elif self.current_token.type == 'cleave':
                         self.advance()
@@ -1200,9 +1323,24 @@ class Parser:
                         self.advance()
                         return VarDecNode(None, datatype, name, LenNode(len_id)), None
                     else:
-                        if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'bool_literal', 'null_literal', 'id', '(', '[']:
+                        if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'bool_literal', 'null_literal', 'id', '(', '[', ]:
                             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, string, boolean, identifier, or '('")
                         value = self.parseExpr()
+                        if self.current_token.type == ',': # for parsing multi variable declaration
+                            declarations = [VarDecNode(None, datatype, name, value)]
+                            while self.current_token.type == ',':
+                                self.advance()
+                                if self.current_token.type != 'id':
+                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier")
+                                name = self.current_token.value
+                                self.advance()
+                                if self.current_token.type == '=':
+                                    self.advance()
+                                    value = self.parseExpr()
+                                    declarations.append(VarDecNode(None, datatype, name, value))
+                                else:
+                                    declarations.append(VarDecNode(None, datatype, name, 0))
+                            return declarations, None
                         return VarDecNode(None, datatype, name, value), None
                 elif self.current_token.type == '[':
                     self.advance()
@@ -1302,13 +1440,13 @@ class Parser:
                     self.advance()
                     if self.current_token.type != 'id':
                         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier")
-                    declarations = [VarDecNode(None, datatype, name, None)]
+                    declarations = [VarDecNode(None, datatype, name, 0)]
                     while self.current_token.type == 'id':
                         name = self.current_token.value
                         self.advance()
                         value = None
                         if self.current_token.type == '=':
-                            self.advance()
+                            self.advance()  
                             value = self.parseExpr()
                             declarations.append(VarDecNode(None, datatype, name, value))
                         elif self.current_token.type == ',':
@@ -1318,7 +1456,7 @@ class Parser:
                         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: ';'")
                     return declarations, None
                 elif self.current_token.type == ';':
-                    return VarDecNode(None, datatype, name, None), None
+                    return VarDecNode(None, datatype, name, 0), None
                 else:
                     return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: '=', '[', '[...]', ';', ',', ';'")
                 
@@ -1416,20 +1554,50 @@ class Parser:
             self.advance()
             if self.current_token.type not in ['int', 'float', 'string', 'bool']: 
                 return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: int, float, string, bool")
-            else:
-                datatype = self.current_token.type
+            datatype = self.current_token.type
+            self.advance()
+            if self.current_token.type != 'id':
+                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: identifier")
+            name = self.current_token.value
+            self.advance()
+            if self.current_token.type not in ['=', ',', ';']:
+                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: '=', ',' or ';'")
+            if self.current_token.type == '=':
                 self.advance()
-                if self.current_token.type != 'id':
-                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: identifier")
-                else:
+                value = self.parseExpr()
+                if self.current_token.type == ',':
+                    declarations = [VarDecNode('restrict', datatype, name, value)]
+                    while self.current_token.type == ',':
+                        self.advance()
+                        if self.current_token.type != 'id':
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: identifier")
+                        name = self.current_token.value
+                        self.advance()
+                        if self.current_token.type == '=':
+                            self.advance()
+                            value = self.parseExpr()
+                            declarations.append(VarDecNode('restrict', datatype, name, value))
+                        else:
+                            declarations.append(VarDecNode('restrict', datatype, name, 0))
+                    return declarations, None
+                return VarDecNode('restrict', datatype, name, value), 0
+            elif self.current_token.type == ',':
+                declarations = [VarDecNode('restrict', datatype, name, 0)]
+                while self.current_token.type == ',':
+                    self.advance()
+                    if self.current_token.type != 'id':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: identifier")
                     name = self.current_token.value
                     self.advance()
-                    if self.current_token.type != '=':
-                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: '='")
-                    else:
+                    if self.current_token.type == '=':
                         self.advance()
                         value = self.parseExpr()
-                        return VarDecNode('restrict', datatype, name, value), None
+                        declarations.append(VarDecNode('restrict', datatype, name, value))
+                    else:
+                        declarations.append(VarDecNode('restrict', datatype, name, 0))
+                return declarations, None
+            elif self.current_token.type == ';':
+                return VarDecNode('restrict', datatype, name, 0), None
         else:
             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: int, float, string, bool, curse, or restrict")
     
@@ -1755,12 +1923,15 @@ class Parser:
 
 def semantic_run(tokens):
     parser = Parser(tokens)
+    visitor = MyASTVisitor()
     ast, errors = parser.build_ast()
     if errors:
         return None, errors
     if ast:
         ast.print_tree()
+        visitor.visit(ast)
     else:
         print("No AST built")
         return "No AST built", None
+    
     return ast, errors
