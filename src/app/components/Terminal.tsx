@@ -10,7 +10,7 @@ const Terminal: React.FC<TerminalProps> = ({ terminalOutput, isDarkMode }) => {
     <main>
       {terminalOutput && (
         <div
-          className="bg-black w-full h-full"
+          className="w-full h-full"
           style={{ resize: 'none', borderRight: '2px solid #131314' }}
         >
           <h1
