@@ -172,6 +172,8 @@ const CustomTheme = () => {
                 },
             ],
         });
+
+        monaco.editor.setTheme("customLang");
         
     }, [monaco]);
 

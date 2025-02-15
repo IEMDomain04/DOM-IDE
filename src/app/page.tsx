@@ -4,8 +4,9 @@ import Topnav from "./components/Topnav";
 import CodeEditor from "./components/CodeEditor";
 import React, { useState, useRef, useEffect } from "react";
 import { handleTokenizerClick } from "./lexical/lexical";
-import { handleSyntaxClick } from "./syntax/syntax"; 
+import { handleSyntaxClick } from "./syntax/syntax";
 import { handleSemanticClick } from "./semantic/semantic";
+import Terminal from "./components/Terminal";
 
 interface Token {
   lexeme: string;
@@ -105,31 +106,45 @@ curse domain(){
     <section className={`flex w-screen h-screen ${isDarkMode ? 'dark' : ''}`} style={{ backgroundImage: `url(${isDarkMode ? '/bg-dark.png' : '/bg-light.png'})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat' }}>
       {/*Left Side: Topnav, Textarea, and Terminal */}
       <div className="flex flex-col w-full h-screen">
-        <Topnav
-          onRunClick={handleRunClick}
-          onTokenizerClick={() => textareaRef.current && handleTokenizerClick(textareaRef as React.RefObject<HTMLTextAreaElement>, setOutputData, setTerminalOutput)}
-          onSyntaxClick={() => textareaRef.current && handleSyntaxClick(textareaRef as React.RefObject<HTMLTextAreaElement>, setTerminalOutput)}
-          onSemanticClick={() => textareaRef.current && handleSemanticClick(textareaRef as React.RefObject<HTMLTextAreaElement>, setTerminalOutput)}
-          toggleDarkMode={toggleDarkMode}
-          isDarkMode={isDarkMode}
-          textareaRef={textareaRef}
-          updateLineCount={updateLineCount} // Pass the function as a prop
-        />
-        
-        <CodeEditor />
+        <div
+          className="relative select-auto w-auto max-h-[38rem] min-h-[10rem] box-border flex-shrink-0 resize-y overflow-hidden"
+        >
+          <Topnav
+            onRunClick={handleRunClick}
+            onTokenizerClick={() =>
+              textareaRef.current &&
+              handleTokenizerClick(
+                textareaRef as React.RefObject<HTMLTextAreaElement>,
+                setOutputData,
+                setTerminalOutput
+              )
+            }
+            onSyntaxClick={() =>
+              textareaRef.current &&
+              handleSyntaxClick(
+                textareaRef as React.RefObject<HTMLTextAreaElement>,
+                setTerminalOutput
+              )
+            }
+            onSemanticClick={() =>
+              textareaRef.current &&
+              handleSemanticClick(
+                textareaRef as React.RefObject<HTMLTextAreaElement>,
+                setTerminalOutput
+              )
+            }
+            toggleDarkMode={toggleDarkMode}
+            isDarkMode={isDarkMode}
+            textareaRef={textareaRef}
+            updateLineCount={updateLineCount} // Pass the function as a prop
+          />
 
-        {/* Terminal Section */}
-        {terminalOutput && (
-          <div className="flex-shrink-0" style={{ resize: 'none', borderRight: '2px solid #131314' }}>
-            <h1 className={`py-3 px-16 ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground'}`}>Output and Errors</h1>
-            <div className={`pl-4 py-2 pr-0 text-sm font-mono min-h-40 ${isDarkMode ? 'text-white' : 'text-black'}`}>
-              <div className="overflow-y-auto " style={{ maxHeight: '120px' }}>
-                <pre className="whitespace-pre-wrap">{terminalOutput}</pre>
-              </div>
-            </div>
-          </div>
-        )}
+          <CodeEditor />
+        </div>
+
+        <Terminal terminalOutput={terminalOutput} isDarkMode={isDarkMode} />
       </div>
+
 
       {/* Output Table for Lexeme, Tokens */}
       {outputData.length > 0 && (
@@ -143,12 +158,12 @@ curse domain(){
             </thead>
             <tbody>
               {outputData.map((item, index) => (
-              <tr key={index} className={index % 2 === 0 ? isDarkMode ? 'bg-[#412121]': 'bg-[#2d3456]' : ''}>
-                <td className={`py-2 px-4 border-b-2 ${isDarkMode ? 'border-[#412121]' : 'border-[#2C3358]'}`} title={item.lexeme}>
-                {item.lexeme && item.lexeme.length > 15 ? item.lexeme.substring(0, 12) + '...' : item.lexeme}
-                </td>
-                <td className={`py-2 px-4 border-b-2  ${isDarkMode ? 'border-[#412121]' : 'border-[#2C3358]'}`}>{item.token}</td>
-              </tr>
+                <tr key={index} className={index % 2 === 0 ? isDarkMode ? 'bg-[#412121]' : 'bg-[#2d3456]' : ''}>
+                  <td className={`py-2 px-4 border-b-2 ${isDarkMode ? 'border-[#412121]' : 'border-[#2C3358]'}`} title={item.lexeme}>
+                    {item.lexeme && item.lexeme.length > 15 ? item.lexeme.substring(0, 12) + '...' : item.lexeme}
+                  </td>
+                  <td className={`py-2 px-4 border-b-2  ${isDarkMode ? 'border-[#412121]' : 'border-[#2C3358]'}`}>{item.token}</td>
+                </tr>
               ))}
             </tbody>
           </table>
