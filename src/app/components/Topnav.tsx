@@ -1,5 +1,8 @@
+'use client';
+
 import React from 'react';
 import Image from 'next/image';
+import * as monaco from 'monaco-editor';
 
 interface TopnavProps {
   onRunClick: () => void;
@@ -8,8 +11,7 @@ interface TopnavProps {
   onSemanticClick: () => void;
   toggleDarkMode: () => void;
   isDarkMode: boolean;
-  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
-  updateLineCount: (count: number) => void; // Add the new prop
+  codeEditorRef: React.RefObject<monaco.editor.IStandaloneCodeEditor>;
 }
 
 interface FilePickerOptions {
@@ -19,13 +21,13 @@ interface FilePickerOptions {
   }[];
 }
 
-export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, onSemanticClick, toggleDarkMode, updateLineCount, isDarkMode, textareaRef }: TopnavProps) {
+export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, onSemanticClick, toggleDarkMode, isDarkMode, codeEditorRef }: TopnavProps) {
 
   // Function to handle "Save As.." button click
   const handleSaveAsClick = () => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      const textContent = textarea.value;  // Get content from textarea
+    const codeeditor = codeEditorRef.current;
+    if (codeeditor) {
+      const textContent = codeeditor.getValue();  // Get content from Monaco Editor
       const blob = new Blob([textContent], { type: 'text/plain' });
 
       // Create a temporary link element
@@ -73,20 +75,10 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
       if (file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-          const textarea = textareaRef.current;
-          if (textarea) {
+          const codeeditor = codeEditorRef.current;
+          if (codeeditor) {
             const content = e.target?.result as string;
-            textarea.value = content;
-
-            // Create a new InputEvent for React's state synchronization
-            const inputEvent = new Event('input', { bubbles: true, cancelable: true });
-
-            // Dispatch the event
-            textarea.dispatchEvent(inputEvent);
-
-            // Update line count based on content
-            const lines = content.split("\n").length;
-            updateLineCount(lines);
+            codeeditor.setValue(content);
           }
         };
         reader.readAsText(file);

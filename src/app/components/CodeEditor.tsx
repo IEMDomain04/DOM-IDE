@@ -5,6 +5,12 @@ import dynamic from "next/dynamic";
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 import CustomTheme from "./CustomTheme";
 
+const initialCode = `expansion;
+
+curse domain(){
+    invoke("Hello, World!");
+}`;
+
 const CodeEditor = () => {
     return (
         <main>
@@ -14,7 +20,7 @@ const CodeEditor = () => {
                 height="38rem"
                 theme="customTheme"
                 defaultLanguage="customLang"
-                defaultValue="# code.."
+                defaultValue={initialCode}
             />
         </main>
     );

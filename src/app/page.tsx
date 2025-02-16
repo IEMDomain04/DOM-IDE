@@ -2,10 +2,11 @@
 
 import Topnav from "./components/Topnav";
 import CodeEditor from "./components/CodeEditor";
+import { editor } from 'monaco-editor';
 import React, { useState, useRef, useEffect } from "react";
 import { handleTokenizerClick } from "./lexical/lexical";
-import { handleSyntaxClick } from "./syntax/syntax";
-import { handleSemanticClick } from "./semantic/semantic";
+// import { handleSyntaxClick } from "./syntax/syntax";
+// import { handleSemanticClick } from "./semantic/semantic";
 import Terminal from "./components/Terminal";
 
 interface Token {
@@ -14,12 +15,10 @@ interface Token {
 }
 
 export default function Lexeme() {
-  const [lineCount, setLineCount] = useState(1);
   const [outputData, setOutputData] = useState<Token[]>([]); // State for table output
   const [terminalOutput, setTerminalOutput] = useState<string>(''); // State for terminal output
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const lineNumbersRef = useRef<HTMLDivElement>(null); // Create a reference for the line numbers container
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const codeEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -30,46 +29,6 @@ export default function Lexeme() {
     }
   };
 
-  // Initial code snippet
-  const initialCode = `expansion;
-
-curse domain(){
-    invoke("Hello, World!");
-}`;
-
-  const updateLineCount = (count: number) => {
-    setLineCount(count);
-  };
-
-  // Handle text change and update line count based on text area's line breaks
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const lines = e.target.value.split("\n").length;
-    setLineCount(lines);
-  };
-
-  // Handle key down event to insert tab character
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const textarea = textareaRef.current;
-      if (textarea) {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const value = textarea.value;
-
-        // Modify the textarea value to include a tab character
-        textarea.value = value.substring(0, start) + '\t' + value.substring(end);
-
-        // Update the selection to be after the tab character
-        textarea.selectionStart = textarea.selectionEnd = start + 1;
-
-        // Create a synthetic change event to pass to handleTextChange
-        const event = new Event('input', { bubbles: true }) as unknown as React.ChangeEvent<HTMLTextAreaElement>;
-        Object.defineProperty(event, 'target', { value: textarea, writable: false });
-        handleTextChange(event); // Pass the synthetic event
-      }
-    }
-  };
 
   // Function to handle the run button click
   const handleRunClick = async () => {
@@ -77,30 +36,21 @@ curse domain(){
     setTerminalOutput("\n============= COMPILER COMING SOON ==============");
   };
 
-  // Sync the scroll position between the textarea and line numbers container
-  const handleScroll = () => {
-    const textarea = textareaRef.current;
-    const lineNumbers = lineNumbersRef.current;
-    if (textarea && lineNumbers) {
-      // Sync scroll position
-      lineNumbers.scrollTop = textarea.scrollTop;
-    }
-  };
+  const handleSyntaxClick = async () => {
+    setOutputData([]);
+    setTerminalOutput("\n============= SYNTAX ANALYSIS COMING SOON ==============");
+  }
 
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.addEventListener("scroll", handleScroll);
-      textarea.value = initialCode; // Set initial code
-      handleTextChange({ target: textarea } as React.ChangeEvent<HTMLTextAreaElement>); // Update line count
-    }
+  const handleSemanticClick = async () => {
+    setOutputData([]);
+    setTerminalOutput("\n============= SEMANTIC ANALYSIS COMING SOON ==============");
+  }
 
-    return () => {
-      if (textarea) {
-        textarea.removeEventListener("scroll", handleScroll);
-      }
-    };
-  }, []);
+  const handleTokenizerClick = async () => {
+    setOutputData([]);
+    setTerminalOutput("\n============= LEXICAL ANALYSIS COMING SOON ==============");
+  }
+
 
   return (
     <section className={`flex w-screen h-screen ${isDarkMode ? 'dark' : ''}`} style={{ backgroundImage: `url(${isDarkMode ? '/bg-dark.png' : '/bg-light.png'})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat' }}>
@@ -111,38 +61,20 @@ curse domain(){
         >
           <Topnav
             onRunClick={handleRunClick}
-            onTokenizerClick={() =>
-              textareaRef.current &&
-              handleTokenizerClick(
-                textareaRef as React.RefObject<HTMLTextAreaElement>,
-                setOutputData,
-                setTerminalOutput
-              )
-            }
-            onSyntaxClick={() =>
-              textareaRef.current &&
-              handleSyntaxClick(
-                textareaRef as React.RefObject<HTMLTextAreaElement>,
-                setTerminalOutput
-              )
-            }
-            onSemanticClick={() =>
-              textareaRef.current &&
-              handleSemanticClick(
-                textareaRef as React.RefObject<HTMLTextAreaElement>,
-                setTerminalOutput
-              )
-            }
+            onTokenizerClick={handleTokenizerClick}
+            onSyntaxClick={handleSyntaxClick}
+            onSemanticClick={handleSemanticClick}
             toggleDarkMode={toggleDarkMode}
             isDarkMode={isDarkMode}
-            textareaRef={textareaRef}
-            updateLineCount={updateLineCount} // Pass the function as a prop
+            codeEditorRef={codeEditorRef as React.RefObject<editor.IStandaloneCodeEditor>}
           />
 
           <CodeEditor />
         </div>
 
-        <Terminal terminalOutput={terminalOutput} isDarkMode={isDarkMode} />
+        {terminalOutput.length > 0 && (
+          <Terminal terminalOutput={terminalOutput} isDarkMode={isDarkMode} />
+        )}
       </div>
 
 
