@@ -1,12 +1,12 @@
 import axios from 'axios';
 
 export const handleSyntaxClick = async (
-  textareaRef: React.RefObject<HTMLTextAreaElement>,
+  input_code: string,
   setTerminalOutput: React.Dispatch<React.SetStateAction<string>>
 ) => {
-  const textarea = textareaRef.current;
-  if (textarea) {
-    const text = textarea.value;
+  const code = input_code;
+  if (code) {
+    const text = code;
     console.log('Sending request to /api/syntax with text:', text); // Add logging
     try {
         const url = window.location.hostname === 'localhost' ? 'http://127.0.0.1:5000/api/syntax' : '/api/syntax';

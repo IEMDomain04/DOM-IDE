@@ -1,12 +1,12 @@
 import axios from 'axios';
 
 export const handleSemanticClick = async (
-    textareaRef: React.RefObject<HTMLTextAreaElement>,
+    code_input: string,
     setTerminalOutput: React.Dispatch<React.SetStateAction<string>>
   ) => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      const text = textarea.value;
+    const code = code_input;
+    if (code) {
+      const text = code;
       console.log('Sending request to /api/semantic with text:', text); // Add logging
       try {
           const url = window.location.hostname === 'localhost' ? 'http://127.0.0.1:5000/api/semantic' : '/api/semantic';

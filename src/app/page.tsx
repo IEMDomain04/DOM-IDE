@@ -5,6 +5,8 @@ import CodeEditor from "./components/CodeEditor";
 import React, { useState } from "react";
 import { handleTokenizerClick } from "./lexical/lexical";
 import Terminal from "./components/Terminal";
+import { handleSyntaxClick } from "./syntax/syntax";
+import { handleSemanticClick } from "./semantic/semantic";
 
 interface Token {
   lexeme: string;
@@ -36,17 +38,15 @@ curse domain(){
     setTerminalOutput("\n============= COMPILER COMING SOON ==============");
   };
 
-  const handleSyntaxClick = async () => {
-    setOutputData([]);
-    setTerminalOutput("\n============= SYNTAX ANALYSIS COMING SOON ==============");
+  const SyntaxAnalyzer = async () => {
+    handleSyntaxClick(code, setTerminalOutput);
   };
 
-  const handleSemanticClick = async () => {
-    setOutputData([]);
-    setTerminalOutput("\n============= SEMANTIC ANALYSIS COMING SOON ==============");
+  const SemanticAnalyzer = async () => {
+    handleSemanticClick(code, setTerminalOutput)
   };
 
-  const handleTokenizer = async () => {
+  const Tokenizer = async () => {
     handleTokenizerClick(code, setOutputData, setTerminalOutput);
   };
 
@@ -57,9 +57,9 @@ curse domain(){
         <div className="relative select-auto w-auto max-h-[38rem] min-h-[10rem] box-border flex-shrink-0 resize-y overflow-hidden">
           <Topnav
             onRunClick={handleRunClick}
-            onTokenizerClick={handleTokenizer}
-            onSyntaxClick={handleSyntaxClick}
-            onSemanticClick={handleSemanticClick}
+            onTokenizerClick={Tokenizer}
+            onSyntaxClick={SyntaxAnalyzer}
+            onSemanticClick={SemanticAnalyzer}
             toggleDarkMode={toggleDarkMode}
             isDarkMode={isDarkMode}
           />
