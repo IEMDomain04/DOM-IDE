@@ -46,7 +46,7 @@ def run_semantic():
     
     ast, errors = semantic(tokens)
     if errors:  
-        error_messages = [f"Error {i+1}: {error.as_string()}" for i, error in enumerate(errors)]
+        error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
         return jsonify({'semantic_result': "AST Building Failed", 'errors': error_messages})
     if ast:
         return jsonify({'semantic_result': "Successful from Semantic Analyzer", 'errors': None})
