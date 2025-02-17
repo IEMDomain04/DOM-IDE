@@ -8,26 +8,28 @@ interface TerminalProps {
 const Terminal: React.FC<TerminalProps> = ({ terminalOutput, isDarkMode }) => {
   return (
     <main>
-      {terminalOutput && (
-        <div
-        className="w-full h-screen flex flex-col"
-        style={{ resize: 'none', borderRight: '2px solid #131314' }}
+  {terminalOutput && (
+    <div
+      className="w-full h-screen flex flex-col overflow-hidden"
+      style={{ borderRight: '2px solid #131314' }}
+    >
+      {/* Sticky Header */}
+      <h1
+        className={`sticky top-0 py-3 px-16 z-10 ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground'}`}
       >
-        <h1
-          className={`py-3 px-16 ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground'}`}
-        >
-          Output and Errors
-        </h1>
-      
-        <div
-          className={`px-4 py-2 text-sm font-mono flex-1 ${isDarkMode ? 'text-white' : 'text-black'}`}
-        >
-          <pre>{terminalOutput}</pre>
-        </div>
+        Output and Errors
+      </h1>
+
+      {/* Scrollable Terminal Output */}
+      <div
+        className={`px-4 py-2 text-sm font-mono flex-1 overflow-y-auto`}
+      >
+        <pre className="pb-44">{terminalOutput}</pre>
       </div>
-      
-      )}
-    </main>
+    </div>
+  )}
+</main>
+
   );
 };
 

@@ -84,7 +84,7 @@ curse domain(){
       <div className="flex flex-col w-full h-screen">
         <div
           ref={divRef}
-          className="relative w-auto max-h-[38rem] min-h-[10rem] box-border flex-shrink-0 overflow-hidden"
+          className="relative w-auto max-h-[38rem] min-h-[10rem] box-border flex-shrink-0 overflow-auto"
           style={{ height: `${height}px` }}
         >
           <Topnav
