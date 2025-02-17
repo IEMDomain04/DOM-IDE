@@ -24,6 +24,15 @@ class SemanticError(Error):
     def __init__(self, pos_start, pos_end, details=''):
         super().__init__(pos_start, pos_end, 'Semantic Error', details)
 
+class DomainError(Error):
+    def __init__(self, pos_start, pos_end, details=''):
+        super().__init__(pos_start, pos_end, 'Semantic Error', details)
+
+    def as_string(self):
+        result = f'{self.error_name}: {self.details}'
+        result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}\n\n'
+        return result
+
 class ParseError(Error):
     def __init__(self, pos_start, pos_end, details=''):
         super().__init__(pos_start, pos_end, 'Parse Failure', details)
@@ -696,13 +705,10 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_CurseDecNode(self, node, parent):
         print(f"Visiting CurseDecNode with name: {node.name}")
-        print(f"\n\n\nYOUR CURSE NAME: {node.name}\n\n\n AND THE CURRENT STACK: Symbol Table Stack: {self.symbol_table.scopes}\n\n\n")
-        print(f"Before setting: {self.symbol_table.get(node.name)}")  # Print the value before setting it
         if self.symbol_table.get(node.name):
             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' already declared"))
         else:
             self.symbol_table.set(node.name, node.datatype)
-        print(f"After setting: {self.symbol_table.get(node.name)}")  # Print the value after setting it
         self.symbol_table.push()  # Enter new scope for function body
         self.visit_children(node)
         self.symbol_table.pop()  # Exit function scope
@@ -1982,16 +1988,19 @@ def semantic_run(tokens):
     visitor = MyASTVisitor(symbol_table)
     parser = Parser(tokens)
     ast, errors = parser.build_ast()
-    ast.print_tree()
-    if errors:
-        return None, errors
+
+    # check if there is curse domain node in the ast
+    if not any(isinstance(node, CurseDomainNode) for node in ast.children):
+        errors.insert(0, DomainError(parser.current_token.pos_start, parser.current_token.pos_end, "Curse domain function is not defined"))
+
     if ast:
         ast.print_tree()
-        visitor.visit(ast)
+        visitor.visit(ast)    
     else:
         print("No AST built")
         return "No AST built", None
     if visitor.errors:
-        return None, visitor.errors
+        errors.extend(visitor.errors)
+        return None, errors
     
     return ast, errors
