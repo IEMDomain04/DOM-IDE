@@ -325,9 +325,6 @@ class CurseDecNode(ASTNode): # for functions
             self.add_child(param)
         self.add_child(body)
 
-    def __repr__(self):
-        return f"{self.datatype} {self.name}({self.parameters}) {self.body}"
-
 class CurseDomainNode(ASTNode): # for function domain
     def __init__(self, body, pos_start=None, pos_end=None):
         super().__init__("Main Curse", pos_start, pos_end)
@@ -564,7 +561,6 @@ class ASTVisitor:
         self.visit_children(node)
 
     def visit_node(self, node, parent):
-        # This method can be overridden to perform specific actions on each node
         pass
 
     def visit_children(self, node):
@@ -700,10 +696,13 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_CurseDecNode(self, node, parent):
         print(f"Visiting CurseDecNode with name: {node.name}")
+        print(f"\n\n\nYOUR CURSE NAME: {node.name}\n\n\n AND THE CURRENT STACK: Symbol Table Stack: {self.symbol_table.scopes}\n\n\n")
+        print(f"Before setting: {self.symbol_table.get(node.name)}")  # Print the value before setting it
         if self.symbol_table.get(node.name):
             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' already declared"))
         else:
             self.symbol_table.set(node.name, node.datatype)
+        print(f"After setting: {self.symbol_table.get(node.name)}")  # Print the value after setting it
         self.symbol_table.push()  # Enter new scope for function body
         self.visit_children(node)
         self.symbol_table.pop()  # Exit function scope
@@ -711,6 +710,10 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_CurseDomainNode(self, node, parent):
         print(f"Visiting CurseDomainNode")
+        if self.symbol_table.get("domain"):
+            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Multiple 'domain' declarations are not allowed"))
+        else:
+            self.symbol_table.set("domain", "CurseDomain")
         self.symbol_table.push()  # Enter new scope for domain body
         self.visit_children(node)
         self.symbol_table.pop()  # Exit domain scope
@@ -845,26 +848,44 @@ class MyASTVisitor(ASTVisitor):
         self.visit_children(node)
         print(f"Exiting CycleConditionNode")
 
+
+###################
+# Symbol Table Class
+###################
+
 class SymbolTable:
     def __init__(self):
         self.scopes = [{}]  # Start with a global scope
 
     def push(self):
+        print(f"New Symbol Stack: {self.scopes}")
         self.scopes.append({})  # Enter a new scope
 
     def pop(self):
+        print(f"Popping scope: {self.scopes[-1]}")
         self.scopes.pop()  # Exit the current scope
 
     def get(self, name):
         # Search from innermost to outermost scope
         for scope in reversed(self.scopes):
             if name in scope:
+                return name
+        print(f"Name '{name}' not found in any scope")
+        return None
+    
+    def get_type(self, name):
+        # Search from innermost to outermost scope
+        for scope in reversed(self.scopes):
+            if name in scope:
+                print(f"Found name '{name}' in scope {scope}")
                 return scope[name]
+        print(f"Name '{name}' not found in any scope")
         return None
 
     def set(self, name, value):
         # Set in the current (innermost) scope
         self.scopes[-1][name] = value
+        print(f"Set {name} to {value} in scope {self.scopes[-1]}")
 
 
 ###################
@@ -1891,6 +1912,7 @@ class Parser:
                         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: ',' or ')'")
                     if self.current_token.type == ',':
                         self.advance()
+                pos_end = self.current_token.pos_end
                 self.advance() # move past the closing ')'
 
                 if self.current_token.type != '{':
@@ -1899,18 +1921,20 @@ class Parser:
                     self.advance()
                     body, error = self.parseBody()
                     if error: return None, error
-                    return CurseDecNode(None, name, parameters, body, pos_start, self.current_token.pos_end), None
+                    return CurseDecNode(None, name, parameters, body, pos_start, pos_end), None
             elif self.current_token.type == 'domain':
+                pos_start = self.current_token.pos_start
                 self.advance()
                 if self.current_token.type == '(':
                     self.advance()
                     if self.current_token.type == ')':
+                        pos_end = self.current_token.pos_end
                         self.advance()
                         if self.current_token.type == '{':
                             self.advance()
                             body, error = self.parseBody()
                             if error: return None, error
-                            return CurseDomainNode(body, pos_start, self.current_token.pos_end), None
+                            return CurseDomainNode(body, pos_start, pos_end), None
         elif self.current_token.type == 'restrict':
             self.advance()
             if self.current_token.type not in ['int', 'float', 'string', 'bool']: 
