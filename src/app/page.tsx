@@ -2,7 +2,7 @@
 
 import Topnav from "./components/Topnav";
 import CodeEditor from "./components/CodeEditor";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { handleTokenizerClick } from "./lexical/lexical";
 import Terminal from "./components/Terminal";
 import { handleSyntaxClick } from "./syntax/syntax";
@@ -18,6 +18,7 @@ export default function Lexeme() {
   const [terminalOutput, setTerminalOutput] = useState<string>(''); // State for terminal output
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [code, setCode] = useState<string>(`expansion;
+    
 
 curse domain(){
   invoke("Hello, World!");
@@ -50,11 +51,42 @@ curse domain(){
     handleTokenizerClick(code, setOutputData, setTerminalOutput);
   };
 
+  // Here yung Resizable sht para umangat terminal potaaaaa.
+  const [height, setHeight] = useState(700); // Initial height of the div
+  const divRef = useRef<HTMLDivElement>(null); // Use the appropriate type for divRef
+  const dragRef = useRef<number | null>(null); // Explicitly typing dragRef to accept a number or null
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    dragRef.current = e.clientY; // Assign clientY to dragRef.current
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (dragRef.current !== null) { // Ensure dragRef is not null
+      const deltaY = e.clientY - dragRef.current;
+      setHeight((prevHeight) => Math.max(100, prevHeight + deltaY)); // Prevent shrinking too small
+      dragRef.current = e.clientY;
+    }
+  };
+
+  const handleMouseUp = () => {
+    dragRef.current = null; // Reset dragRef to null after mouse up
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  };
+
   return (
     <section className={`flex w-screen h-screen ${isDarkMode ? 'dark' : ''}`} style={{ backgroundImage: `url(${isDarkMode ? '/bg-dark.png' : '/bg-light.png'})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat' }}>
-      {/*Left Side: Topnav, Textarea, and Terminal */}
+      
+      
       <div className="flex flex-col w-full h-screen">
-        <div className="relative select-auto w-auto max-h-[38rem] min-h-[10rem] box-border flex-shrink-0 resize-y overflow-hidden">
+        <div
+          ref={divRef}
+          className="relative w-auto max-h-[38rem] min-h-[10rem] box-border flex-shrink-0 overflow-hidden"
+          style={{ height: `${height}px` }}
+        >
           <Topnav
             onRunClick={handleRunClick}
             onTokenizerClick={Tokenizer}
@@ -63,8 +95,17 @@ curse domain(){
             toggleDarkMode={toggleDarkMode}
             isDarkMode={isDarkMode}
           />
+
           <CodeEditor value={code} onChange={setCode} isDarkMode={isDarkMode} />
+
+          {/* Resizable handle */}
+          <div
+            className="absolute bottom-0 left-0 w-full h-[10px] cursor-row-resize bg-dark-background"
+            onMouseDown={handleMouseDown}
+          />
         </div>
+
+
 
         {terminalOutput.length > 0 && (
           <Terminal terminalOutput={terminalOutput} isDarkMode={isDarkMode} />
