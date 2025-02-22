@@ -4,15 +4,16 @@ import React from "react";
 import dynamic from "next/dynamic";
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 import CustomTheme from "./CustomTheme";
-import { editor } from 'monaco-editor';
+import * as monaco from 'monaco-editor';
 
 interface CodeEditorProps {
-  value: string;
-  onChange: (value: string) => void;
-  isDarkMode: boolean;
+  value?: string;
+  onChange?: (value: string) => void;
+  isDarkMode?: boolean;
+  onMount?: (editor: monaco.editor.IStandaloneCodeEditor) => void;
 }
 
-const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, isDarkMode }) => {
+const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, isDarkMode, onMount }) => {
   return (
     <main>
       <CustomTheme />
@@ -22,7 +23,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, isDarkMode }) 
         theme="customTheme"
         defaultLanguage="customLang"
         value={value}
-        onChange={(newValue) => onChange(newValue || "")}
+        onChange={(newValue) => onChange && onChange(newValue || "")}
+        onMount={(editor) => onMount && onMount(editor)}
       />
     </main>
   );
