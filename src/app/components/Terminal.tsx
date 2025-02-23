@@ -24,7 +24,7 @@ const Terminal: React.FC<TerminalProps> = ({ terminalOutput, isDarkMode }) => {
       <div
         className={`px-4 py-2 text-sm font-mono flex-1 overflow-y-auto`}
       >
-        <pre className="pb-44">{terminalOutput}</pre>
+        <pre className={`pb-44 ${isDarkMode ? 'text-white' : 'text-black'}`}>{terminalOutput}</pre>
       </div>
     </div>
 </main>

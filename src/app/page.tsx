@@ -129,7 +129,7 @@ curse domain(){
             </tbody>
           </table>
           <button onClick={() => setOutputData([])} className="fixed right-5 bottom-0 mb-4 ml-4 w-12 h-12 bg-purple-300/10 text-white rounded-full shadow-lg flex items-center justify-center">
-            <Image src="/eye.svg" alt="Hide Table" className="w-6 h-6" style={{ filter: 'invert(1)' }} />
+            <Image src="/eye.svg" alt="Hide Table" width={24} height={24} style={{ filter: 'invert(1)' }} />
           </button>
         </div>
       )}

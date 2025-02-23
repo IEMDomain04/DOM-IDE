@@ -711,9 +711,14 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_ClanIndexAssignNode(self, node, parent):
         print(f"Visiting ClanIndexAssignNode with name: {node.name}")
-        symbol = self.symbol_table.get(node.name)
-        if symbol is None:
+        symbol_type = self.symbol_table.get_type(node.name)
+        if symbol_type is None:
             self.unresolved.append((node, parent))
+        else:
+            for value in node.values:
+                value_type = self.infer_type(value)
+                if symbol_type != value_type:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{symbol_type}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting ClanIndexAssignNode")
 
