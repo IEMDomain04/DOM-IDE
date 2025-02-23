@@ -8,7 +8,7 @@ interface TerminalProps {
 const Terminal: React.FC<TerminalProps> = ({ terminalOutput, isDarkMode }) => {
   return (
     <main>
-  {terminalOutput && (
+
     <div
       className="w-full h-screen flex flex-col overflow-hidden"
       style={{ borderRight: '2px solid #131314' }}
@@ -27,7 +27,6 @@ const Terminal: React.FC<TerminalProps> = ({ terminalOutput, isDarkMode }) => {
         <pre className="pb-44">{terminalOutput}</pre>
       </div>
     </div>
-  )}
 </main>
 
   );

@@ -12,14 +12,14 @@ from semantic import semantic_run
 
 CFG = {
     "<program>": [              
-        ["expansion", ";", "<global_dec>"] ########### 1 
+        ["expansion", ";", "<program_tail>"] ########### 1 
     ],
-    "<global_dec>": [           
-        ["<global_type_dec>", "<global_dec>"],
+    "<program_tail>": [           
+        ["<global>", "<program_tail>"],
         []
     ],
     
-    "<global_type_dec>": [
+    "<global>": [
         ["<datatype>", "<curse_or_var>"], ########### 
         ["curse", "<init_void_curse>"], ###########
         ["restrict", "<datatype>", "id", "<type_choice>"], ###########
@@ -163,7 +163,7 @@ CFG = {
     ],
 
     "<statement>": [
-        ["<local_dec>"],                ###########
+        ["<local>"],                ###########
         ["id", "<id_call>", ";"],            ###########
         ["invoke", "(", "<arguments>", ")", ";"], ###########
         ["cleave", "(", "<arguments>", ")", ";"],    ###########
@@ -177,7 +177,7 @@ CFG = {
 
     ],
 
-    "<local_dec>": [
+    "<local>": [
         ["<datatype>", "<curse_or_var>"], ###########
         ["curse", "<local_void_curse>"], ###########
     ],
@@ -299,7 +299,7 @@ CFG = {
     ],
 
     "<con_loop_body>": [
-        ["<local_dec>", "<con_loop_body>"],                            ########### 0
+        ["<local>", "<con_loop_body>"],                            ########### 0
         ["id", "<id_call>", ";", "<con_loop_body>"],                   ########### 1
         ["invoke", "(", "<arguments>", ")", ";", "<con_loop_body>"],   ########### 2
         ["cleave", "(", "<arguments>", ")", ";", "<con_loop_body>"],   ########### 3
@@ -438,23 +438,23 @@ PREDICT_SET = {
         "expansion": ["<program>", 0]
     },
 
-    "<global_dec>": { ############# verified
-        "int": ["<global_dec>", 0],
-        "float": ["<global_dec>", 0],
-        "string": ["<global_dec>", 0],
-        "bool": ["<global_dec>", 0],    
-        "curse": ["<global_dec>",0],
-        "restrict": ["<global_dec>", 0],
-        "Ø": ["<global_dec>", 1]
+    "<program_tail>": { ############# verified
+        "int": ["<program_tail>", 0],
+        "float": ["<program_tail>", 0],
+        "string": ["<program_tail>", 0],
+        "bool": ["<program_tail>", 0],    
+        "curse": ["<program_tail>",0],
+        "restrict": ["<program_tail>", 0],
+        "Ø": ["<program_tail>", 1]
     }, 
 
-    "<global_type_dec>": { ############# verified
-        "int": ["<global_type_dec>", 0],
-        "float": ["<global_type_dec>", 0],
-        "string": ["<global_type_dec>", 0],
-        "bool": ["<global_type_dec>", 0],
-        "curse": ["<global_type_dec>", 1],
-        "restrict": ["<global_type_dec>", 2]
+    "<global>": { ############# verified
+        "int": ["<global>", 0],
+        "float": ["<global>", 0],
+        "string": ["<global>", 0],
+        "bool": ["<global>", 0],
+        "curse": ["<global>", 1],
+        "restrict": ["<global>", 2]
     },
 
     "<curse_or_var>": { ############# verified
@@ -799,12 +799,12 @@ PREDICT_SET = {
         "Ø": ["<statement>", 10]
     },
 
-    "<local_dec>": { ############# verified
-        "int": ["<local_dec>", 0],
-        "float": ["<local_dec>", 0],
-        "string": ["<local_dec>", 0],
-        "bool": ["<local_dec>", 0],
-        "curse": ["<local_dec>", 1]
+    "<local>": { ############# verified
+        "int": ["<local>", 0],
+        "float": ["<local>", 0],
+        "string": ["<local>", 0],
+        "bool": ["<local>", 0],
+        "curse": ["<local>", 1]
     },
 
     "<local_void_curse>": { ############# verified

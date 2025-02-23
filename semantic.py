@@ -1554,8 +1554,10 @@ class Parser:
                             declarations.append(VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end))
                         elif self.current_token.type == ';':
                             declarations.append(VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end))
-
                     return declarations, None
+                
+                elif self.current_token.type == ';':
+                    return VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end), None
                 
         elif self.current_token.type == 'curse':
             self.advance()

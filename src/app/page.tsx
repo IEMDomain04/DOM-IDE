@@ -84,7 +84,7 @@ curse domain(){
       <div className="flex flex-col w-full h-screen">
         <div
           ref={divRef}
-          className="relative w-auto max-h-[38rem] min-h-[10rem] box-border flex-shrink-0 overflow-auto"
+          className="relative w-auto max-h-[38rem] min-h-[10rem] box-border flex-shrink-0 overflow-hidden"
           style={{ height: `${height}px` }}
         >
           <Topnav
@@ -95,7 +95,7 @@ curse domain(){
             toggleDarkMode={toggleDarkMode}
             isDarkMode={isDarkMode}
           />
-
+    
           <CodeEditor value={code} onChange={setCode} isDarkMode={isDarkMode} />
 
           {/* Resizable handle */}
@@ -105,16 +105,13 @@ curse domain(){
           />
         </div>
 
-
-
-        {terminalOutput.length > 0 && (
           <Terminal terminalOutput={terminalOutput} isDarkMode={isDarkMode} />
-        )}
+
       </div>
 
       {/* Output Table for Lexeme, Tokens */}
       {outputData.length > 0 && (
-        <div className="flex flex-col w-3/12 overflow-auto pt-12" style={{ maxHeight: '100vh', position: 'absolute', right: 0 }}>
+        <div className="flex flex-col w-3/12 overflow-auto pt-12" style={{ maxHeight: '100vh', position: 'absolute', right: 0, zIndex: 10 }}>
           <table className={`min-w-full table-fixed ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
             <thead className={`${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`} style={{ position: 'sticky', top: 0, zIndex: 1 }}>
               <tr>
