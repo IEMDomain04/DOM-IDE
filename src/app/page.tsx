@@ -104,7 +104,7 @@ curse domain(){
         </div>
 
         {terminalOutput.length > 0 && (
-          <Terminal terminalOutput={terminalOutput} isDarkMode={isDarkMode} />
+          <Terminal terminalOutput={terminalOutput} isDarkMode={isDarkMode} />)}
 
       </div>
       
