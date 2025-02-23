@@ -581,6 +581,7 @@ class MyASTVisitor(ASTVisitor):
     def __init__(self, symbol_table):
         self.symbol_table = symbol_table
         self.errors = []
+        self.unresolved = []
 
     def visit_NumNode(self, node, parent):
         print(f"Visiting NumNode with value: {node.value}")
@@ -636,6 +637,8 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting IdNode with name: {node.name}")
         if isinstance(parent, (CurseDecNode, CurseDomainNode)):
             print(f"IdNode '{node.name}' is a parameter of a curse declaration")
+        if not self.symbol_table.get(node.name):
+            self.unresolved.append((node, parent))
         print(f"Exiting IdNode")
 
     def visit_VarDecNode(self, node, parent):
@@ -651,7 +654,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting VarAssignNode with name: {node.name}")
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
-            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined variable '{node.name}'"))
+            self.unresolved.append((node, parent))
         self.visit_children(node)
         print(f"Exiting VarAssignNode")
 
@@ -683,7 +686,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting ClanAccessNode with name: {node.name}")
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
-            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined clan '{node.name}'"))
+            self.unresolved.append((node, parent))
         self.visit_children(node)
         print(f"Exiting ClanAccessNode")
 
@@ -691,7 +694,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting ClanIndexAssignNode with name: {node.name}")
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
-            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined clan '{node.name}'"))
+            self.unresolved.append((node, parent))
         self.visit_children(node)
         print(f"Exiting ClanIndexAssignNode")
 
@@ -699,7 +702,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting ClanAssignNode with name: {node.name}")
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
-            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined clan '{node.name}'"))
+            self.unresolved.append((node, parent))
         self.visit_children(node)
         print(f"Exiting ClanAssignNode")
 
@@ -750,7 +753,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting CurseCallNode with name: {node.name}")
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
-            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse '{node.name}'"))
+            self.unresolved.append((node, parent))
         self.visit_children(node)
         print(f"Exiting CurseCallNode")
 
@@ -854,6 +857,18 @@ class MyASTVisitor(ASTVisitor):
         self.visit_children(node)
         print(f"Exiting CycleConditionNode")
 
+    def resolve_unresolved(self):
+        for node, parent in self.unresolved:
+            if isinstance(node, VarAssignNode):
+                if not self.symbol_table.get(node.name):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined variable '{node.name}'"))
+            elif isinstance(node, ClanAccessNode):
+                if not self.symbol_table.get(node.name):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined clan '{node.name}'"))
+            elif isinstance(node, CurseCallNode):
+                if not self.symbol_table.get(node.name):
+                    print(f"Appending Error: {node.name}")
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse '{node.name}'"))
 
 ###################
 # Symbol Table Class
@@ -892,7 +907,6 @@ class SymbolTable:
         # Set in the current (innermost) scope
         self.scopes[-1][name] = value
         print(f"Set {name} to {value} in scope {self.scopes[-1]}")
-
 
 ###################
 # Parser Class
@@ -1294,13 +1308,14 @@ class Parser:
                         return VarDecNode(None, datatype, name, value, pos_start, self.current_token.pos_end), None
                     elif self.current_token.type == 'id' and self.peek().type == '[':
                         clan_id = self.current_token.value
+                        pos_start = self.current_token.pos_start
                         self.advance()
                         self.advance()
                         if self.current_token.type not in ['int_literal', 'float_literal', 'id']:
                             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, or identifier")
                         index = self.parseExpr()
-                        index_node = ClanIndexNode(index)
-                        value = ClanAccessNode(clan_id, index_node)
+                        index_node = ClanIndexNode(index, self.current_token.pos_start, self.current_token.pos_end)
+                        value = ClanAccessNode(clan_id, index_node, pos_start, self.current_token.pos_end)
                         if self.peek() == ',':
                             declarations = [VarDecNode(None, datatype, name, value, pos_start, self.current_token.pos_end)]
                             while self.current_token.type == ',':
@@ -1527,6 +1542,7 @@ class Parser:
                     declarations = [VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end)]
 
                     while self.current_token.type == ',':
+                        pos_start = self.current_token.pos_start
                         self.advance()
                         if self.current_token.type != 'id':
                             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier")
@@ -1997,10 +2013,12 @@ def semantic_run(tokens):
 
     if ast:
         ast.print_tree()
-        visitor.visit(ast)    
+        visitor.visit(ast)
+        visitor.resolve_unresolved()  
     else:
         print("No AST built")
         return "No AST built", None
+    
     if visitor.errors:
         errors.extend(visitor.errors)
         return None, errors
