@@ -1330,9 +1330,8 @@ class Lexer:
                     ident_state += 1
                     pos_end = self.pos.copy()
                     self.advance()
-
+                
                 ident_lower = ident_str.lower()
-                pos_end = self.pos.copy()
 
                 if ident_lower in keywords:
                     errors.append(LexicalError(pos_start, pos_end, f"Keyword '{ident_str}' cannot be used as identifier regardless of letter-casing"))
@@ -1349,7 +1348,7 @@ class Lexer:
                     errors.append(LexicalError(pos_start, pos_end, "Identifier exceeded maximum character limit of 25"))
                     continue
                 else:
-                    tokens.append(Token(TT_IDENTIFIER, ident_str, pos_start=pos_start, pos_end=self.pos.copy()))
+                    tokens.append(Token(TT_IDENTIFIER, ident_str, pos_start=pos_start, pos_end=pos_end))
                     ident_num += 1
                     ident_state = 240
                     continue
@@ -2140,8 +2139,8 @@ class Lexer:
         
     def make_string(self):
         id_str = ''
-        pos_start = self.pos.copy()
         self.advance()
+        pos_start = self.pos.copy()
 
         while self.current_char is not None and self.current_char in ASCII + ' \t':
             pos_end = self.pos.copy()
