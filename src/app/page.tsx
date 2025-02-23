@@ -103,8 +103,7 @@ curse domain(){
           <div className="absolute bottom-0 left-0 w-full h-[10px] cursor-row-resize bg-dark-background" onMouseDown={handleMouseDown} />
         </div>
 
-        {terminalOutput.length > 0 && (
-          <Terminal terminalOutput={terminalOutput} isDarkMode={isDarkMode} />)}
+          <Terminal terminalOutput={terminalOutput} isDarkMode={isDarkMode} />
 
       </div>
       
