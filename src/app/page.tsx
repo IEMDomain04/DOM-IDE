@@ -1,12 +1,13 @@
 'use client';
 
+import React, { useState, useRef } from "react";
 import Topnav from "./components/Topnav";
 import CodeEditor from "./components/CodeEditor";
-import React, { useState, useRef } from "react";
 import { handleTokenizerClick } from "./lexical/lexical";
-import Terminal from "./components/Terminal";
 import { handleSyntaxClick } from "./syntax/syntax";
 import { handleSemanticClick } from "./semantic/semantic";
+import Terminal from "./components/Terminal";
+import * as monaco from 'monaco-editor';
 
 interface Token {
   lexeme: string;
@@ -19,10 +20,10 @@ export default function Lexeme() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [code, setCode] = useState<string>(`expansion;
     
-
 curse domain(){
   invoke("Hello, World!");
 }`);
+  const codeEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -33,7 +34,10 @@ curse domain(){
     }
   };
 
-  // Function to handle the run button click
+  const handleEditorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
+    codeEditorRef.current = editor;
+  };
+
   const handleRunClick = async () => {
     setOutputData([]);
     setTerminalOutput("\n============= COMPILER COMING SOON ==============");
@@ -44,43 +48,40 @@ curse domain(){
   };
 
   const SemanticAnalyzer = async () => {
-    handleSemanticClick(code, setTerminalOutput)
+    handleSemanticClick(code, setTerminalOutput);
   };
 
   const Tokenizer = async () => {
     handleTokenizerClick(code, setOutputData, setTerminalOutput);
   };
 
-  // Here yung Resizable sht para umangat terminal potaaaaa.
   const [height, setHeight] = useState(700); // Initial height of the div
-  const divRef = useRef<HTMLDivElement>(null); // Use the appropriate type for divRef
-  const dragRef = useRef<number | null>(null); // Explicitly typing dragRef to accept a number or null
+  const divRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<number | null>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
-    dragRef.current = e.clientY; // Assign clientY to dragRef.current
+    dragRef.current = e.clientY;
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (dragRef.current !== null) { // Ensure dragRef is not null
+    if (dragRef.current !== null) {
       const deltaY = e.clientY - dragRef.current;
-      setHeight((prevHeight) => Math.max(100, prevHeight + deltaY)); // Prevent shrinking too small
+      setHeight((prevHeight) => Math.max(100, prevHeight + deltaY));
       dragRef.current = e.clientY;
     }
   };
 
   const handleMouseUp = () => {
-    dragRef.current = null; // Reset dragRef to null after mouse up
+    dragRef.current = null;
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
   };
 
   return (
     <section className={`flex w-screen h-screen ${isDarkMode ? 'dark' : ''}`} style={{ backgroundImage: `url(${isDarkMode ? '/bg-dark.png' : '/bg-light.png'})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat' }}>
-      
-      
       <div className="flex flex-col w-full h-screen">
         <div
           ref={divRef}
@@ -94,22 +95,19 @@ curse domain(){
             onSemanticClick={SemanticAnalyzer}
             toggleDarkMode={toggleDarkMode}
             isDarkMode={isDarkMode}
+            codeEditorRef={codeEditorRef}
           />
-    
-          <CodeEditor value={code} onChange={setCode} isDarkMode={isDarkMode} />
 
-          {/* Resizable handle */}
-          <div
-            className="absolute bottom-0 left-0 w-full h-[10px] cursor-row-resize bg-dark-background"
-            onMouseDown={handleMouseDown}
-          />
+          <CodeEditor value={code} onChange={setCode} isDarkMode={isDarkMode} onMount={handleEditorDidMount} />
+
+          <div className="absolute bottom-0 left-0 w-full h-[10px] cursor-row-resize bg-dark-background" onMouseDown={handleMouseDown} />
         </div>
 
+        {terminalOutput.length > 0 && (
           <Terminal terminalOutput={terminalOutput} isDarkMode={isDarkMode} />
 
       </div>
-
-      {/* Output Table for Lexeme, Tokens */}
+      
       {outputData.length > 0 && (
         <div className="flex flex-col w-3/12 overflow-auto pt-12" style={{ maxHeight: '100vh', position: 'absolute', right: 0, zIndex: 10 }}>
           <table className={`min-w-full table-fixed ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
