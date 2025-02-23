@@ -9,11 +9,10 @@ import * as monaco from 'monaco-editor';
 interface CodeEditorProps {
   value?: string;
   onChange?: (value: string) => void;
-  isDarkMode?: boolean;
   onMount?: (editor: monaco.editor.IStandaloneCodeEditor) => void;
 }
 
-const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, isDarkMode, onMount }) => {
+const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, onMount }) => {
   return (
     <main>
       <CustomTheme />

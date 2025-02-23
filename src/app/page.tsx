@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from "react";
+import Image from "next/image";
 import Topnav from "./components/Topnav";
 import CodeEditor from "./components/CodeEditor";
 import { handleTokenizerClick } from "./lexical/lexical";
@@ -98,7 +99,7 @@ curse domain(){
             codeEditorRef={codeEditorRef}
           />
 
-          <CodeEditor value={code} onChange={setCode} isDarkMode={isDarkMode} onMount={handleEditorDidMount} />
+          <CodeEditor value={code} onChange={setCode} onMount={handleEditorDidMount} />
 
           <div className="absolute bottom-0 left-0 w-full h-[10px] cursor-row-resize bg-dark-background" onMouseDown={handleMouseDown} />
         </div>
@@ -128,7 +129,7 @@ curse domain(){
             </tbody>
           </table>
           <button onClick={() => setOutputData([])} className="fixed right-5 bottom-0 mb-4 ml-4 w-12 h-12 bg-purple-300/10 text-white rounded-full shadow-lg flex items-center justify-center">
-            <img src="/eye.svg" alt="Hide Table" className="w-6 h-6" style={{ filter: 'invert(1)' }} />
+            <Image src="/eye.svg" alt="Hide Table" className="w-6 h-6" style={{ filter: 'invert(1)' }} />
           </button>
         </div>
       )}
