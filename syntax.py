@@ -94,7 +94,9 @@ CFG = {
     ],
 
     "<clan_literal>": [
-        ["{", "<clan_item>", "}"]               ########### 50
+        ["{", "<clan_item>", "}"],               ########### 50
+        ["dismantle", "(", "<arguments>", ")"],
+        ["cleave", "(", "<arguments>", ")"]
     ],
 
     "<clan_item>": [
@@ -135,8 +137,8 @@ CFG = {
         ["id", "<curse_or_clan>"],
         ["<invoke>", "(","<arguments>",")"],
         ["<capture>", "(", "<id>", ")"],
-        ["<cleave>", "(", "<arguments>", ")"],
-        ["<dismantle>", "(", "<arguments>", ")"],
+        ["cleave", "(", "<arguments>", ")"],
+        ["dismantle", "(", "<arguments>", ")"],
         ["len", "(", "<arguments>", ")"],
     ],
 
@@ -314,53 +316,6 @@ CFG = {
         []
     ], 
 
-    "<string_concat>": [
-        ["string_literal", "+", "<string_concat>"], ########### 224
-        ["string_literal"]                          ########### 225
-    ],
-
-    "<clan_access>": [
-        ["id", "[", "<index>", "<more_index>", "]"]     ########### 237
-    ],
-    "<string_access>": [
-        ["id", "[", "<index>", "]"]                 ########### 238
-    ],
-    "<index>": [
-        ["id"],                                     ########### 239
-        ["int_literal"]                             ########### 240
-    ],
-    "<more_index>": [
-        [",", "<index>"],                           ########### 241
-        []                                       ########### 242
-    ],
-    "<length>": [
-        ["len", "(", "id", ")", ";"],               ########### 243
-        ["len", "(", "<literal>", ")", ";"]         ########### 244    
-    ],  
-    "<cleave>": [
-        ["cleave", "(", "<cleave_string>", ",", "<starting_index>", ",", "<number_of_letters>", ")"]    ########### 245
-    ],
-    "<cleave_string>": [
-        ["id"]                                      ########### 246
-    ], 
-    "<starting_index>": [
-        ["int_literal"]                             ########### 247
-    ],
-    "<number_of_letters>": [
-        ["int_literal"]                             ########### 248
-    ],
-    "<dismantle>": [
-        ["dismantle", "(", "<dismantle_string>", ",", "<dismantle_delimeter>", ")"]   ########### 249
-    ],
-    "<dismantle_string>": [
-        ["id"],                                     ########### 250
-        ["string_literal"],                         ########### 251
-        ["<curse_call>"]                            ########### 252
-    ],
-    "<dismantle_delimeter>": [
-        ["string_literal"]                          ########### 253
-    ],
-
     "<literal>": [
         ["int_literal"],                            ########### 
         ["float_literal"],                          ########### 228
@@ -531,7 +486,9 @@ PREDICT_SET = {
     },
 
     "<clan_literal>": { ############# verified
-        "{": ["<clan_literal>", 0]
+        "{": ["<clan_literal>", 0],
+        "dismantle": ["<clan_literal>", 1],
+        "cleave": ["<clan_literal>", 2]
     },
 
     "<clan_item>": { ############# verified
@@ -541,6 +498,7 @@ PREDICT_SET = {
         "string_literal": ["<clan_item>", 0],
         "bool_literal": ["<clan_item>", 0],
         "float_literal": ["<clan_item>", 0],
+        "null_literal": ["<clan_item>", 0],
         "++": ["<clan_item>", 0],
         "--": ["<clan_item>", 0],
         "invoke": ["<clan_item>", 0],
@@ -566,6 +524,7 @@ PREDICT_SET = {
         "string_literal": ["<clan_multi_item>", 1],
         "bool_literal": ["<clan_multi_item>", 1],
         "float_literal": ["<clan_multi_item>", 1],
+        "null_literal": ["<clan_multi_item>", 1],
         "++": ["<clan_multi_item>", 1],
         "--": ["<clan_multi_item>", 1],
         "invoke": ["<clan_multi_item>", 1],
@@ -585,6 +544,7 @@ PREDICT_SET = {
         "string_literal": ["<expression>", 1],
         "bool_literal": ["<expression>", 1],
         "float_literal": ["<expression>", 1],
+        "null_literal": ["<expression>", 1],
         "++": ["<expression>", 1],
         "--": ["<expression>", 1],
         "invoke": ["<expression>", 1],
@@ -601,6 +561,7 @@ PREDICT_SET = {
         "id": ["<operand>", 1],
         "string_literal": ["<operand>", 1],
         "float_literal": ["<operand>", 1],
+        "null_literal": ["<operand>", 1],
         "bool_literal": ["<operand>", 1],
         "int_literal": ["<operand>", 1],
         "dismantle": ["<operand>", 1],
@@ -614,6 +575,7 @@ PREDICT_SET = {
     "<value>": { ############# verified
         "string_literal": ["<value>", 0],
         "float_literal": ["<value>", 0],
+        "null_literal": ["<value>", 0],
         "bool_literal": ["<value>", 0],
         "int_literal": ["<value>", 0],
         "id": ["<value>", 1],
@@ -636,6 +598,7 @@ PREDICT_SET = {
         "string_literal": ["<curse_or_clan>", 2],
         "bool_literal": ["<curse_or_clan>", 2],
         "float_literal": ["<curse_or_clan>", 2],
+        "null_literal": ["<curse_or_clan>", 2],
         "++": ["<curse_or_clan>", 2],
         "--": ["<curse_or_clan>", 2],
         "invoke": ["<curse_or_clan>", 2],
@@ -675,6 +638,7 @@ PREDICT_SET = {
         "string_literal": ["<more_clan>", 1],
         "bool_literal": ["<more_clan>", 1],
         "float_literal": ["<more_clan>", 1],
+        "null_literal": ["<more_clan>", 1],
         "++": ["<more_clan>", 1],
         "--": ["<more_clan>", 1],
         "invoke": ["<more_clan>", 1],
@@ -731,6 +695,7 @@ PREDICT_SET = {
         "string_literal": ["<more_logic>", 1],
         "bool_literal": ["<more_logic>", 1],
         "float_literal": ["<more_logic>", 1],
+        "null_literal": ["<more_logic>", 1],
         "++": ["<more_logic>", 1],
         "--": ["<more_logic>", 1],
         "invoke": ["<more_logic>", 1],
@@ -822,6 +787,7 @@ PREDICT_SET = {
         "string_literal": ["<recall_val>", 0],
         "bool_literal": ["<recall_val>", 0],
         "float_literal": ["<recall_val>", 0],
+        "null_literal": ["<recall_val>", 0],
         "++": ["<recall_val>", 0],
         "--": ["<recall_val>", 0],
         "invoke": ["<recall_val>", 0],
@@ -853,6 +819,7 @@ PREDICT_SET = {
         "string_literal": ["<arguments>", 0],
         "bool_literal": ["<arguments>", 0],
         "float_literal": ["<arguments>", 0],
+        "null_literal": ["<arguments>", 0],
         "++": ["<arguments>", 0],
         "--": ["<arguments>", 0],
         "invoke": ["<arguments>", 0],
@@ -970,6 +937,7 @@ PREDICT_SET = {
         "string_literal": ["<cycle_condition>", 0],
         "bool_literal": ["<cycle_condition>", 0],
         "float_literal": ["<cycle_condition>", 0],
+        "null_literal": ["<cycle_condition>", 0],
         "++": ["<cycle_condition>", 0],
         "--": ["<cycle_condition>", 0],
         "invoke": ["<cycle_condition>", 0],
@@ -1096,6 +1064,7 @@ PREDICT_SET = {
         "string_literal": ["<more_not_op>", 1],
         "bool_literal": ["<more_not_op>", 1],
         "float_literal": ["<more_not_op>", 1],
+        "null_literal": ["<more_not_op>", 1],
         "++": ["<more_not_op>", 1],
         "--": ["<more_not_op>", 1],
         "invoke": ["<more_not_op>", 1],
@@ -1131,6 +1100,7 @@ PREDICT_SET = {
         "string_literal": ["<post>", 2],
         "bool_literal": ["<post>", 2],
         "float_literal": ["<post>", 2],
+        "null_literal": ["<post>", 2],
         "invoke": ["<post>", 2],
         "capture": ["<post>", 2],
         "cleave": ["<post>", 2],
