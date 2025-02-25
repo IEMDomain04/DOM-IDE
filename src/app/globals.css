@@ -42,3 +42,17 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background-color: #555;
 }
+
+@media (max-width: 960px) { /* Adjust based on testing */
+  .responsive-container {
+    max-height: 20rem !important;
+  }
+}
+
+@media (min-width: 1000px) { /* Adjust based on testing */
+  .responsive-container {
+    max-height: 30rem !important;
+  }
+}
+
+
