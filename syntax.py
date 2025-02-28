@@ -1221,7 +1221,7 @@ class SyntaxAnalyzer:
 
         while stack:
             top = stack[-1]
-            print(f"1. New Stack: {stack}\n2. Current Token: {self.current_token.type}")  
+            #print(f"1. New Stack: {stack}\n2. Current Token: {self.current_token.type}")  
             if self.current_token is None or self.current_token.type == 'EOF':
                 self.current_token = type('Token', (object,), {
                     'type': 'Ø',
@@ -1233,7 +1233,7 @@ class SyntaxAnalyzer:
                 if top in PREDICT_SET and self.current_token.type in PREDICT_SET[top]:
                     production_key = PREDICT_SET[top][self.current_token.type]
                     production = CFG[production_key[0]][production_key[1]]
-                    print(f"3. Production found for {top}: {self.current_token.type}")  
+                    #print(f"3. Production found for {top}: {self.current_token.type}")  
                     stack.pop()
                     stack.extend(reversed(production))
                 else:
@@ -1242,7 +1242,7 @@ class SyntaxAnalyzer:
                     break
             else:
                 if top == self.current_token.type:
-                    print(f"3. Matched terminal {self.current_token.type}")  
+                    #print(f"3. Matched terminal {self.current_token.type}")  
                     stack.pop()
                     self.advance()
                 else:
@@ -1262,6 +1262,6 @@ def parse_run(tokens):
     error = syntax_analysis.syntax_analyzer()
 
     if error:
-        print(error)
+        #print(error)
         return "Failure from Syntax Analyzer", error.as_string()
     return "Successful from Syntax Analyzer", None

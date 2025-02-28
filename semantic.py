@@ -352,12 +352,6 @@ class ParamNode(ASTNode): # for function parameters
         self.add_child(DatatypeNode(datatype, pos_start, pos_end))
         self.add_child(IdNode(name, pos_start, pos_end))
 
-class ArgNode(ASTNode): # for function arguments
-    def __init__(self, value, pos_start=None, pos_end=None):
-        super().__init__("Argument", pos_start, pos_end)
-        self.value = value
-        self.add_child(value)
-
 class BodyNode(ASTNode): # for body of functions and vows and boogies and cycles and sustains and perform-sustains
     def __init__(self, pos_start=None, pos_end=None):
         super().__init__("Body", pos_start, pos_end)
@@ -582,7 +576,8 @@ class MyASTVisitor(ASTVisitor):
     def __init__(self, symbol_table):
         self.symbol_table = symbol_table
         self.errors = []
-        self.unresolved = []
+        self.unresolved_set = set()  # Set to keep track of unresolved nodes
+
 
     def visit_NumNode(self, node, parent):
         print(f"Visiting NumNode with value: {node.value}")
@@ -639,7 +634,7 @@ class MyASTVisitor(ASTVisitor):
         if isinstance(parent, (CurseDecNode, CurseDomainNode)):
             print(f"IdNode '{node.name}' is a parameter of a curse declaration")
         if not self.symbol_table.get(node.name):
-            self.unresolved.append((node, parent))
+            self.unresolved_set.add((node, parent))
         print(f"Exiting IdNode")
 
     def visit_VarDecNode(self, node, parent):
@@ -647,11 +642,25 @@ class MyASTVisitor(ASTVisitor):
         if self.symbol_table.get(node.name):
             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' already declared"))
         else:
-            self.symbol_table.set(node.name, node.datatype)
+            self.symbol_table.set(node.name, node)  # Store the VarDecNode object itself
         if node.value:
-            value_type = self.infer_type(node.value)
-            if node.datatype != value_type:
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{node.datatype}', got '{value_type}'"))
+            if isinstance(node.value, CurseCallNode):
+                curse_node = self.symbol_table.get(node.value.name)
+                if curse_node is None:
+                    self.unresolved_set.add((node.value, node))
+                else:
+                    curse_node_obj = self.symbol_table.get(curse_node.name)
+                    if curse_node_obj:
+                        curse_node_obj_type = self.symbol_table.get_type(curse_node_obj.name)
+                        if curse_node_obj_type != node.datatype:
+                            if curse_node_obj_type is None:
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{node.datatype}' curse, got 'void' curse"))
+                            else:
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{node.datatype}' curse, got '{curse_node_obj_type}' curse"))
+            else:
+                value_type = self.infer_type(node.value)
+                if node.datatype != value_type:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{node.datatype}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting VarDecNode")
 
@@ -659,11 +668,14 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting VarAssignNode with name: {node.name}")
         symbol_type = self.symbol_table.get_type(node.name)
         if symbol_type is None:
-            self.unresolved.append((node, parent))
+            self.unresolved_set.add((node, parent))
         else:
-            value_type = self.infer_type(node.value)
-            if symbol_type != value_type:
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{symbol_type}', got '{value_type}'"))
+            if isinstance(node.value, CurseCallNode):
+                pass
+            else:
+                value_type = self.infer_type(node.value)
+                if symbol_type != value_type:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{symbol_type}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting VarAssignNode")
 
@@ -705,7 +717,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting ClanAccessNode with name: {node.name}")
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
-            self.unresolved.append((node, parent))
+            self.unresolved_set.add((node, parent))
         self.visit_children(node)
         print(f"Exiting ClanAccessNode")
 
@@ -713,7 +725,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting ClanIndexAssignNode with name: {node.name}")
         symbol_type = self.symbol_table.get_type(node.name)
         if symbol_type is None:
-            self.unresolved.append((node, parent))
+            self.unresolved_set.add((node, parent))
         else:
             for value in node.values:
                 value_type = self.infer_type(value)
@@ -726,7 +738,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting ClanAssignNode with name: {node.name}")
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
-            self.unresolved.append((node, parent))
+            self.unresolved_set.add((node, parent))
         self.visit_children(node)
         print(f"Exiting ClanAssignNode")
 
@@ -735,8 +747,10 @@ class MyASTVisitor(ASTVisitor):
         if self.symbol_table.get(node.name):
             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' already declared"))
         else:
-            self.symbol_table.set(node.name, node.datatype)
+            self.symbol_table.set(node.name, node)  # Store the CurseDecNode object itself
         self.symbol_table.push()  # Enter new scope for function body
+        for param in node.parameters:
+            self.symbol_table.set(param.name, param)  # Store the ParamNode object itself
         self.visit_children(node)
         self.symbol_table.pop()  # Exit function scope
         print(f"Exiting CurseDecNode")
@@ -754,17 +768,12 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_ParamNode(self, node, parent):
         print(f"Visiting ParamNode with name: {node.name}")
-        if self.symbol_table.get(node.name):
+        if parent is None and self.symbol_table.get(node.name):
             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Parameter '{node.name}' already declared"))
         else:
             self.symbol_table.set(node.name, node.datatype)
         self.visit_children(node)
         print(f"Exiting ParamNode")
-
-    def visit_ArgNode(self, node, parent):
-        print(f"Visiting ArgNode")
-        self.visit_children(node)
-        print(f"Exiting ArgNode")
 
     def visit_BodyNode(self, node, parent):
         print(f"Visiting BodyNode")
@@ -775,9 +784,20 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_CurseCallNode(self, node, parent):
         print(f"Visiting CurseCallNode with name: {node.name}")
-        symbol = self.symbol_table.get(node.name)
-        if symbol is None:
-            self.unresolved.append((node, parent))
+        curse_node = self.symbol_table.get(node.name)
+        if curse_node is None:
+            self.unresolved_set.add((node, parent))
+        else:
+            print(f"Type of curse_node: {type(curse_node)}")
+            if isinstance(curse_node, CurseDecNode):
+                if len(curse_node.parameters) != len(node.arguments):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected {len(curse_node.parameters)} arguments, got {len(node.arguments)}"))
+                else:
+                    for param, arg in zip(curse_node.parameters, node.arguments):
+                        param_type = param.datatype  # Use param.datatype directly
+                        arg_type = self.infer_type(arg)
+                        if param_type != arg_type:
+                            self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch: Expected '{param_type}', got '{arg_type}'"))
         self.visit_children(node)
         print(f"Exiting CurseCallNode")
 
@@ -882,11 +902,25 @@ class MyASTVisitor(ASTVisitor):
         print(f"Exiting CycleConditionNode")
 
     def resolve_unresolved(self):
-        for node, parent in self.unresolved:
+        for node, parent in self.unresolved_set:
             if isinstance(node, IdNode):
                 if not self.symbol_table.get(node.name):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared identifier '{node.name}'"))
-    
+            elif isinstance(node, CurseCallNode):
+                curse_node = self.symbol_table.get(node.name)
+                if not curse_node:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse '{node.name}'"))
+                else:
+                    if isinstance(curse_node, CurseDecNode):
+                        if len(curse_node.parameters) != len(node.arguments):
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected {len(curse_node.parameters)} arguments, got {len(node.arguments)}"))
+                        else:
+                            for param, arg in zip(curse_node.parameters, node.arguments):
+                                param_type = param.datatype
+                                arg_type = self.infer_type(arg)
+                                if param_type != arg_type:
+                                    self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch: Expected '{param_type}' type argument, got '{arg_type}'"))
+        
     def infer_type(self, node):
         if isinstance(node, NumNode):
             return 'int' if isinstance(node.value, int) else 'float'
@@ -910,7 +944,10 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(node, ClanAccessNode):
             return self.symbol_table.get_type(node.name)
         elif isinstance(node, CurseCallNode):
-            return 'unknown'  # Assuming function return types are not yet handled
+            curse_node = self.symbol_table.get(node.name)
+            if isinstance(curse_node, CurseDecNode):
+                return curse_node.datatype
+            return 'unknown'
         else:
             return 'unknown'
 
@@ -934,7 +971,7 @@ class SymbolTable:
         # Search from innermost to outermost scope
         for scope in reversed(self.scopes):
             if name in scope:
-                return name
+                return scope[name]  # Return the actual object stored
         print(f"Name '{name}' not found in any scope")
         return None
     
@@ -943,7 +980,7 @@ class SymbolTable:
         for scope in reversed(self.scopes):
             if name in scope:
                 print(f"Found name '{name}' in scope {scope}")
-                return scope[name]
+                return scope[name].datatype if hasattr(scope[name], 'datatype') else scope[name]
         print(f"Name '{name}' not found in any scope")
         return None
 
@@ -1618,6 +1655,39 @@ class Parser:
                 
                 elif self.current_token.type == ';':
                     return VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end), None
+            elif self.current_token.type == 'curse':
+                self.advance()
+                if self.current_token.type != 'id':
+                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier")
+                name = self.current_token.value
+                self.advance()
+                if self.current_token.type != '(':
+                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
+                self.advance()
+                parameters = []
+                while self.current_token.type != ')':
+                    pos_start = self.current_token.pos_start
+                    if self.current_token.type not in ['int', 'float', 'string', 'bool']:
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, string, bool")
+                    param_type = self.current_token.type
+                    self.advance()
+                    if self.current_token.type != 'id':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier")
+                    param_name = self.current_token.value
+                    self.advance()
+                    param_node = ParamNode(param_type, param_name, pos_start, self.current_token.pos_end)
+                    parameters.append(param_node)
+                    if self.current_token.type not in [',', ')']:
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ',' or ')'")
+                    if self.current_token.type == ',':
+                        self.advance()
+                self.advance()
+                if self.current_token.type != '{':
+                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: left brace for body")
+                self.advance()
+                body, error = self.parseBody()
+                if error: return None, error
+                return CurseDecNode(datatype, name, parameters, body, pos_start, self.current_token.pos_end), None
                 
         elif self.current_token.type == 'curse':
             self.advance()
@@ -1633,6 +1703,7 @@ class Parser:
                 self.advance()
                 parameters = []
                 while self.current_token.type != ')':
+                    pos_start = self.current_token.pos_start
                     if self.current_token.type not in ['int', 'float', 'string', 'bool']:
                         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: int, float, string, bool")
                     param_type = self.current_token.type
@@ -1643,7 +1714,7 @@ class Parser:
                     param_name = self.current_token.value
                     self.advance()
 
-                    param_node = ParamNode(param_type, param_name)
+                    param_node = ParamNode(param_type, param_name, pos_start, self.current_token.pos_end)
                     parameters.append(param_node)
                 
                     if self.current_token.type not in [',', ')']:
@@ -1873,44 +1944,56 @@ class Parser:
                         body.add_child(BoogieNode(None, cases))
                 elif self.current_token.type == 'cycle':
                     self.advance()
-                    if self.current_token.type == '(':
-                        self.advance()
-                        cycle_condition = self.parseCycleCondition()
-                        if self.current_token.type == ')':
-                            self.advance()
-                            if self.current_token.type == '{':
-                                self.advance()
-                                cycle_body, error = self.parseBody()
-                                self.advance() # advance past the closing brace
-                                body.add_child(CycleNode(cycle_condition, cycle_body)) 
+                    if self.current_token.type != '(':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
+                    self.advance()
+                    cycle_condition = self.parseCycleCondition()
+                    if self.current_token.type != ')':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+                    self.advance()
+                    if self.current_token.type != '{':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'")
+                    self.advance()
+                    cycle_body, error = self.parseBody()
+                    self.advance() # advance past the closing brace
+                    body.add_child(CycleNode(cycle_condition, cycle_body)) 
                 elif self.current_token.type == 'sustain':
                     self.advance()
-                    if self.current_token.type == '(':
-                        self.advance()
-                        condition = self.parseExpr()
-                        if self.current_token.type == ')':
-                            self.advance()
-                            if self.current_token.type == '{':
-                                self.advance()
-                                sustain_body, error = self.parseBody()
-                                self.advance() # advance past the closing brace
-                                body.add_child(SustainNode(condition, sustain_body))
+                    if self.current_token.type != '(':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
+                    self.advance()
+                    condition = self.parseExpr()
+                    if self.current_token.type != ')':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+                    self.advance()
+                    if self.current_token.type != '{':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'")
+                    self.advance()
+                    sustain_body, error = self.parseBody()
+                    self.advance() # advance past the closing brace
+                    body.add_child(SustainNode(condition, sustain_body))
                 elif self.current_token.type == 'perform':
                     self.advance()
-                    if self.current_token.type == '{':
-                        self.advance()
-                        perform_body, error = self.parseBody()
-                        self.advance() # advance past the closing brace
-                        if self.current_token.type == 'sustain':
-                            self.advance()
-                            if self.current_token.type == '(':
-                                self.advance()
-                                condition = self.parseExpr()
-                                if self.current_token.type == ')':
-                                    self.advance()
-                                    if self.current_token.type == ';':
-                                        self.advance()
-                                        body.add_child(PerformSustainNode(perform_body, condition))
+                    pos_start = self.current_token.pos_start
+                    if self.current_token.type != '{':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'")
+                    self.advance()
+                    perform_body, error = self.parseBody()
+                    self.advance() # advance past the closing brace
+                    if self.current_token.type != 'sustain':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: sustain")
+                    self.advance()
+                    if self.current_token.type != '(':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
+                    self.advance()
+                    condition = self.parseExpr()
+                    if self.current_token.type != ')':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+                    self.advance()
+                    if self.current_token.type != ';':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ';'")
+                    self.advance()
+                    body.add_child(PerformSustainNode(perform_body, condition, pos_start, self.current_token.pos_end))
                 else:
                     self.advance()
             except ParseError as e:
@@ -2067,5 +2150,6 @@ def semantic_run(tokens):
     if visitor.errors:
         errors.extend(visitor.errors)
         return None, errors
+    print(symbol_table.scopes)
     
     return ast, errors
