@@ -43,7 +43,7 @@ delim_map = {
     'comma_delim':      set(ALPHA_NUMERIC + '"' + "'" + '(' + '[' + '-' + ' ' + "\n" + "\t" + '#'),
     'comp_delim':       set(ALPHA_NUMERIC + '"' + "'" + '(' + '-' + ' ' + '!' + '#'),
     'default_delim':    {' ', ':', '\t', '#'},
-    'ex_delim':         {';', '#'},
+    'ex_delim':         {';', '#', '\n', '\t', ' '},
     'ident_delim':      {'+', '-', '*', '/', '%', '!', '=', '<', '>', '(', ')', ',', '[', ']', ' ', ';', '&', '|', '}', '#'},
     'incdec_delim':     set(ALPHA_NUMERIC + ')' + ' ' + ';' + '#' + ']'),
     'kword_delim':      {' ', '\t', '#'},

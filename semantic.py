@@ -577,7 +577,7 @@ class MyASTVisitor(ASTVisitor):
         self.symbol_table = symbol_table
         self.errors = []
         self.unresolved_set = set()  # Set to keep track of unresolved nodes
-
+        self.unresolved_assignments = []  # List to keep track of unresolved assignments
 
     def visit_NumNode(self, node, parent):
         print(f"Visiting NumNode with value: {node.value}")
@@ -643,39 +643,12 @@ class MyASTVisitor(ASTVisitor):
             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' already declared"))
         else:
             self.symbol_table.set(node.name, node)  # Store the VarDecNode object itself
-        if node.value:
-            if isinstance(node.value, CurseCallNode):
-                curse_node = self.symbol_table.get(node.value.name)
-                if curse_node is None:
-                    self.unresolved_set.add((node.value, node))
-                else:
-                    curse_node_obj = self.symbol_table.get(curse_node.name)
-                    if curse_node_obj:
-                        curse_node_obj_type = self.symbol_table.get_type(curse_node_obj.name)
-                        if curse_node_obj_type != node.datatype:
-                            if curse_node_obj_type is None:
-                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{node.datatype}' curse, got 'void' curse"))
-                            else:
-                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{node.datatype}' curse, got '{curse_node_obj_type}' curse"))
-            else:
-                value_type = self.infer_type(node.value)
-                if node.datatype != value_type:
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{node.datatype}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting VarDecNode")
 
     def visit_VarAssignNode(self, node, parent):
         print(f"Visiting VarAssignNode with name: {node.name}")
-        symbol_type = self.symbol_table.get_type(node.name)
-        if symbol_type is None:
-            self.unresolved_set.add((node, parent))
-        else:
-            if isinstance(node.value, CurseCallNode):
-                pass
-            else:
-                value_type = self.infer_type(node.value)
-                if symbol_type != value_type:
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{symbol_type}', got '{value_type}'"))
+        self.unresolved_assignments.append((node, parent))
         self.visit_children(node)
         print(f"Exiting VarAssignNode")
 
@@ -786,7 +759,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting CurseCallNode with name: {node.name}")
         curse_node = self.symbol_table.get(node.name)
         if curse_node is None:
-            self.unresolved_set.add((node, parent))
+            self.unresolved_assignments.append((node, parent))
         else:
             print(f"Type of curse_node: {type(curse_node)}")
             if isinstance(curse_node, CurseDecNode):
@@ -902,14 +875,34 @@ class MyASTVisitor(ASTVisitor):
         print(f"Exiting CycleConditionNode")
 
     def resolve_unresolved(self):
-        for node, parent in self.unresolved_set:
-            if isinstance(node, IdNode):
-                if not self.symbol_table.get(node.name):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared identifier '{node.name}'"))
+        print("Resolving unresolved references...")
+        for node, parent in self.unresolved_assignments:
+            if isinstance(node, VarAssignNode):
+                symbol_type = self.symbol_table.get_type(node.name)
+                if symbol_type is None:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable '{node.name}'"))
+                    break
+                else:
+                    if isinstance(node.value, CurseCallNode):
+                        curse_node = self.symbol_table.get(node.value.name)
+                        if curse_node is None:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse '{node.value.name}'"))
+                            break
+                        else:
+                            curse_return_type = curse_node.datatype
+                            if curse_return_type is None:
+                                curse_return_type = 'void'
+                            if symbol_type != curse_return_type:
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{symbol_type}' curse, got '{curse_return_type}' curse"))
+                    else:
+                        value_type = self.infer_type(node.value)
+                        if symbol_type != value_type:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{symbol_type}', got '{value_type}'"))
             elif isinstance(node, CurseCallNode):
                 curse_node = self.symbol_table.get(node.name)
-                if not curse_node:
+                if curse_node is None:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse '{node.name}'"))
+                    break
                 else:
                     if isinstance(curse_node, CurseDecNode):
                         if len(curse_node.parameters) != len(node.arguments):
@@ -920,7 +913,8 @@ class MyASTVisitor(ASTVisitor):
                                 arg_type = self.infer_type(arg)
                                 if param_type != arg_type:
                                     self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch: Expected '{param_type}' type argument, got '{arg_type}'"))
-        
+        print("Unresolved references resolved.")
+
     def infer_type(self, node):
         if isinstance(node, NumNode):
             return 'int' if isinstance(node.value, int) else 'float'
