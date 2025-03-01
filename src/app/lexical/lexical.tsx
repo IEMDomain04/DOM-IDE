@@ -68,7 +68,7 @@ export const handleTokenizerClick = async (
       cache.set(cacheKey, { tokens: [], errors: error.response.data.errors });
     } else {
       console.error('Error:', error);
-      setTerminalOutput('An unexpected error occurred.\nDetails: ' + error);
+      setTerminalOutput('An unexpected error occurred.\n' + error);
     }
   }
 };

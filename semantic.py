@@ -1799,7 +1799,6 @@ class Parser:
         body = BodyNode()
     
         while self.current_token.type != '}':
-            try:
                 if self.current_token.type in ['int', 'float', 'string', 'bool', 'curse', 'restrict']:
                     declarations, error = self.parseDeclaration()
                     if error: return None, error
@@ -1926,14 +1925,16 @@ class Parser:
                                 if self.current_token.type != ':':
                                     return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ':'")
                                 self.advance()
-                                case_body = self.parseWoogieBody()
+                                case_body, errors = self.parseWoogieBody()
+                                if errors: return None, errors
                                 cases.append(WoogieNode(case_expr, case_body))
                             elif self.current_token.type == 'default':
                                 self.advance()
                                 if self.current_token.type != ':':
                                     return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ':'")
                                 self.advance()
-                                default_body = self.parseWoogieBody()
+                                default_body, errors = self.parseWoogieBody()
+                                if errors: return None, errors
                                 cases.append(DefaultCaseNode(default_body))
                             else: return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: 'woogie' or 'default'")
                         self.advance()
@@ -1947,13 +1948,15 @@ class Parser:
                                 case_expr = self.parseExpr()
                                 if self.current_token.type == ':':
                                     self.advance()
-                                    case_body = self.parseWoogieBody()
+                                    case_body, errors = self.parseWoogieBody()
+                                    if errors: return None, errors
                                     cases.append(WoogieTrueNode(case_expr, case_body))
                             elif self.current_token.type == 'default':
                                 self.advance()
                                 if self.current_token.type == ':':
                                     self.advance()
-                                    default_body = self.parseWoogieBody()
+                                    default_body, errors = self.parseWoogieBody()
+                                    if errors: return None, errors
                                     cases.append(DefaultCaseNode(default_body))
                         self.advance()
                         body.add_child(BoogieNode(None, cases))
@@ -2013,9 +2016,6 @@ class Parser:
                     body.add_child(PerformSustainNode(perform_body, condition, pos_start, self.current_token.pos_end))
                 else:
                     self.advance()
-            except ParseError as e:
-                self.semantic_errors.append(SemanticError(e.pos_start, e.pos_end, e.details))
-                self.advance()
         return body, None
 
     def parseCycleCondition(self):
