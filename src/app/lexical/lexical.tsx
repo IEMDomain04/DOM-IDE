@@ -56,7 +56,7 @@ export const handleTokenizerClick = async (
       cache.set(cacheKey, { tokens: newOutputData, errors });
     } else {
       setOutputData(newOutputData);
-      setTerminalOutput('');
+      setTerminalOutput('Successful from Lexical Analyzer');
       // Store the successful response in cache
       cache.set(cacheKey, { tokens: newOutputData, errors: [] });
     }

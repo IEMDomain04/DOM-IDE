@@ -13,7 +13,7 @@ def run_lexer():
     text = data.get('text', '')
     tokens, errors = lexer(text)  # Call run with text and default fn
     if errors:  
-        error_messages = [f"Error {i+1}: {error.as_string()}" for i, error in enumerate(errors)]
+        error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
         print(f"{error_messages}\n\n")  # Print the errors for debugging
         token_list = [{'type': token.type, 'value': token.value} for token in tokens]
         return jsonify({'tokens': token_list, 'errors': error_messages})
