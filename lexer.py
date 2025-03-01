@@ -43,7 +43,7 @@ delim_map = {
     'comma_delim':      set(ALPHA_NUMERIC + '"' + "'" + '(' + '[' + '-' + ' ' + "\n" + "\t" + '#'),
     'comp_delim':       set(ALPHA_NUMERIC + '"' + "'" + '(' + '-' + ' ' + '!' + '#'),
     'default_delim':    {' ', ':', '\t', '#'},
-    'ex_delim':         {';', '#'},
+    'ex_delim':         {';', '#', '\n', '\t', ' '},
     'ident_delim':      {'+', '-', '*', '/', '%', '!', '=', '<', '>', '(', ')', ',', '[', ']', ' ', ';', '&', '|', '}', '#'},
     'incdec_delim':     set(ALPHA_NUMERIC + ')' + ' ' + ';' + '#' + ']'),
     'kword_delim':      {' ', '\t', '#'},
@@ -1328,8 +1328,8 @@ class Lexer:
                     ident_str += self.current_char
                     ident_count += 1
                     ident_state += 1
-                    pos_end = self.pos.copy()
                     self.advance()
+                    pos_end = self.pos.copy()
                 
                 ident_lower = ident_str.lower()
 
@@ -2020,7 +2020,7 @@ class Lexer:
             
 
             elif self.current_char != None and self.current_char in [' ','\t','\n']:        # whitespace, newline, tab
-                pos_start = self.pos
+                pos_start = self.pos.copy()
 
                 # check for space
                 if self.current_char == ' ':
