@@ -422,7 +422,8 @@ class RecallNode(ASTNode): # for return statements
     def __init__(self, value, pos_start=None, pos_end=None):
         super().__init__("Recall Statement", pos_start, pos_end)
         self.value = value
-        self.add_child(value)
+        if value:
+            self.add_child(value)
 
 class DismissNode(ASTNode): # for break statements
     def __init__(self, pos_start=None, pos_end=None):
@@ -804,11 +805,25 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_RecallNode(self, node, parent):
         print(f"Visiting RecallNode")
+        grandparent = parent.parent if parent else None
+        print(f"Grandparent node: {type(grandparent).__name__}")
+        if isinstance(grandparent, CurseDecNode) and grandparent.datatype != None:
+            if not node.value:
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, "Recall statement must return a value in a non-void curse"))
+        elif isinstance(grandparent, CurseDecNode) and grandparent.datatype == None:
+            print("I reached 814")
+            if node.value:
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, "Recall statement cannot return a value in a void curse"))
+        elif isinstance(grandparent, CurseDomainNode):
+            if node.value:
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, "Recall statement cannot return a value in the curse domain"))
         self.visit_children(node)
         print(f"Exiting RecallNode")
 
     def visit_DismissNode(self, node, parent):
         print(f"Visiting DismissNode")
+        if not isinstance(parent, (SustainNode, PerformSustainNode, CycleNode)):
+            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Dismiss statement not within a loop"))
         self.visit_children(node)
         print(f"Exiting DismissNode")
 
@@ -1924,9 +1939,13 @@ class Parser:
                 elif self.current_token.type == 'recall': # check later for all possibilities
                     self.advance()
                     pos_start = self.current_token.pos_start
-                    value, error = self.parseExpr()
-                    if error: return None, error
-                    body.add_child(RecallNode(value, pos_start, self.current_token.pos_end))
+                    if self.current_token.type == ';':
+                        self.advance()
+                        body.add_child(RecallNode(None, pos_start, self.current_token.pos_end))
+                    else:
+                        value, error = self.parseExpr()
+                        if error: return None, error
+                        body.add_child(RecallNode(value, pos_start, value.pos_end))
                 elif self.current_token.type == 'vow':
                     pos_start = self.current_token.pos_start
                     self.advance()
