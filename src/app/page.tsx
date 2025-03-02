@@ -99,9 +99,9 @@ curse domain(){
             codeEditorRef={codeEditorRef}
           />
 
-          <CodeEditor value={code} onChange={setCode} onMount={handleEditorDidMount} />
+          <CodeEditor value={code} onChange={setCode} onMount={handleEditorDidMount} isDarkMode={isDarkMode} />
 
-          <div className="absolute bottom-0 left-0 w-full h-[10px] cursor-row-resize bg-dark-background" onMouseDown={handleMouseDown} />
+          <div className="absolute bottom-0 left-0 w-full h-[5px] cursor-row-resize bg-dark-background" onMouseDown={handleMouseDown} />
         </div>
 
           <Terminal terminalOutput={terminalOutput} isDarkMode={isDarkMode} />

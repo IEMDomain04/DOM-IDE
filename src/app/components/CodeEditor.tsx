@@ -10,12 +10,13 @@ interface CodeEditorProps {
   value?: string;
   onChange?: (value: string) => void;
   onMount?: (editor: monaco.editor.IStandaloneCodeEditor) => void;
+  isDarkMode: boolean;
 }
 
-const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, onMount }) => {
+const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, onMount, isDarkMode }) => {
   return (
     <main>
-      <CustomTheme />
+      <CustomTheme isDarkMode={isDarkMode} />
       <Editor
         className="mt-14"
         height="38rem"
@@ -24,6 +25,9 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, onMount }) => 
         value={value}
         onChange={(newValue) => onChange && onChange(newValue || "")}
         onMount={(editor) => onMount && onMount(editor)}
+        options={{
+          minimap: { enabled: false },
+      }}
       />
     </main>
   );
