@@ -51,6 +51,9 @@ const CustomTheme = () => {
 
                     // Strings (detects text inside double quotes)
                     [/".*?"/, "string"],
+
+                    // Operators
+                    [/[+\-*/%**!&&||<>]+/, "operators"]
                 ],
             },
         });
@@ -73,6 +76,7 @@ const CustomTheme = () => {
                 { token: "comment", foreground: "#808080", fontStyle: "italic" },
                 { token: "identifier", foreground: "#52b9e3" },
                 { token: "string", foreground: "#32CD32" }, 
+                { token: "operators", foreground: "#fa9bac" },
             ],
             colors: {
                 'editor.background': '#181819',

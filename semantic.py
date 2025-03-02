@@ -125,6 +125,9 @@ class BinOpNode(ASTNode): # binary operation
         self.add_child(left)
         self.add_child(right)
 
+    def __repr__(self):
+        return f'BinOpNode_Object: {self.op}'
+
 class RelOpNode(ASTNode): # relational operation
     def __init__(self, left, op, right, pos_start=None, pos_end=None):
         super().__init__(f"Relational Operation: {op.type}", pos_start, pos_end)
@@ -180,19 +183,31 @@ class BoolNode(ASTNode):
         super().__init__(f"Bool: {value}", pos_start, pos_end)
         self.value = value
 
+    def __repr__(self):
+        return f"BoolNode_Object: {self.value}"
+
 class NullNode(ASTNode):
     def __init__(self, value, pos_start=None, pos_end=None):
         super().__init__(f"Null", pos_start, pos_end)
         self.value = value
+    
+    def __repr__(self):
+        return f"NullNode_Object"
         
 class RestrictNode(ASTNode): # for restrict keyword
     def __init__(self, pos_start=None, pos_end=None):
         super().__init__("Restrict", pos_start, pos_end)
+    
+    def __repr__(self):
+        return f"RestrictNode_Object"
 
 class DatatypeNode(ASTNode): # for datatype keywords
     def __init__(self, datatype, pos_start=None, pos_end=None):
         super().__init__(f"Datatype: {datatype}", pos_start, pos_end)
         self.datatype = datatype
+    
+    def __repr__(self):
+        return f"DatatypeNode_Object: {self.datatype}"
 
 class IdNode(ASTNode): # for identifier names
     def __init__(self, name, pos_start=None, pos_end=None):
@@ -200,7 +215,7 @@ class IdNode(ASTNode): # for identifier names
         self.name = name
 
     def __repr__(self):
-        return f"{self.name}"
+        return f"IdNode_Object: {self.name}"
 
 class VarDecNode(ASTNode): # for variable assignments
     def __init__(self, restrict, datatype, name, value, pos_start=None, pos_end=None):
@@ -218,7 +233,7 @@ class VarDecNode(ASTNode): # for variable assignments
 
     def __repr__(self):
         restrict_str = " restrict" if self.restrict else ""
-        return f"{self.datatype} {self.name} = {self.value}{restrict_str}"
+        return f"VarDecNode_Object: {self.datatype} {self.name} = {self.value}{restrict_str}"
 
 class VarAssignNode(ASTNode): # for variable assignments
     def __init__(self, name, value, pos_start=None, pos_end=None):
@@ -229,7 +244,7 @@ class VarAssignNode(ASTNode): # for variable assignments
         self.add_child(value)
 
     def __repr__(self):
-        return f"{self.name} = {self.value}"
+        return f"VarAssignNode_Object: {self.name}"
 
 class ClanDecNode(ASTNode): # for arrays
     def __init__(self, restrict, datatype, name, size1=None, size2=None, initial_values1=None, initial_values2=None, pos_start=None, pos_end=None):
@@ -365,10 +380,16 @@ class CurseCallNode(ASTNode): # for curse calls
                 args_node.add_child(arg)
             self.add_child(args_node)
 
+    def __repr__(self):
+        return f'CurseCallNode_Object: {self.name}'
+
 class StringNode(ASTNode): # for strings
     def __init__(self, value, pos_start=None, pos_end=None):
         super().__init__(f"String: {value}", pos_start, pos_end)
         self.value = value
+
+    def __repr__(self):
+        return f'StringNode_Object'
 
 class StringConcatNode(ASTNode): # for string concatenations
     def __init__(self, left, op, right, pos_start=None, pos_end=None):
@@ -380,7 +401,7 @@ class StringConcatNode(ASTNode): # for string concatenations
         self.add_child(right)
 
     def __repr__(self):
-        return f"{self.left} {self.op} {self.right}"
+        return f"StringConcatNode_Object: {self.left} {self.op} {self.right}"
 
 class InvokeNode(ASTNode): # for printing invoke("Hello, World!")
     def __init__(self, value, pos_start=None, pos_end=None):
@@ -424,6 +445,8 @@ class RecallNode(ASTNode): # for return statements
         self.value = value
         if value:
             self.add_child(value)
+    def __repr__(self):
+        return f'RecallNode_Object: {self.value}'
 
 class DismissNode(ASTNode): # for break statements
     def __init__(self, pos_start=None, pos_end=None):
@@ -609,6 +632,35 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_BinOpNode(self, node, parent):
         print(f"Visiting BinOpNode with operator: {node.op}")
+        left_type = self.infer_type(node.left)
+        right_type = self.infer_type(node.right)
+
+        if left_type == 'null' or right_type == 'null':
+            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
+        if left_type != right_type:
+            if (left_type == 'string' and right_type in ['int', 'float']) or (right_type == 'string' and left_type in ['int', 'float']):
+                if not isinstance(parent, StringConcatNode):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Cannot concatenate '{left_type}' and '{right_type}'"))
+            elif left_type == 'bool' and right_type == 'int':
+                pass
+            elif left_type == 'int' and right_type == 'bool':
+                pass
+            elif left_type == 'bool' and right_type == 'float':
+                pass
+            elif left_type == 'float' and right_type == 'bool':
+                pass
+            elif left_type == 'int' and right_type == 'float':
+                pass
+            elif left_type == 'float' and right_type == 'int':
+                pass
+            else:
+                if isinstance(node.left, IdNode):
+                    self.unresolved_set.add((node.left, node))
+                    return
+                if isinstance(node.right, IdNode):
+                    self.unresolved_set.add((node.right, node))
+                    return
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: '{left_type}' and '{right_type}'"))
         self.visit_children(node)
         print(f"Exiting BinOpNode")
 
@@ -810,8 +862,38 @@ class MyASTVisitor(ASTVisitor):
         if isinstance(grandparent, CurseDecNode) and grandparent.datatype != None:
             if not node.value:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, "Recall statement must return a value in a non-void curse"))
+            else:
+                if isinstance(node.value, CurseCallNode):
+                    curse_node = self.symbol_table.get(node.value.name)
+                    if curse_node is None:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse '{node.value.name}'"))
+                    else:
+                        curse_return_type = curse_node.datatype
+                        if curse_return_type is None:
+                            curse_return_type = 'void'
+                        if grandparent.datatype != curse_return_type:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{grandparent.datatype}', got '{curse_return_type}'"))
+                elif isinstance(node.value, ClanAccessNode):
+                    symbol_type = self.symbol_table.get_type(node.value.name)
+                    if symbol_type is None:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined clan '{node.value.name}'"))
+                    else:
+                        if grandparent.datatype != symbol_type:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{grandparent.datatype}', got '{symbol_type}'"))
+                elif isinstance(node.value, IdNode):   
+                    symbol_type = self.symbol_table.get_type(node.value.name)
+                    if symbol_type is None:
+                        self.unresolved_assignments.append((node, parent))
+                    else:
+                        if grandparent.datatype != symbol_type:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{grandparent.datatype}', got '{symbol_type}'"))
+                elif isinstance(node.value, BinOpNode):
+                    self.unresolved_set.add((node.value, node))
+                else:
+                    return_type = self.infer_type(node.value)
+                    if return_type != grandparent.datatype:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{grandparent.datatype}', got '{return_type}'"))
         elif isinstance(grandparent, CurseDecNode) and grandparent.datatype == None:
-            print("I reached 814")
             if node.value:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, "Recall statement cannot return a value in a void curse"))
         elif isinstance(grandparent, CurseDomainNode):
@@ -829,16 +911,24 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_HopNode(self, node, parent):
         print(f"Visiting HopNode")
+        if not isinstance(parent, (SustainNode, PerformSustainNode, CycleNode)):
+            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Dismiss statement not within a loop"))
         self.visit_children(node)
         print(f"Exiting HopNode")
 
     def visit_VowNode(self, node, parent):
         print(f"Visiting VowNode")
+        condition_type = self.infer_type(node.condition)
+        if condition_type != 'bool':
+            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, f"Condition must be a boolean expression, got '{condition_type}'"))
         self.visit_children(node)
         print(f"Exiting VowNode")
 
     def visit_ElseVow(self, node, parent):
         print(f"Visiting ElseVow")
+        condition_type = self.infer_type(node.condition)
+        if condition_type != 'bool':
+            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, f"Condition must be a boolean expression, got '{condition_type}'"))
         self.visit_children(node)
         print(f"Exiting ElseVow")
 
@@ -928,17 +1018,58 @@ class MyASTVisitor(ASTVisitor):
                                 if param_type != arg_type:
                                     self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch: Expected '{param_type}' type argument, got '{arg_type}'"))
             elif isinstance(node, InvokeNode):
-                print("hey i reached 919")
                 if isinstance(node.value, IdNode):
                     symbol = self.symbol_table.get(node.value.name)
                     if symbol is None:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable '{node.value.name}'"))
+            
+            elif isinstance(node, IdNode) and isinstance(parent, RecallNode):
+                if isinstance(node, IdNode):
+                    symbol = self.symbol_table.get(node.name)
+                    if symbol is None:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable '{node.value.name}'"))
+                    else:
+                        parent_function = parent
+                        while parent_function and not isinstance(parent_function, CurseDecNode):
+                            parent_function = parent_function.parent
+                        if parent_function and parent_function.datatype != symbol.datatype:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{parent_function.datatype}', got '{symbol.datatype}'"))
+                        
         for node, parent in self.unresolved_set:
+            print(f"\n\n\nNode: {node}, Instance: {type(node)}\n\n\n")
             if isinstance(node, IdNode):
                 symbol = self.symbol_table.get(node.name)
+                symbol_type = self.symbol_table.get_type(node.name)
                 if symbol is None:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable '{node.name}'"))
-        print("Unresolved references resolved.")
+                if isinstance(parent, StringConcatNode):
+                    if symbol_type == 'bool':
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot concatenate string with boolean"))
+                    elif symbol_type == 'null':
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot concatenate string with null"))
+            elif isinstance(node, BinOpNode):
+                binop_type = self.infer_type(node)
+                binop_parent = node.parent
+                if isinstance(binop_parent, (VarDecNode)):
+                    if binop_type != binop_parent.datatype:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{binop_parent.datatype}', got '{binop_type}'"))
+                elif isinstance(binop_parent, (RecallNode)):
+                    parent_function = binop_parent.parent
+                    while parent_function and not isinstance(parent_function, CurseDecNode):
+                        parent_function = parent_function.parent
+                    if parent_function and parent_function.datatype != binop_type:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{parent_function.datatype}', got '{binop_type}'"))
+                    else: print(f"Unhandled Error: {parent.function.datatype} and {binop_type}")
+                elif isinstance(binop_parent, (CycleConditionNode)):
+                    if binop_type != 'bool':
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Condition must be a boolean expression, got '{binop_type}'"))
+                elif isinstance(binop_parent, (VowNode, ElseVow)):
+                    if binop_type != 'bool':
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Condition must be a boolean expression, got '{binop_type}'"))
+                elif isinstance(binop_parent, (WoogieTrueNode)):
+                    if binop_type != 'bool':
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Condition must be a boolean expression, got '{binop_type}'"))
+        print(f"Unresolved set after resolution: {self.unresolved_set}\nUnresolved assignments after resolution: {self.unresolved_assignments}")
 
     def infer_type(self, node):
         if isinstance(node, NumNode):
@@ -952,12 +1083,31 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(node, IdNode):
             return self.symbol_table.get_type(node.name)
         elif isinstance(node, BinOpNode):
-            left_type = self.infer_type(node.left)
-            right_type = self.infer_type(node.right)
+            left = node.left
+            right = node.right
+            left_type = self.infer_type(left)
+            right_type = self.infer_type(right)
             if left_type == right_type:
                 return left_type
             else:
-                return 'unknown'
+                if left_type == 'bool' and right_type == 'bool':
+                    return 'bool'
+                elif left_type == 'int' and right_type == 'bool':
+                    return 'int'
+                elif left_type == 'bool' and right_type == 'int':
+                    return 'int'
+                elif left_type == 'float' and right_type == 'bool':
+                    return 'float'
+                elif left_type == 'bool' and right_type == 'float':
+                    return 'float'
+                elif left_type == 'float' or right_type == 'float':
+                    return 'float'
+                elif left_type == 'int' or right_type == 'int':
+                    return 'int'
+                elif left_type == 'string' or right_type == 'string':
+                    return 'string'
+                else:
+                    return 'unknown'
         elif isinstance(node, UnaryOpNode):
             return self.infer_type(node.expr)
         elif isinstance(node, ClanAccessNode):
@@ -1173,6 +1323,7 @@ class Parser:
         return left, None
 
     def parseBinOp(self, func, ops, node_class):
+        pos_start = self.current_token.pos_start
         left, error = func()
         if error: return None, error
         while self.current_token.type in ops:
@@ -1180,7 +1331,7 @@ class Parser:
             self.advance()
             right, error = func()
             if error: return None, error
-            left = node_class(left, op, right)
+            left = node_class(left, op, right, pos_start, self.current_token.pos_end)
         return left, None
     
     def parseIdCall(self):
@@ -2292,6 +2443,7 @@ def semantic_run(tokens):
     visitor = MyASTVisitor(symbol_table)
     parser = Parser(tokens)
     ast, errors = parser.build_ast()
+    ast.print_tree()
 
     # check if there is curse domain node in the ast
     if not any(isinstance(node, CurseDomainNode) for node in ast.children):
@@ -2309,5 +2461,7 @@ def semantic_run(tokens):
         errors.extend(visitor.errors)
         return None, errors
     print(symbol_table.scopes)
+    if errors:
+        errors.sort(key=lambda e: e.pos_start.ln)
     
     return ast, errors
