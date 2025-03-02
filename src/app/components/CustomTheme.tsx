@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useMonaco } from "@monaco-editor/react";
 
-const CustomTheme = () => {
+const CustomTheme = ( {isDarkMode}: { isDarkMode: boolean} ) => {
     const monaco = useMonaco();
 
     useEffect(() => {
@@ -55,8 +55,8 @@ const CustomTheme = () => {
             },
         });
 
-        // Colors for keywords
-        monaco.editor.defineTheme("customTheme", {
+        // Define Dark Theme
+        monaco.editor.defineTheme("customDarkTheme", {
             base: "vs-dark",
             inherit: true,
             rules: [
@@ -72,12 +72,37 @@ const CustomTheme = () => {
                 { token: "curse", foreground: "#7a5c47" },
                 { token: "comment", foreground: "#808080", fontStyle: "italic" },
                 { token: "identifier", foreground: "#52b9e3" },
-                { token: "string", foreground: "#32CD32" }, 
+                { token: "string", foreground: "#32CD32" },
             ],
             colors: {
-                'editor.background': '#181819',
+                "editor.background": "#00000000",
             },
         });
+
+        // Define Light Theme
+        monaco.editor.defineTheme("customLightTheme", {
+            base: "vs",
+            inherit: true,
+            rules: [
+                { token: "keywords", foreground: "#0057b7", fontStyle: "bold" },
+                { token: "data-types", foreground: "#a31515", fontStyle: "bold" },
+                { token: "declaration", foreground: "#0451a5", fontStyle: "bold" },
+                { token: "io", foreground: "#795E26", fontStyle: "bold" },
+                { token: "boolean", foreground: "#008000", fontStyle: "bold" },
+                { token: "conditional", foreground: "#AF00DB", fontStyle: "bold" },
+                { token: "loops", foreground: "#D47300", fontStyle: "bold" },
+                { token: "loop-control", foreground: "#D70040", fontStyle: "bold" },
+                { token: "return", foreground: "#6C2DC7", fontStyle: "bold" },
+                { token: "curse", foreground: "#808080", fontStyle: "bold" },
+                { token: "comment", foreground: "#008000", fontStyle: "italic" },
+                { token: "identifier", foreground: "#1F4E79", fontStyle: "bold" },
+                { token: "string", foreground: "#1c612e", fontStyle: "bold" },
+            ],
+            colors: {
+                "editor.background": "#00000000",
+            },
+        });
+        
 
         // Intellisense for Dom Language
         monaco.languages.registerCompletionItemProvider("customLang", {
@@ -124,8 +149,8 @@ const CustomTheme = () => {
         
                         // Looping Statements
                         { label: "cycle (cyc)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "cycle()", documentation: "Begins a loop cycle.", range },
-                        { label: "sustain (sus)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "sustain", documentation: "Maintains a looping process.", range },
-                        { label: "perform (per)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "perform()", documentation: "Executes a repeated action.", range },
+                        { label: "sustain (sus)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "sustain()", documentation: "Maintains a looping process.", range },
+                        { label: "perform (per)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "perform", documentation: "Executes a repeated action.", range },
         
                         // Loop Control Statements
                         { label: "dismiss (dis)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "dismiss", documentation: "Exits a loop.", range },
@@ -175,7 +200,9 @@ const CustomTheme = () => {
 
         monaco.editor.setTheme("customLang");
         
-    }, [monaco]);
+        
+        monaco.editor.setTheme(isDarkMode ? "customDarkTheme" : "customLightTheme");
+    }, [monaco, isDarkMode]);
 
     return null; // This component only runs setup
 };
