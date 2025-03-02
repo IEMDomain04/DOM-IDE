@@ -25,7 +25,7 @@ export const handleSemanticClick = async (
           setTerminalOutput(errorMessage); // Set terminal output to error message
         } else {
           console.error('Error:', error);
-          setTerminalOutput('An unexpected error occurred.');
+          setTerminalOutput('An unexpected error occurred.\n' + error); 
         }
       }
     }

@@ -51,6 +51,9 @@ const CustomTheme = ( {isDarkMode}: { isDarkMode: boolean} ) => {
 
                     // Strings (detects text inside double quotes)
                     [/".*?"/, "string"],
+
+                    // Operators
+                    [/[+\-*/%**!&&||<>]+/, "operators"]
                 ],
             },
         });
@@ -72,7 +75,8 @@ const CustomTheme = ( {isDarkMode}: { isDarkMode: boolean} ) => {
                 { token: "curse", foreground: "#7a5c47" },
                 { token: "comment", foreground: "#808080", fontStyle: "italic" },
                 { token: "identifier", foreground: "#52b9e3" },
-                { token: "string", foreground: "#32CD32" },
+                { token: "string", foreground: "#32CD32" }, 
+                { token: "operators", foreground: "#fa9bac" },
             ],
             colors: {
                 "editor.background": "#00000000",

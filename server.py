@@ -13,7 +13,7 @@ def run_lexer():
     text = data.get('text', '')
     tokens, errors = lexer(text)  # Call run with text and default fn
     if errors:  
-        error_messages = [f"Error {i+1}: {error.as_string()}" for i, error in enumerate(errors)]
+        error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
         print(f"{error_messages}\n\n")  # Print the errors for debugging
         token_list = [{'type': token.type, 'value': token.value} for token in tokens]
         return jsonify({'tokens': token_list, 'errors': error_messages})
@@ -26,7 +26,7 @@ def run_syntax():
     text = data.get('text', '')
     tokens, lexer_errors = lexer(text)  # Call lexer with text
     if lexer_errors:  
-        return jsonify({'result': "Failure from Syntax Analyzer", 'error': None})
+        return jsonify({'result': "Error: Failure from Syntax Analyzer\nFile: <stdin>, Message: Check lexical analysis.", 'error': None})
     syntax_result, syntax_error = syntax(tokens)
     if syntax_error:
         return jsonify({'result': syntax_result, 'error': syntax_error})
@@ -38,11 +38,11 @@ def run_semantic():
     text = data.get('text', '')
     tokens, lexer_errors = lexer(text)
     if lexer_errors:  
-        return jsonify({'semantic_result': "Failure from Semantic Analyzer", 'errors': None})
+        return jsonify({'semantic_result': "Error: Failure from Semantic Analyzer\nFile: <stdin>, Message: Check lexical analysis.", 'errors': None})
     syntax_result, syntax_error = syntax(tokens)
 
     if syntax_error:
-        return jsonify({'semantic_result': "Failure from Semantic Analyzer", 'errors': None})
+        return jsonify({'semantic_result': "Error: Failure from Semantic Analyzer\nFile: <stdin>, Message: Check syntax analysis.", 'errors': None})
     
     ast, errors = semantic(tokens)
     if errors:  
