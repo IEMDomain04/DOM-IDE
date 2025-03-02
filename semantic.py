@@ -597,8 +597,7 @@ class MyASTVisitor(ASTVisitor):
     def __init__(self, symbol_table):
         self.symbol_table = symbol_table
         self.errors = []
-        self.unresolved_set = set()  # Set to keep track of unresolved nodes
-        self.unresolved_assignments = []  # List to keep track of unresolved assignments
+        self.unresolved_cases = []  # List to keep track of unresolved cases
 
     def visit_NumNode(self, node, parent):
         print(f"Visiting NumNode with value: {node.value}")
@@ -655,10 +654,10 @@ class MyASTVisitor(ASTVisitor):
                 pass
             else:
                 if isinstance(node.left, IdNode):
-                    self.unresolved_set.add((node.left, node))
+                    self.unresolved_cases.append((node.left, node))
                     return
                 if isinstance(node.right, IdNode):
-                    self.unresolved_set.add((node.right, node))
+                    self.unresolved_cases.append((node.right, node))
                     return
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: '{left_type}' and '{right_type}'"))
         self.visit_children(node)
@@ -684,7 +683,7 @@ class MyASTVisitor(ASTVisitor):
         if isinstance(parent, (CurseDecNode, CurseDomainNode)):
             print(f"IdNode '{node.name}' is a parameter of a curse declaration")
         if not self.symbol_table.get(node.name):
-            self.unresolved_set.add((node, parent))
+            self.unresolved_cases.append((node, parent))
         print(f"Exiting IdNode")
 
     def visit_VarDecNode(self, node, parent):
@@ -699,7 +698,7 @@ class MyASTVisitor(ASTVisitor):
     def visit_VarAssignNode(self, node, parent):
         print(f"Visiting VarAssignNode with name: {node.name}")
         if not self.symbol_table.get(node.name):
-            self.unresolved_assignments.append((node, parent))
+            self.unresolved_cases.append((node, parent))
         self.visit_children(node)
         print(f"Exiting VarAssignNode")
 
@@ -741,7 +740,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting ClanAccessNode with name: {node.name}")
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
-            self.unresolved_set.add((node, parent))
+            self.unresolved_cases.append((node, parent))
         self.visit_children(node)
         print(f"Exiting ClanAccessNode")
 
@@ -749,7 +748,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting ClanIndexAssignNode with name: {node.name}")
         symbol_type = self.symbol_table.get_type(node.name)
         if symbol_type is None:
-            self.unresolved_set.add((node, parent))
+            self.unresolved_cases.append((node, parent))
         else:
             for value in node.values:
                 value_type = self.infer_type(value)
@@ -762,7 +761,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting ClanAssignNode with name: {node.name}")
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
-            self.unresolved_set.add((node, parent))
+            self.unresolved_cases.append((node, parent))
         self.visit_children(node)
         print(f"Exiting ClanAssignNode")
 
@@ -810,7 +809,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting CurseCallNode with name: {node.name}")
         curse_node = self.symbol_table.get(node.name)
         if curse_node is None:
-            self.unresolved_assignments.append((node, parent))
+            self.unresolved_cases.append((node, parent))
         else:
             print(f"Type of curse_node: {type(curse_node)}")
             if isinstance(curse_node, CurseDecNode):
@@ -883,12 +882,12 @@ class MyASTVisitor(ASTVisitor):
                 elif isinstance(node.value, IdNode):   
                     symbol_type = self.symbol_table.get_type(node.value.name)
                     if symbol_type is None:
-                        self.unresolved_assignments.append((node, parent))
+                        self.unresolved_cases.append((node, parent))
                     else:
                         if grandparent.datatype != symbol_type:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{grandparent.datatype}', got '{symbol_type}'"))
                 elif isinstance(node.value, BinOpNode):
-                    self.unresolved_set.add((node.value, node))
+                    self.unresolved_cases.append((node.value, node))
                 else:
                     return_type = self.infer_type(node.value)
                     if return_type != grandparent.datatype:
@@ -979,9 +978,9 @@ class MyASTVisitor(ASTVisitor):
 
     def resolve_unresolved(self):
         print("Resolving unresolved references...")
-        print(f"Unresolved set: {self.unresolved_set}")
-        print(f"Unresolved assignments: {self.unresolved_assignments}")
-        for node, parent in self.unresolved_assignments:
+        print(f"Unresolved cases: {self.unresolved_cases}")
+
+        for node, parent in self.unresolved_cases:
             if isinstance(node, VarAssignNode):
                 symbol_type = self.symbol_table.get_type(node.name)
                 if symbol_type is None:
@@ -1017,6 +1016,10 @@ class MyASTVisitor(ASTVisitor):
                                 arg_type = self.infer_type(arg)
                                 if param_type != arg_type:
                                     self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch: Expected '{param_type}' type argument, got '{arg_type}'"))
+                            if isinstance(parent, VarAssignNode):
+                                parent_datatype = self.symbol_table.get_type(parent.name)
+                                if parent_datatype != curse_node.datatype:
+                                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{parent_datatype}' curse, got '{curse_node.datatype}' curse"))
             elif isinstance(node, InvokeNode):
                 if isinstance(node.value, IdNode):
                     symbol = self.symbol_table.get(node.value.name)
@@ -1034,10 +1037,13 @@ class MyASTVisitor(ASTVisitor):
                             parent_function = parent_function.parent
                         if parent_function and parent_function.datatype != symbol.datatype:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{parent_function.datatype}', got '{symbol.datatype}'"))
-                        
-        for node, parent in self.unresolved_set:
-            print(f"\n\n\nNode: {node}, Instance: {type(node)}\n\n\n")
-            if isinstance(node, IdNode):
+            elif isinstance(node, CurseCallNode) and isinstance(parent, VarAssignNode):
+                curse_node = self.symbol_table.get(node.name)
+                if isinstance(curse_node, CurseDecNode):
+                    if parent.datatype != curse_node.datatype:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{parent.datatype}' curse, got '{curse_node.datatype}' curse"))
+
+            elif isinstance(node, IdNode):
                 symbol = self.symbol_table.get(node.name)
                 symbol_type = self.symbol_table.get_type(node.name)
                 if symbol is None:
@@ -1069,7 +1075,7 @@ class MyASTVisitor(ASTVisitor):
                 elif isinstance(binop_parent, (WoogieTrueNode)):
                     if binop_type != 'bool':
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Condition must be a boolean expression, got '{binop_type}'"))
-        print(f"Unresolved set after resolution: {self.unresolved_set}\nUnresolved assignments after resolution: {self.unresolved_assignments}")
+        print(f"Unresolved cases after resolution: {self.unresolved_cases}")
 
     def infer_type(self, node):
         if isinstance(node, NumNode):
@@ -1129,19 +1135,19 @@ class SymbolTable:
         self.scopes = [{}]  # Start with a global scope
 
     def push(self):
-        print(f"New Symbol Stack: {self.scopes}")
+        print(f"Push Success... New Symbol Stack: {self.scopes}")
         self.scopes.append({})  # Enter a new scope
 
     def pop(self):
-        print(f"Popping scope: {self.scopes[-1]}")
+        print(f"Pop Success... New Symbol Stack: {self.scopes}")
         self.scopes.pop()  # Exit the current scope
 
     def get(self, name):
         # Search from innermost to outermost scope
         for scope in reversed(self.scopes):
             if name in scope:
+                print(f"Found name '{name}' in scope {scope}!")
                 return scope[name]  # Return the actual object stored
-        print(f"Name '{name}' not found in any scope")
         return None
     
     def get_local(self, name):
@@ -1149,22 +1155,22 @@ class SymbolTable:
         if name in self.scopes[-1]:
             return self.scopes[-1][name]
         else: 
-            print(f"Name '{name}' not found in the current scope")
+            print(f"Id '{name}' not found in the local scope")
             return None
     
     def get_type(self, name):
         # Search from innermost to outermost scope
         for scope in reversed(self.scopes):
             if name in scope:
-                print(f"Found name '{name}' in scope {scope}")
+                print(f"Found name type '{name}' in scope {scope}!")
                 return scope[name].datatype if hasattr(scope[name], 'datatype') else scope[name]
-        print(f"Name '{name}' not found in any scope")
+        print(f"'{name}' not found in any scope, get_type returns None")
         return None
 
     def set(self, name, value):
         # Set in the current (innermost) scope
         self.scopes[-1][name] = value
-        print(f"Set {name} to {value} in scope {self.scopes[-1]}")
+        print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
 
 ###################
 # Parser Class
@@ -1269,7 +1275,6 @@ class Parser:
                 op = self.current_token
                 self.advance()
                 return UnaryOpNode(op, IdNode(tok.value, tok.pos_start, tok.pos_end), post=True, pos_start=pos_start, pos_end=self.current_token.pos_end), None
-            print(f'pos_start: {pos_start.col}, pos_end: {pos_end.col}')
             return IdNode(tok.value, pos_start, pos_end), None
         elif tok.type == '(':
             pos_start = tok.pos_start
@@ -1341,14 +1346,14 @@ class Parser:
         pos_start = self.current_token.pos_start
         self.advance()
         
-        if self.current_token.type not in ['=', '+=', '-=', '*=', '/=', '%=', '++', '--', '(', '[', ',']:
-            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '=', '+=', '-=', '*=', '/=', '%=', '++', '--', '(', '['")
+        if self.current_token.type not in ['=', '+=', '-=', '*=', '/=', '%=', '++', '--', '(', '[', ',', ';']:
+            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '=', '+=', '-=', '*=', '/=', '%=', '++', '--', '(', '[', ';'")
         
         if self.current_token.type in ['=', '+=', '-=', '*=', '/=', '%=']:
             op = self.current_token.type
             self.advance()
-            if self.current_token.type not in ['{', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal']:
-                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal'")
+            if self.current_token.type not in ['{', '(', '++', '--', '!', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal']:
+                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{', '(', '++', '--', '!', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal'")
 
             if self.current_token.type == '{': # check later for previous node type
                 self.advance()
@@ -1528,6 +1533,9 @@ class Parser:
             self.advance()
             pos_end = self.current_token.pos_end
             return UnaryOpNode(op, IdNode(name, pos_start, pos_end), post=True, pos_start=pos_start, pos_end=pos_end), None
+        elif self.current_token.type == ';':
+            self.advance()
+            return IdNode(name, pos_start, self.current_token.pos_end), None
         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: 'id'")
 
     def parseDeclaration(self):
@@ -1974,6 +1982,7 @@ class Parser:
                 if error: return None, error
                 return CurseDomainNode(body, pos_start, pos_end), None
         elif self.current_token.type == 'restrict':
+            pos_start = self.current_token.pos_start
             self.advance()
             if self.current_token.type not in ['int', 'float', 'string', 'bool']: 
                 return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: int, float, string, bool")
@@ -1990,7 +1999,7 @@ class Parser:
                 value, error = self.parseExpr()
                 if error: return None, error
                 if self.current_token.type == ',':
-                    declarations = [VarDecNode('restrict', datatype, name, value, pos_start, self.current_token.pos_end)]
+                    declarations = [VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end)]
                     while self.current_token.type == ',':
                         self.advance()
                         if self.current_token.type != 'id':
@@ -2001,11 +2010,11 @@ class Parser:
                             self.advance()
                             value, error = self.parseExpr()
                             if error: return None, error
-                            declarations.append(VarDecNode('restrict', datatype, name, value, pos_start, self.current_token.pos_end))
+                            declarations.append(VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end))
                         else:
-                            declarations.append(VarDecNode('restrict', datatype, name, 0, pos_start, self.current_token.pos_end))
+                            declarations.append(VarDecNode(True, datatype, name, 0, pos_start, self.current_token.pos_end))
                     return declarations, None
-                return VarDecNode('restrict', datatype, name, value, pos_start, self.current_token.pos_end), 0
+                return VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end), 0
             elif self.current_token.type == ',':
                 pos_start = self.current_token.pos_start
                 declarations = [VarDecNode('restrict', datatype, name, 0, pos_start, self.current_token.pos_end)]
@@ -2019,12 +2028,12 @@ class Parser:
                         self.advance()
                         value, error = self.parseExpr()
                         if error: return None, error
-                        declarations.append(VarDecNode('restrict', datatype, name, value, pos_start, self.current_token.pos_end))
+                        declarations.append(VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end))
                     else:
-                        declarations.append(VarDecNode('restrict', datatype, name, 0, pos_start, self.current_token.pos_end))
+                        declarations.append(VarDecNode(True, datatype, name, 0, pos_start, self.current_token.pos_end))
                 return declarations, None
             elif self.current_token.type == ';':
-                return VarDecNode('restrict', datatype, name, 0, pos_start, self.current_token.pos_end), None
+                return VarDecNode(True, datatype, name, 0, pos_start, self.current_token.pos_end), None
         else:
             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: int, float, string, bool, curse, or restrict")
     
@@ -2145,7 +2154,7 @@ class Parser:
                             self.advance()  # Advance past the closing '}'
                             body.add_child(VowNode(condition, body_node, else_vows, ElseNode(else_body_node, else_pos_start, else_pos_end), pos_start, self.current_token.pos_end))
                     else:
-                        body.add_child(VowNode(condition, body_node, else_vows, pos_start, self.current_token.pos_end))
+                        body.add_child(VowNode(condition, body_node, else_vows, None, pos_start, self.current_token.pos_end))
                 elif self.current_token.type == 'boogie':
                     boogie_start = self.current_token.pos_start
                     self.advance()
@@ -2411,7 +2420,7 @@ class Parser:
                         self.advance()  # Advance past the closing '}'
                         body.add_child(VowNode(condition, body_node, else_vows, ElseNode(else_body_node, else_start, self.current_token.pos_end), vow_start, self.current_token.pos_end))
                 else:
-                    body.add_child(VowNode(condition, body_node, else_vows, vow_start, self.current_token.pos_end))
+                    body.add_child(VowNode(condition, body_node, else_vows, None, vow_start, self.current_token.pos_end))
             else:
                 self.advance()
         return body, None
@@ -2459,8 +2468,10 @@ def semantic_run(tokens):
     
     if visitor.errors:
         errors.extend(visitor.errors)
+        if errors:
+            errors.sort(key=lambda e: e.pos_start.ln)
         return None, errors
-    print(symbol_table.scopes)
+    
     if errors:
         errors.sort(key=lambda e: e.pos_start.ln)
     
