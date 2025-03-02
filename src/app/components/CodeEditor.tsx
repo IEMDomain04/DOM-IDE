@@ -20,7 +20,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, onMount, isDar
       <Editor
         className="mt-14"
         height="38rem"
-        theme="customTheme"
+        theme={isDarkMode ? "customDarkTheme" : "customLightTheme"}
         defaultLanguage="customLang"
         value={value}
         onChange={(newValue) => onChange && onChange(newValue || "")}
