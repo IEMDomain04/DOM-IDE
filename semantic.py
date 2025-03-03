@@ -652,7 +652,7 @@ class MyASTVisitor(ASTVisitor):
                 if id_symbol: # If the IdNode is a variable
                     if isinstance(id_symbol, VarDecNode) and isinstance(id_symbol.value, NumNode) and id_symbol.value.value == 0:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
-                        
+
         if left_type != right_type:
             if (left_type == 'string' and right_type in ['int', 'float']) or (right_type == 'string' and left_type in ['int', 'float']):
                 if not isinstance(parent, StringConcatNode):
@@ -1151,6 +1151,18 @@ class MyASTVisitor(ASTVisitor):
                             parent_function = parent_function.parent
                         if parent_function and parent_function.datatype != symbol.datatype:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 14: Expected '{parent_function.datatype}', got '{symbol.datatype}'"))
+
+            elif isinstance(node, IdNode) and isinstance(parent, BinOpNode):
+                symbol = self.symbol_table.get(node.name)
+                if symbol is None:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable '{node.name}'"))
+                else:
+                    if isinstance(symbol, VarDecNode) and isinstance(symbol.value, NullNode):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform operation on Null value"))
+                    if parent.op == '/' and isinstance(symbol.value, NumNode) and symbol.value.value == 0:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                    elif parent.op == '/' and isinstance(symbol.value, BinOpNode) and symbol.value.value == 0:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
 
             elif isinstance(node, IdNode):
                 symbol = self.symbol_table.get(node.name)
