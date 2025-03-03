@@ -124,6 +124,12 @@ class BinOpNode(ASTNode): # binary operation
         self.right = right
         self.add_child(left)
         self.add_child(right)
+        try:
+            self.value = eval(f'{left.value} {op.type} {right.value}')
+        except ZeroDivisionError:
+            self.value = 0
+        except: 
+            self.value = None
 
     def __repr__(self):
         return f'BinOpNode_Object: {self.op}'
@@ -597,8 +603,7 @@ class MyASTVisitor(ASTVisitor):
     def __init__(self, symbol_table):
         self.symbol_table = symbol_table
         self.errors = []
-        self.unresolved_set = set()  # Set to keep track of unresolved nodes
-        self.unresolved_assignments = []  # List to keep track of unresolved assignments
+        self.unresolved_cases = []  # List to keep track of unresolved cases
 
     def visit_NumNode(self, node, parent):
         print(f"Visiting NumNode with value: {node.value}")
@@ -637,30 +642,109 @@ class MyASTVisitor(ASTVisitor):
 
         if left_type == 'null' or right_type == 'null':
             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
+
+        if node.op == '/':
+            print(f'Node_Right: {node.right}\nParent_Node: {node.right.parent}\nParent_Value: {node.right.parent.value}')
+            if isinstance(node.right, NumNode) and node.right.value == 0:
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+            elif isinstance(node.right, IdNode) and isinstance(node.right.parent, BinOpNode):
+                id_symbol = self.symbol_table.get(node.right.name)
+                if id_symbol: # If the IdNode is a variable
+                    if isinstance(id_symbol, VarDecNode) and isinstance(id_symbol.value, NumNode) and id_symbol.value.value == 0:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                        
         if left_type != right_type:
             if (left_type == 'string' and right_type in ['int', 'float']) or (right_type == 'string' and left_type in ['int', 'float']):
                 if not isinstance(parent, StringConcatNode):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Cannot concatenate '{left_type}' and '{right_type}'"))
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 1: Cannot concatenate '{left_type}' and '{right_type}'"))
             elif left_type == 'bool' and right_type == 'int':
+                if isinstance(parent, BinOpNode):
+                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    if evaluation == 0:
+                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
                 pass
             elif left_type == 'int' and right_type == 'bool':
+                if isinstance(parent, BinOpNode):
+                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    if evaluation == 0:
+                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
                 pass
             elif left_type == 'bool' and right_type == 'float':
+                if isinstance(parent, BinOpNode):
+                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    if evaluation == 0:
+                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
                 pass
             elif left_type == 'float' and right_type == 'bool':
+                if isinstance(parent, BinOpNode):
+                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    if evaluation == 0:
+                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
                 pass
             elif left_type == 'int' and right_type == 'float':
+                if isinstance(parent, BinOpNode):
+                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    if evaluation == 0:
+                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
                 pass
             elif left_type == 'float' and right_type == 'int':
+                if isinstance(parent, BinOpNode):
+                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    if evaluation == 0:
+                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
                 pass
             else:
-                if isinstance(node.left, IdNode):
-                    self.unresolved_set.add((node.left, node))
+                if isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
+                    self.unresolved_cases.append((node.left, node))
                     return
-                if isinstance(node.right, IdNode):
-                    self.unresolved_set.add((node.right, node))
+                if isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
+                    self.unresolved_cases.append((node.right, node))
                     return
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: '{left_type}' and '{right_type}'"))
+                if isinstance(node.left, IdNode) and self.symbol_table.get(node.left.name):
+                    left_node = self.symbol_table.get(node.left.name)
+                    if isinstance(left_node, VarDecNode):
+                        if isinstance(left_node.value, NullNode):
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
+                if isinstance(node.left, IdNode) and self.symbol_table.get(node.right.name):
+                    right_node = self.symbol_table.get(node.right.name)
+                    if isinstance(right_node, VarDecNode):
+                        if isinstance(right_node.value, NullNode):
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 2: '{left_type}' and '{right_type}'"))
+        else:
+            if isinstance(parent, BinOpNode):
+                if left_type == 'int' and right_type == 'int':
+                    print("686")
+                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    if evaluation == 0:
+                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                elif left_type == 'float' and right_type == 'float':
+                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    if evaluation == 0:
+                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                elif left_type == 'bool' and right_type == 'bool':
+                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    if evaluation == 0:
+                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+            if isinstance(node.left, IdNode) and self.symbol_table.get(node.left.name):
+                left_node = self.symbol_table.get(node.left.name)
+                if isinstance(left_node, VarDecNode):
+                    if isinstance(left_node.value, NullNode):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
+            if isinstance(node.right, IdNode) and self.symbol_table.get(node.right.name):
+                right_node = self.symbol_table.get(node.right.name)
+                if isinstance(right_node, VarDecNode):
+                    if isinstance(right_node.value, NullNode):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
         self.visit_children(node)
         print(f"Exiting BinOpNode")
 
@@ -684,7 +768,7 @@ class MyASTVisitor(ASTVisitor):
         if isinstance(parent, (CurseDecNode, CurseDomainNode)):
             print(f"IdNode '{node.name}' is a parameter of a curse declaration")
         if not self.symbol_table.get(node.name):
-            self.unresolved_set.add((node, parent))
+            self.unresolved_cases.append((node, parent))
         print(f"Exiting IdNode")
 
     def visit_VarDecNode(self, node, parent):
@@ -699,7 +783,14 @@ class MyASTVisitor(ASTVisitor):
     def visit_VarAssignNode(self, node, parent):
         print(f"Visiting VarAssignNode with name: {node.name}")
         if not self.symbol_table.get(node.name):
-            self.unresolved_assignments.append((node, parent))
+            self.unresolved_cases.append((node, parent))
+        elif isinstance(node.value, BinOpNode):
+            self.unresolved_cases.append((node, parent))
+        else:
+            value_type = self.infer_type(node.value)
+            var_type = self.symbol_table.get_type(node.name)
+            if var_type != value_type:
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 3: Expected '{var_type}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting VarAssignNode")
 
@@ -741,7 +832,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting ClanAccessNode with name: {node.name}")
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
-            self.unresolved_set.add((node, parent))
+            self.unresolved_cases.append((node, parent))
         self.visit_children(node)
         print(f"Exiting ClanAccessNode")
 
@@ -749,12 +840,12 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting ClanIndexAssignNode with name: {node.name}")
         symbol_type = self.symbol_table.get_type(node.name)
         if symbol_type is None:
-            self.unresolved_set.add((node, parent))
+            self.unresolved_cases.append((node, parent))
         else:
             for value in node.values:
                 value_type = self.infer_type(value)
                 if symbol_type != value_type:
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{symbol_type}', got '{value_type}'"))
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 4: Expected '{symbol_type}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting ClanIndexAssignNode")
 
@@ -762,7 +853,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting ClanAssignNode with name: {node.name}")
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
-            self.unresolved_set.add((node, parent))
+            self.unresolved_cases.append((node, parent))
         self.visit_children(node)
         print(f"Exiting ClanAssignNode")
 
@@ -810,9 +901,8 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting CurseCallNode with name: {node.name}")
         curse_node = self.symbol_table.get(node.name)
         if curse_node is None:
-            self.unresolved_assignments.append((node, parent))
+            self.unresolved_cases.append((node, parent))
         else:
-            print(f"Type of curse_node: {type(curse_node)}")
             if isinstance(curse_node, CurseDecNode):
                 if len(curse_node.parameters) != len(node.arguments):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected {len(curse_node.parameters)} arguments, got {len(node.arguments)}"))
@@ -821,7 +911,9 @@ class MyASTVisitor(ASTVisitor):
                         param_type = param.datatype  # Use param.datatype directly
                         arg_type = self.infer_type(arg)
                         if param_type != arg_type:
-                            self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch: Expected '{param_type}', got '{arg_type}'"))
+                            self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch 5: Expected '{param_type}', got '{arg_type}'"))
+            else:
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a curse"))
         self.visit_children(node)
         print(f"Exiting CurseCallNode")
 
@@ -872,27 +964,27 @@ class MyASTVisitor(ASTVisitor):
                         if curse_return_type is None:
                             curse_return_type = 'void'
                         if grandparent.datatype != curse_return_type:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{grandparent.datatype}', got '{curse_return_type}'"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 6: Expected '{grandparent.datatype}', got '{curse_return_type}'"))
                 elif isinstance(node.value, ClanAccessNode):
                     symbol_type = self.symbol_table.get_type(node.value.name)
                     if symbol_type is None:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined clan '{node.value.name}'"))
                     else:
                         if grandparent.datatype != symbol_type:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{grandparent.datatype}', got '{symbol_type}'"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 7: Expected '{grandparent.datatype}', got '{symbol_type}'"))
                 elif isinstance(node.value, IdNode):   
                     symbol_type = self.symbol_table.get_type(node.value.name)
                     if symbol_type is None:
-                        self.unresolved_assignments.append((node, parent))
+                        self.unresolved_cases.append((node, parent))
                     else:
                         if grandparent.datatype != symbol_type:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{grandparent.datatype}', got '{symbol_type}'"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 8: Expected '{grandparent.datatype}', got '{symbol_type}'"))
                 elif isinstance(node.value, BinOpNode):
-                    self.unresolved_set.add((node.value, node))
+                    self.unresolved_cases.append((node.value, node))
                 else:
                     return_type = self.infer_type(node.value)
                     if return_type != grandparent.datatype:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{grandparent.datatype}', got '{return_type}'"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 9: Expected '{grandparent.datatype}', got '{return_type}'"))
         elif isinstance(grandparent, CurseDecNode) and grandparent.datatype == None:
             if node.value:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, "Recall statement cannot return a value in a void curse"))
@@ -974,14 +1066,26 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_CycleConditionNode(self, node, parent):
         print(f"Visiting CycleConditionNode")
+        if isinstance(node.init, VarDecNode):
+            if not isinstance(node.init.value, NumNode):
+                self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
+        elif isinstance(node.init, VarAssignNode):
+            if not self.symbol_table.get(node.init.name):
+                self.unresolved_cases.append((node.init, node))
+                return
+            init_type = self.symbol_table.get_type(node.init.name)
+            if init_type != 'int':
+                self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
+        else: 
+            self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Invalid cycle initialization"))
         self.visit_children(node)
         print(f"Exiting CycleConditionNode")
 
     def resolve_unresolved(self):
         print("Resolving unresolved references...")
-        print(f"Unresolved set: {self.unresolved_set}")
-        print(f"Unresolved assignments: {self.unresolved_assignments}")
-        for node, parent in self.unresolved_assignments:
+        print(f"Unresolved cases: {self.unresolved_cases}")
+
+        for node, parent in self.unresolved_cases:
             if isinstance(node, VarAssignNode):
                 symbol_type = self.symbol_table.get_type(node.name)
                 if symbol_type is None:
@@ -997,13 +1101,22 @@ class MyASTVisitor(ASTVisitor):
                             if curse_return_type is None:
                                 curse_return_type = 'void'
                             if symbol_type != curse_return_type:
-                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{symbol_type}' curse, got '{curse_return_type}' curse"))
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 10: Expected '{symbol_type}' curse, got '{curse_return_type}' curse"))
                     else:
                         value_type = self.infer_type(node.value)
                         if symbol_type != value_type:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{symbol_type}', got '{value_type}'"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 11: Expected '{symbol_type}', got '{value_type}'"))
+
             elif isinstance(node, CurseCallNode):
                 curse_node = self.symbol_table.get(node.name)
+
+                if isinstance(curse_node, VarDecNode):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a curse"))
+                elif isinstance(parent, VarAssignNode):
+                    if isinstance(curse_node, CurseDecNode):
+                        if parent.datatype != curse_node.datatype:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 12: Expected '{parent.datatype}' curse, got '{curse_node.datatype}' curse"))  
+
                 if curse_node is None:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse '{node.name}'"))
                     break
@@ -1016,7 +1129,11 @@ class MyASTVisitor(ASTVisitor):
                                 param_type = param.datatype
                                 arg_type = self.infer_type(arg)
                                 if param_type != arg_type:
-                                    self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch: Expected '{param_type}' type argument, got '{arg_type}'"))
+                                    self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch 12: Expected '{param_type}' type argument, got '{arg_type}'"))
+                            if isinstance(parent, VarAssignNode):
+                                parent_datatype = self.symbol_table.get_type(parent.name)
+                                if parent_datatype != curse_node.datatype:
+                                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 13: Expected '{parent_datatype}' curse, got '{curse_node.datatype}' curse"))
             elif isinstance(node, InvokeNode):
                 if isinstance(node.value, IdNode):
                     symbol = self.symbol_table.get(node.value.name)
@@ -1033,11 +1150,9 @@ class MyASTVisitor(ASTVisitor):
                         while parent_function and not isinstance(parent_function, CurseDecNode):
                             parent_function = parent_function.parent
                         if parent_function and parent_function.datatype != symbol.datatype:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{parent_function.datatype}', got '{symbol.datatype}'"))
-                        
-        for node, parent in self.unresolved_set:
-            print(f"\n\n\nNode: {node}, Instance: {type(node)}\n\n\n")
-            if isinstance(node, IdNode):
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 14: Expected '{parent_function.datatype}', got '{symbol.datatype}'"))
+
+            elif isinstance(node, IdNode):
                 symbol = self.symbol_table.get(node.name)
                 symbol_type = self.symbol_table.get_type(node.name)
                 if symbol is None:
@@ -1052,13 +1167,13 @@ class MyASTVisitor(ASTVisitor):
                 binop_parent = node.parent
                 if isinstance(binop_parent, (VarDecNode)):
                     if binop_type != binop_parent.datatype:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{binop_parent.datatype}', got '{binop_type}'"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 15: Expected '{binop_parent.datatype}', got '{binop_type}'"))
                 elif isinstance(binop_parent, (RecallNode)):
                     parent_function = binop_parent.parent
                     while parent_function and not isinstance(parent_function, CurseDecNode):
                         parent_function = parent_function.parent
                     if parent_function and parent_function.datatype != binop_type:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{parent_function.datatype}', got '{binop_type}'"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 16: Expected '{parent_function.datatype}', got '{binop_type}'"))
                     else: print(f"Unhandled Error: {parent.function.datatype} and {binop_type}")
                 elif isinstance(binop_parent, (CycleConditionNode)):
                     if binop_type != 'bool':
@@ -1069,7 +1184,14 @@ class MyASTVisitor(ASTVisitor):
                 elif isinstance(binop_parent, (WoogieTrueNode)):
                     if binop_type != 'bool':
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Condition must be a boolean expression, got '{binop_type}'"))
-        print(f"Unresolved set after resolution: {self.unresolved_set}\nUnresolved assignments after resolution: {self.unresolved_assignments}")
+            elif isinstance(node, CycleConditionNode):
+                node_init = node.init
+                init_type = self.symbol_table.get_type(node_init.name)
+                print(f"Init type: {init_type}\nInit instance: {node_init}\nSymbol Table: {self.symbol_table.scopes}")
+                print("I reached here")
+                if init_type != 'int':
+                    self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
+        print(f"Unresolved cases after resolution: {self.unresolved_cases}\n")
 
     def infer_type(self, node):
         if isinstance(node, NumNode):
@@ -1129,19 +1251,19 @@ class SymbolTable:
         self.scopes = [{}]  # Start with a global scope
 
     def push(self):
-        print(f"New Symbol Stack: {self.scopes}")
+        print(f"Push Success... New Symbol Stack: {self.scopes}")
         self.scopes.append({})  # Enter a new scope
 
     def pop(self):
-        print(f"Popping scope: {self.scopes[-1]}")
+        print(f"Pop Success... New Symbol Stack: {self.scopes}")
         self.scopes.pop()  # Exit the current scope
 
     def get(self, name):
         # Search from innermost to outermost scope
         for scope in reversed(self.scopes):
             if name in scope:
+                print(f"Found name '{name}' in scope {scope}!")
                 return scope[name]  # Return the actual object stored
-        print(f"Name '{name}' not found in any scope")
         return None
     
     def get_local(self, name):
@@ -1149,22 +1271,22 @@ class SymbolTable:
         if name in self.scopes[-1]:
             return self.scopes[-1][name]
         else: 
-            print(f"Name '{name}' not found in the current scope")
+            print(f"Id '{name}' not found in the local scope")
             return None
     
     def get_type(self, name):
         # Search from innermost to outermost scope
         for scope in reversed(self.scopes):
             if name in scope:
-                print(f"Found name '{name}' in scope {scope}")
+                print(f"Found name type '{name}' in scope {scope}!")
                 return scope[name].datatype if hasattr(scope[name], 'datatype') else scope[name]
-        print(f"Name '{name}' not found in any scope")
+        print(f"'{name}' not found in any scope, get_type returns None")
         return None
 
     def set(self, name, value):
         # Set in the current (innermost) scope
         self.scopes[-1][name] = value
-        print(f"Set {name} to {value} in scope {self.scopes[-1]}")
+        print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
 
 ###################
 # Parser Class
@@ -1269,7 +1391,6 @@ class Parser:
                 op = self.current_token
                 self.advance()
                 return UnaryOpNode(op, IdNode(tok.value, tok.pos_start, tok.pos_end), post=True, pos_start=pos_start, pos_end=self.current_token.pos_end), None
-            print(f'pos_start: {pos_start.col}, pos_end: {pos_end.col}')
             return IdNode(tok.value, pos_start, pos_end), None
         elif tok.type == '(':
             pos_start = tok.pos_start
@@ -1341,14 +1462,14 @@ class Parser:
         pos_start = self.current_token.pos_start
         self.advance()
         
-        if self.current_token.type not in ['=', '+=', '-=', '*=', '/=', '%=', '++', '--', '(', '[', ',']:
-            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '=', '+=', '-=', '*=', '/=', '%=', '++', '--', '(', '['")
+        if self.current_token.type not in ['=', '+=', '-=', '*=', '/=', '%=', '++', '--', '(', '[', ',', ';']:
+            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '=', '+=', '-=', '*=', '/=', '%=', '++', '--', '(', '[', ';'")
         
         if self.current_token.type in ['=', '+=', '-=', '*=', '/=', '%=']:
             op = self.current_token.type
             self.advance()
-            if self.current_token.type not in ['{', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal']:
-                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal'")
+            if self.current_token.type not in ['{', '(', '++', '--', '!', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal']:
+                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{', '(', '++', '--', '!', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal'")
 
             if self.current_token.type == '{': # check later for previous node type
                 self.advance()
@@ -1528,6 +1649,9 @@ class Parser:
             self.advance()
             pos_end = self.current_token.pos_end
             return UnaryOpNode(op, IdNode(name, pos_start, pos_end), post=True, pos_start=pos_start, pos_end=pos_end), None
+        elif self.current_token.type == ';':
+            self.advance()
+            return IdNode(name, pos_start, self.current_token.pos_end), None
         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: 'id'")
 
     def parseDeclaration(self):
@@ -1974,6 +2098,7 @@ class Parser:
                 if error: return None, error
                 return CurseDomainNode(body, pos_start, pos_end), None
         elif self.current_token.type == 'restrict':
+            pos_start = self.current_token.pos_start
             self.advance()
             if self.current_token.type not in ['int', 'float', 'string', 'bool']: 
                 return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: int, float, string, bool")
@@ -1990,7 +2115,7 @@ class Parser:
                 value, error = self.parseExpr()
                 if error: return None, error
                 if self.current_token.type == ',':
-                    declarations = [VarDecNode('restrict', datatype, name, value, pos_start, self.current_token.pos_end)]
+                    declarations = [VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end)]
                     while self.current_token.type == ',':
                         self.advance()
                         if self.current_token.type != 'id':
@@ -2001,11 +2126,11 @@ class Parser:
                             self.advance()
                             value, error = self.parseExpr()
                             if error: return None, error
-                            declarations.append(VarDecNode('restrict', datatype, name, value, pos_start, self.current_token.pos_end))
+                            declarations.append(VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end))
                         else:
-                            declarations.append(VarDecNode('restrict', datatype, name, 0, pos_start, self.current_token.pos_end))
+                            declarations.append(VarDecNode(True, datatype, name, 0, pos_start, self.current_token.pos_end))
                     return declarations, None
-                return VarDecNode('restrict', datatype, name, value, pos_start, self.current_token.pos_end), 0
+                return VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end), 0
             elif self.current_token.type == ',':
                 pos_start = self.current_token.pos_start
                 declarations = [VarDecNode('restrict', datatype, name, 0, pos_start, self.current_token.pos_end)]
@@ -2019,12 +2144,12 @@ class Parser:
                         self.advance()
                         value, error = self.parseExpr()
                         if error: return None, error
-                        declarations.append(VarDecNode('restrict', datatype, name, value, pos_start, self.current_token.pos_end))
+                        declarations.append(VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end))
                     else:
-                        declarations.append(VarDecNode('restrict', datatype, name, 0, pos_start, self.current_token.pos_end))
+                        declarations.append(VarDecNode(True, datatype, name, 0, pos_start, self.current_token.pos_end))
                 return declarations, None
             elif self.current_token.type == ';':
-                return VarDecNode('restrict', datatype, name, 0, pos_start, self.current_token.pos_end), None
+                return VarDecNode(True, datatype, name, 0, pos_start, self.current_token.pos_end), None
         else:
             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: int, float, string, bool, curse, or restrict")
     
@@ -2145,7 +2270,7 @@ class Parser:
                             self.advance()  # Advance past the closing '}'
                             body.add_child(VowNode(condition, body_node, else_vows, ElseNode(else_body_node, else_pos_start, else_pos_end), pos_start, self.current_token.pos_end))
                     else:
-                        body.add_child(VowNode(condition, body_node, else_vows, pos_start, self.current_token.pos_end))
+                        body.add_child(VowNode(condition, body_node, else_vows, None, pos_start, self.current_token.pos_end))
                 elif self.current_token.type == 'boogie':
                     boogie_start = self.current_token.pos_start
                     self.advance()
@@ -2411,7 +2536,7 @@ class Parser:
                         self.advance()  # Advance past the closing '}'
                         body.add_child(VowNode(condition, body_node, else_vows, ElseNode(else_body_node, else_start, self.current_token.pos_end), vow_start, self.current_token.pos_end))
                 else:
-                    body.add_child(VowNode(condition, body_node, else_vows, vow_start, self.current_token.pos_end))
+                    body.add_child(VowNode(condition, body_node, else_vows, None, vow_start, self.current_token.pos_end))
             else:
                 self.advance()
         return body, None
@@ -2459,8 +2584,10 @@ def semantic_run(tokens):
     
     if visitor.errors:
         errors.extend(visitor.errors)
+        if errors:
+            errors.sort(key=lambda e: e.pos_start.ln)
         return None, errors
-    print(symbol_table.scopes)
+    
     if errors:
         errors.sort(key=lambda e: e.pos_start.ln)
     
