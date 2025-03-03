@@ -124,6 +124,12 @@ class BinOpNode(ASTNode): # binary operation
         self.right = right
         self.add_child(left)
         self.add_child(right)
+        try:
+            self.value = eval(f'{left.value} {op.type} {right.value}')
+        except ZeroDivisionError:
+            self.value = 0
+        except: 
+            self.value = None
 
     def __repr__(self):
         return f'BinOpNode_Object: {self.op}'
@@ -638,13 +644,19 @@ class MyASTVisitor(ASTVisitor):
             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
 
         if node.op == '/':
+            print(f'Node_Right: {node.right}\nParent_Node: {node.right.parent}\nParent_Value: {node.right.parent.value}')
             if isinstance(node.right, NumNode) and node.right.value == 0:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
-
+            elif isinstance(node.right, IdNode) and isinstance(node.right.parent, BinOpNode):
+                id_symbol = self.symbol_table.get(node.right.name)
+                if id_symbol: # If the IdNode is a variable
+                    if isinstance(id_symbol, VarDecNode) and isinstance(id_symbol.value, NumNode) and id_symbol.value.value == 0:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                        
         if left_type != right_type:
             if (left_type == 'string' and right_type in ['int', 'float']) or (right_type == 'string' and left_type in ['int', 'float']):
                 if not isinstance(parent, StringConcatNode):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Cannot concatenate '{left_type}' and '{right_type}'"))
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 1: Cannot concatenate '{left_type}' and '{right_type}'"))
             elif left_type == 'bool' and right_type == 'int':
                 if isinstance(parent, BinOpNode):
                     evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
@@ -688,13 +700,23 @@ class MyASTVisitor(ASTVisitor):
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
                 pass
             else:
-                if isinstance(node.left, IdNode):
+                if isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
                     self.unresolved_cases.append((node.left, node))
                     return
-                if isinstance(node.right, IdNode):
+                if isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
                     self.unresolved_cases.append((node.right, node))
                     return
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: '{left_type}' and '{right_type}'"))
+                if isinstance(node.left, IdNode) and self.symbol_table.get(node.left.name):
+                    left_node = self.symbol_table.get(node.left.name)
+                    if isinstance(left_node, VarDecNode):
+                        if isinstance(left_node.value, NullNode):
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
+                if isinstance(node.left, IdNode) and self.symbol_table.get(node.right.name):
+                    right_node = self.symbol_table.get(node.right.name)
+                    if isinstance(right_node, VarDecNode):
+                        if isinstance(right_node.value, NullNode):
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 2: '{left_type}' and '{right_type}'"))
         else:
             if isinstance(parent, BinOpNode):
                 if left_type == 'int' and right_type == 'int':
@@ -713,6 +735,16 @@ class MyASTVisitor(ASTVisitor):
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+            if isinstance(node.left, IdNode) and self.symbol_table.get(node.left.name):
+                left_node = self.symbol_table.get(node.left.name)
+                if isinstance(left_node, VarDecNode):
+                    if isinstance(left_node.value, NullNode):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
+            if isinstance(node.right, IdNode) and self.symbol_table.get(node.right.name):
+                right_node = self.symbol_table.get(node.right.name)
+                if isinstance(right_node, VarDecNode):
+                    if isinstance(right_node.value, NullNode):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
         self.visit_children(node)
         print(f"Exiting BinOpNode")
 
@@ -758,7 +790,7 @@ class MyASTVisitor(ASTVisitor):
             value_type = self.infer_type(node.value)
             var_type = self.symbol_table.get_type(node.name)
             if var_type != value_type:
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{var_type}', got '{value_type}'"))
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 3: Expected '{var_type}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting VarAssignNode")
 
@@ -813,7 +845,7 @@ class MyASTVisitor(ASTVisitor):
             for value in node.values:
                 value_type = self.infer_type(value)
                 if symbol_type != value_type:
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{symbol_type}', got '{value_type}'"))
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 4: Expected '{symbol_type}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting ClanIndexAssignNode")
 
@@ -879,7 +911,7 @@ class MyASTVisitor(ASTVisitor):
                         param_type = param.datatype  # Use param.datatype directly
                         arg_type = self.infer_type(arg)
                         if param_type != arg_type:
-                            self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch: Expected '{param_type}', got '{arg_type}'"))
+                            self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch 5: Expected '{param_type}', got '{arg_type}'"))
             else:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a curse"))
         self.visit_children(node)
@@ -932,27 +964,27 @@ class MyASTVisitor(ASTVisitor):
                         if curse_return_type is None:
                             curse_return_type = 'void'
                         if grandparent.datatype != curse_return_type:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{grandparent.datatype}', got '{curse_return_type}'"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 6: Expected '{grandparent.datatype}', got '{curse_return_type}'"))
                 elif isinstance(node.value, ClanAccessNode):
                     symbol_type = self.symbol_table.get_type(node.value.name)
                     if symbol_type is None:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined clan '{node.value.name}'"))
                     else:
                         if grandparent.datatype != symbol_type:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{grandparent.datatype}', got '{symbol_type}'"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 7: Expected '{grandparent.datatype}', got '{symbol_type}'"))
                 elif isinstance(node.value, IdNode):   
                     symbol_type = self.symbol_table.get_type(node.value.name)
                     if symbol_type is None:
                         self.unresolved_cases.append((node, parent))
                     else:
                         if grandparent.datatype != symbol_type:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{grandparent.datatype}', got '{symbol_type}'"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 8: Expected '{grandparent.datatype}', got '{symbol_type}'"))
                 elif isinstance(node.value, BinOpNode):
                     self.unresolved_cases.append((node.value, node))
                 else:
                     return_type = self.infer_type(node.value)
                     if return_type != grandparent.datatype:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{grandparent.datatype}', got '{return_type}'"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 9: Expected '{grandparent.datatype}', got '{return_type}'"))
         elif isinstance(grandparent, CurseDecNode) and grandparent.datatype == None:
             if node.value:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, "Recall statement cannot return a value in a void curse"))
@@ -1034,6 +1066,18 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_CycleConditionNode(self, node, parent):
         print(f"Visiting CycleConditionNode")
+        if isinstance(node.init, VarDecNode):
+            if not isinstance(node.init.value, NumNode):
+                self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
+        elif isinstance(node.init, VarAssignNode):
+            if not self.symbol_table.get(node.init.name):
+                self.unresolved_cases.append((node.init, node))
+                return
+            init_type = self.symbol_table.get_type(node.init.name)
+            if init_type != 'int':
+                self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
+        else: 
+            self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Invalid cycle initialization"))
         self.visit_children(node)
         print(f"Exiting CycleConditionNode")
 
@@ -1057,11 +1101,11 @@ class MyASTVisitor(ASTVisitor):
                             if curse_return_type is None:
                                 curse_return_type = 'void'
                             if symbol_type != curse_return_type:
-                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{symbol_type}' curse, got '{curse_return_type}' curse"))
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 10: Expected '{symbol_type}' curse, got '{curse_return_type}' curse"))
                     else:
                         value_type = self.infer_type(node.value)
                         if symbol_type != value_type:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{symbol_type}', got '{value_type}'"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 11: Expected '{symbol_type}', got '{value_type}'"))
 
             elif isinstance(node, CurseCallNode):
                 curse_node = self.symbol_table.get(node.name)
@@ -1071,7 +1115,7 @@ class MyASTVisitor(ASTVisitor):
                 elif isinstance(parent, VarAssignNode):
                     if isinstance(curse_node, CurseDecNode):
                         if parent.datatype != curse_node.datatype:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{parent.datatype}' curse, got '{curse_node.datatype}' curse"))  
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 12: Expected '{parent.datatype}' curse, got '{curse_node.datatype}' curse"))  
 
                 if curse_node is None:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse '{node.name}'"))
@@ -1085,11 +1129,11 @@ class MyASTVisitor(ASTVisitor):
                                 param_type = param.datatype
                                 arg_type = self.infer_type(arg)
                                 if param_type != arg_type:
-                                    self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch: Expected '{param_type}' type argument, got '{arg_type}'"))
+                                    self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch 12: Expected '{param_type}' type argument, got '{arg_type}'"))
                             if isinstance(parent, VarAssignNode):
                                 parent_datatype = self.symbol_table.get_type(parent.name)
                                 if parent_datatype != curse_node.datatype:
-                                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{parent_datatype}' curse, got '{curse_node.datatype}' curse"))
+                                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 13: Expected '{parent_datatype}' curse, got '{curse_node.datatype}' curse"))
             elif isinstance(node, InvokeNode):
                 if isinstance(node.value, IdNode):
                     symbol = self.symbol_table.get(node.value.name)
@@ -1106,7 +1150,7 @@ class MyASTVisitor(ASTVisitor):
                         while parent_function and not isinstance(parent_function, CurseDecNode):
                             parent_function = parent_function.parent
                         if parent_function and parent_function.datatype != symbol.datatype:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{parent_function.datatype}', got '{symbol.datatype}'"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 14: Expected '{parent_function.datatype}', got '{symbol.datatype}'"))
 
             elif isinstance(node, IdNode):
                 symbol = self.symbol_table.get(node.name)
@@ -1123,13 +1167,13 @@ class MyASTVisitor(ASTVisitor):
                 binop_parent = node.parent
                 if isinstance(binop_parent, (VarDecNode)):
                     if binop_type != binop_parent.datatype:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{binop_parent.datatype}', got '{binop_type}'"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 15: Expected '{binop_parent.datatype}', got '{binop_type}'"))
                 elif isinstance(binop_parent, (RecallNode)):
                     parent_function = binop_parent.parent
                     while parent_function and not isinstance(parent_function, CurseDecNode):
                         parent_function = parent_function.parent
                     if parent_function and parent_function.datatype != binop_type:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{parent_function.datatype}', got '{binop_type}'"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 16: Expected '{parent_function.datatype}', got '{binop_type}'"))
                     else: print(f"Unhandled Error: {parent.function.datatype} and {binop_type}")
                 elif isinstance(binop_parent, (CycleConditionNode)):
                     if binop_type != 'bool':
@@ -1140,6 +1184,13 @@ class MyASTVisitor(ASTVisitor):
                 elif isinstance(binop_parent, (WoogieTrueNode)):
                     if binop_type != 'bool':
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Condition must be a boolean expression, got '{binop_type}'"))
+            elif isinstance(node, CycleConditionNode):
+                node_init = node.init
+                init_type = self.symbol_table.get_type(node_init.name)
+                print(f"Init type: {init_type}\nInit instance: {node_init}\nSymbol Table: {self.symbol_table.scopes}")
+                print("I reached here")
+                if init_type != 'int':
+                    self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
         print(f"Unresolved cases after resolution: {self.unresolved_cases}\n")
 
     def infer_type(self, node):
