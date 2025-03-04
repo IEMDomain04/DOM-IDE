@@ -40,7 +40,7 @@ delim_map = {
     'clssquare_delim':  {'+', '-', '*', '/', '%', ' !', '=', '<', '>', ')', ',', '[', ']', '\n', '\t', ';', ' ', '&', '|' , '#'},
     'codeblk_delim':    {'{', ' ', '\n', '\t', '#'},
     'col_delim':        set(ALPHA + '\n' + '\t' + ' ' + '#'),
-    'comma_delim':      set(ALPHA_NUMERIC + '"' + "'" + '(' + '[' + '-' + ' ' + "\n" + "\t" + '#'),
+    'comma_delim':      set(ALPHA_NUMERIC + '"' + "'" + '(' + '[' + '{' + '-' + ' ' + "\n" + "\t" + '#'),
     'comp_delim':       set(ALPHA_NUMERIC + '"' + "'" + '(' + '-' + ' ' + '!' + '#'),
     'default_delim':    {' ', ':', '\t', '#'},
     'ex_delim':         {';', '#', '\n', '\t', ' '},

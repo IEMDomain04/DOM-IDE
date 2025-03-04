@@ -277,11 +277,13 @@ class ClanLiteralNode(ASTNode): # for clan literals
     def __init__(self, values, pos_start=None, pos_end=None):
         super().__init__("Clan Literal", pos_start, pos_end)
         self.values = values
-        for value in values:
-            if isinstance(value, list):
-                self.add_child(ClanLiteralNode(value, pos_start, pos_end))
-            else:
-                self.add_child(value)
+        if isinstance(self.values, list):
+            for value in values:
+                if isinstance(value, list):
+                    self.add_child(ClanLiteralNode(value, pos_start, pos_end))
+                else:
+                    self.add_child(value)
+        else: self.add_child(values)
 
     def __repr__(self):
         return f"ClanLiteralNode({', '.join(repr(value) for value in self.values)})"
@@ -620,12 +622,45 @@ class MyASTVisitor(ASTVisitor):
         if node.op == '/':
             print(f'Node_Right: {node.right}\nParent_Node: {node.right.parent}\nParent_Value: {node.right.parent.value}')
             if isinstance(node.right, NumNode) and node.right.value == 0:
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 1"))
             elif isinstance(node.right, IdNode) and isinstance(node.right.parent, BinOpNode):
                 id_symbol = self.symbol_table.get(node.right.name)
                 if id_symbol: # If the IdNode is a variable
                     if isinstance(id_symbol, VarDecNode) and isinstance(id_symbol.value, NumNode) and id_symbol.value.value == 0:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 2"))
+            elif isinstance(node.right, ClanAccessNode):
+                value = None
+                clan_symbol = self.symbol_table.get(node.right.name)
+                if not clan_symbol: 
+                    self.unresolved_cases.append((node.right, node))
+                    return
+                if clan_symbol and isinstance(clan_symbol, ClanDecNode):
+                    index1_value = self.evaluate_node(node.right.index1)
+                    index2_value = self.evaluate_node(node.right.index2) if node.right.index2 else None
+                    if index1_value is not None and (index1_value < 0 or index1_value >= self.evaluate_node(clan_symbol.size1)):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Index out of bounds 1: index1 is {index1_value}, but size1 is {self.evaluate_node(clan_symbol.size1)}"))
+                    if index2_value is not None and (index2_value < 0 or index2_value >= self.evaluate_node(clan_symbol.size2)):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Index out of bounds 2: index2 is {index2_value}, but size2 is {self.evaluate_node(clan_symbol.size2)}"))
+                    if index1_value is not None and (index2_value is None or index2_value is not None):
+                        if index2_value is None:
+                            try: 
+                                value = clan_symbol.initial_values.values[index1_value]
+                            except IndexError:
+                                return
+                        else:
+                            value = clan_symbol.initial_values[index2_value].values[index1_value]
+                            print(f'Value: {value}')
+                        if isinstance(value, NumNode) and value.value == 0:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 3"))
+                        elif isinstance(value, IdNode) and isinstance(value.parent, BinOpNode):
+                            id_symbol = self.symbol_table.get(value.name)
+                            if id_symbol: # If the IdNode is a variable
+                                if isinstance(id_symbol, VarDecNode) and isinstance(id_symbol.value, NumNode) and id_symbol.value.value == 0:
+                                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 4"))
+                        elif isinstance(value, BinOpNode):
+                            value = self.evaluate_node(value)
+                            if value == 0:
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 5"))
 
         if left_type != right_type:
             if (left_type == 'string' and right_type in ['int', 'float']) or (right_type == 'string' and left_type in ['int', 'float']):
@@ -636,42 +671,42 @@ class MyASTVisitor(ASTVisitor):
                     evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 6"))
                 pass
             elif left_type == 'int' and right_type == 'bool':
                 if isinstance(parent, BinOpNode):
                     evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 7"))
                 pass
             elif left_type == 'bool' and right_type == 'float':
                 if isinstance(parent, BinOpNode):
                     evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 8"))
                 pass
             elif left_type == 'float' and right_type == 'bool':
                 if isinstance(parent, BinOpNode):
                     evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 9"))
                 pass
             elif left_type == 'int' and right_type == 'float':
                 if isinstance(parent, BinOpNode):
                     evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 10"))
                 pass
             elif left_type == 'float' and right_type == 'int':
                 if isinstance(parent, BinOpNode):
                     evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 11"))
                 pass
             else:
                 if isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
@@ -704,17 +739,17 @@ class MyASTVisitor(ASTVisitor):
                     evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 12"))
                 elif left_type == 'float' and right_type == 'float':
                     evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 13"))
                 elif left_type == 'bool' and right_type == 'bool':
                     evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 14"))
             if isinstance(node.left, IdNode) and self.symbol_table.get(node.left.name):
                 left_node = self.symbol_table.get(node.left.name)
                 if isinstance(left_node, VarDecNode):
@@ -791,8 +826,6 @@ class MyASTVisitor(ASTVisitor):
                 self.errors.append(SemanticError(node.size1.pos_start, node.size1.pos_end, f"Type mismatch 23: Expected 'int' for size1, got '{size1_type}'"))
             else:
                 size1_value = self.evaluate_node(node.size1)
-                if size1_value is None:
-                    return  # Early exit if evaluation is None
 
         if node.size2:
             size2_type = self.infer_type(node.size2)
@@ -803,8 +836,6 @@ class MyASTVisitor(ASTVisitor):
                 self.errors.append(SemanticError(node.size2.pos_start, node.size2.pos_end, f"Type mismatch 22: Expected 'int' for size2, got '{size2_type}'"))
             else:
                 size2_value = self.evaluate_node(node.size2)
-                if size2_value is None:
-                    return  # Early exit if evaluation is None
 
         # Handle single-dimensional array
         if node.size1 and not node.size2:
@@ -921,6 +952,20 @@ class MyASTVisitor(ASTVisitor):
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
             self.unresolved_cases.append((node, parent))
+        else:
+            if isinstance(symbol, ClanDecNode):
+                size1_value = self.evaluate_node(symbol.size1)
+                size2_value = self.evaluate_node(symbol.size2) if symbol.size2 else None
+
+                index1_value = self.evaluate_node(node.index1)
+                index2_value = self.evaluate_node(node.index2) if node.index2 else None
+
+                if index1_value is not None and (index1_value < 0 or index1_value >= size1_value):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Index out of bounds 4: index1 is {index1_value}, but size1 is {size1_value}"))
+
+                if index2_value is not None and (index2_value < 0 or index2_value >= size2_value):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Index out of bounds 5: index2 is {index2_value}, but size2 is {size2_value}"))
+
         self.visit_children(node)
         print(f"Exiting ClanAccessNode")
 
@@ -949,17 +994,53 @@ class MyASTVisitor(ASTVisitor):
                 print(f'Symbol Table: {self.symbol_table.scopes}')
                 # Check for out-of-bounds errors
                 if isinstance(symbol, ClanDecNode):
-                    size1_value = self.evaluate_node(symbol.size1)
-                    size2_value = self.evaluate_node(symbol.size2) if symbol.size2 else None
+                    if isinstance(symbol.size1, CurseCallNode):
+                        size1_value = self.evaluate_node(symbol.size1)
+                        if size1_value is None:
+                            self.unresolved_cases.append((symbol.size1, symbol))
+                            return
+                    elif isinstance(symbol.size1, NumNode):
+                        size1_value = symbol.size1.value
+                    elif isinstance(symbol.size1, IdNode):
+                        if self.symbol_table.get_type(symbol.size1.name) == 'int':
+                            size1_value = self.symbol_table.get(symbol.size1.name).value
+                        else:
+                            self.unresolved_cases.append((symbol.size1, symbol))
+                            return
+                    elif isinstance(symbol.size1, BinOpNode):
+                        size1_value = self.evaluate_node(symbol.size1)
+                    else:
+                        size1_value = self.evaluate_node(symbol.size1)
+                    
+                    if symbol.size2:
+                        if isinstance(symbol.size2, CurseCallNode):
+                            size2_value = self.evaluate_node(symbol.size2)
+                            if size2_value is None:
+                                self.unresolved_cases.append((symbol.size2, symbol))
+                                return
+                        elif isinstance(symbol.size2, NumNode):
+                            size2_value = symbol.size2.value
+                        elif isinstance(symbol.size2, IdNode):
+                            if self.symbol_table.get_type(symbol.size2.name) == 'int':
+                                size2_value = self.symbol_table.get(symbol.size2.name).value
+                            else:
+                                self.unresolved_cases.append((symbol.size2, symbol))
+                                return
+                        elif isinstance(symbol.size2, BinOpNode):
+                            size2_value = self.evaluate_node(symbol.size2)
+                        else:
+                            size2_value = self.evaluate_node(symbol.size2)
+                    else:
+                        size2_value = None
 
                     index1_value = self.evaluate_node(node.index1)
                     index2_value = self.evaluate_node(node.index2) if node.index2 else None
 
                     if index1_value is not None and (index1_value < 0 or index1_value >= size1_value):
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Index out of bounds: index1 is {index1_value}, but size1 is {size1_value}"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Index out of bounds 6: index1 is {index1_value}, but size1 is {size1_value}"))
 
                     if index2_value is not None and (index2_value < 0 or index2_value >= size2_value):
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Index out of bounds: index2 is {index2_value}, but size2 is {size2_value}"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Index out of bounds 7: index2 is {index2_value}, but size2 is {size2_value}"))
 
         self.visit_children(node)
         print(f"Exiting ClanIndexAssignNode")
@@ -1193,6 +1274,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Unresolved cases: {self.unresolved_cases}")
 
         for node, parent in self.unresolved_cases:
+            print(f'Node Type: {type(node)}\n')
             if isinstance(node, VarAssignNode):
                 symbol_type = self.symbol_table.get_type(node.name)
                 if symbol_type is None:
@@ -1216,7 +1298,7 @@ class MyASTVisitor(ASTVisitor):
 
             elif isinstance(node, CurseCallNode):
                 curse_node = self.symbol_table.get(node.name)
-
+                print("HEYHEYHEY")
                 if isinstance(curse_node, VarDecNode):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a curse"))
                 elif isinstance(parent, VarAssignNode):
@@ -1224,11 +1306,12 @@ class MyASTVisitor(ASTVisitor):
                         if parent.datatype != curse_node.datatype:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 12: Expected '{parent.datatype}' curse, got '{curse_node.datatype}' curse"))  
                 elif isinstance(parent, ClanDecNode):
+                    print("HEYHEYHEY")
                     if curse_node is None:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse 3 '{node.name}'"))
                     else:
                         if curse_node.datatype != parent.datatype:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 18: Expected '{parent.datatype}', got '{curse_node.datatype}'"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 18: Expected '{parent.datatype}', got '{curse_node.datatype}'"))    
                 elif isinstance(parent, BinOpNode):
                     if curse_node is None:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse 4 '{node.name}'"))
@@ -1248,7 +1331,6 @@ class MyASTVisitor(ASTVisitor):
                                 print(f'Symbol Table: {self.symbol_table.scopes}')
                                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 20: Expected '{clan_type}' curse, got '{curse_node_type}' curse"))
                 elif isinstance(parent, ClanIndexAssignNode):
-                    print("HEYHEYEHYEHEYHEY")
                     if curse_node is None:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse 5 '{node.name}'"))
                     else:
@@ -1300,9 +1382,9 @@ class MyASTVisitor(ASTVisitor):
                     if isinstance(symbol, VarDecNode) and isinstance(symbol.value, NullNode):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform operation on Null value"))
                     if parent.op == '/' and isinstance(symbol.value, NumNode) and symbol.value.value == 0:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 15"))
                     elif parent.op == '/' and isinstance(symbol.value, BinOpNode) and symbol.value.value == 0:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 16"))
 
             elif isinstance(node, IdNode) and isinstance(parent, ClanDecNode):
                 symbol = self.symbol_table.get_type(node.name)
@@ -1361,30 +1443,54 @@ class MyASTVisitor(ASTVisitor):
                     else:
                         if isinstance(node.value, CurseCallNode):
                             if self.infer_type(node.value) == 'unknown':
-                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse '{node.value.name}'"))
-                                continue
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse 7 '{node.value.name}'"))
                         if node.value:
                             value_type = self.infer_type(node.value)
                             if value_type == 'unknown':
                                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined variable '{node.value.name}'"))
-                                continue
                             if symbol_type != value_type:
                                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch: Expected '{symbol_type}', got '{value_type}'"))
 
                         print(f'Symbol Table: {self.symbol_table.scopes}')
                         # Check for out-of-bounds errors
                         if isinstance(symbol, ClanDecNode):
-                            size1_value = self.evaluate_node(symbol.size1)
-                            size2_value = self.evaluate_node(symbol.size2) if symbol.size2 else None
+                            if isinstance(symbol.size1, CurseCallNode):
+                                size1_value = self.evaluate_node(symbol.size1)
+                            elif isinstance(symbol.size1, NumNode):
+                                size1_value = symbol.size1.value
+                            elif isinstance(symbol.size1, IdNode):
+                                if self.symbol_table.get_type(symbol.size1.name) == 'int':
+                                    size1_value = self.symbol_table.get(symbol.size1.name).value
+                                else: size1_value = None
+                            elif isinstance(symbol.size1, BinOpNode):
+                                size1_value = self.evaluate_node(symbol.size1)
+                            else:
+                                size1_value = self.evaluate_node(symbol.size1)
+
+                            if symbol.size2:
+                                if isinstance(symbol.size2, CurseCallNode):
+                                    size2_value = self.evaluate_node(symbol.size2)
+                                elif isinstance(symbol.size2, NumNode):
+                                    size2_value = symbol.size2.value
+                                elif isinstance(symbol.size2, IdNode):
+                                    if self.symbol_table.get_type(symbol.size2.name) == 'int':
+                                        size2_value = self.symbol_table.get(symbol.size2.name).value
+                                    else: size2_value = None
+                                elif isinstance(symbol.size2, BinOpNode):
+                                    size2_value = self.evaluate_node(symbol.size2)     
+                                else:
+                                    size2_value = self.evaluate_node(symbol.size2)
+                            else:
+                                size2_value = None
 
                             index1_value = self.evaluate_node(node.index1)
                             index2_value = self.evaluate_node(node.index2) if node.index2 else None
+                            
+                            if index1_value is not None and size1_value is not None and (index1_value < 0 or index1_value >= size1_value):
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Index out of bounds 8: index1 is {index1_value}, but size1 is {size1_value}"))
 
-                            if index1_value is not None and (index1_value < 0 or index1_value >= size1_value):
-                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Index out of bounds: index1 is {index1_value}, but size1 is {size1_value}"))
-
-                            if index2_value is not None and (index2_value < 0 or index2_value >= size2_value):
-                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Index out of bounds: index2 is {index2_value}, but size2 is {size2_value}"))
+                            if index2_value is not None and size2_value is not None and (index2_value < 0 or index2_value >= size2_value):
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Index out of bounds 9: index2 is {index2_value}, but size2 is {size2_value}"))
         print(f"Unresolved cases after resolution: {self.unresolved_cases}\n")
 
     def infer_type(self, node):
@@ -1568,17 +1674,24 @@ class Parser:
             self.advance()
             return NullNode(tok.value, tok.pos_start, tok.pos_end), None
         elif tok.type == 'id' and self.peek().type == '[':
+            index1, index2 = None, None
             name = tok.value
             pos_start = tok.pos_start
             self.advance()
             self.advance()
-            index, error = self.parseExpr()
+            index1, error = self.parseExpr()
             if error: return None, error
-            if self.current_token.type == ']':
-                self.advance()
-                return ClanAccessNode(name, index, pos_start, self.current_token.pos_end), None
-            else:
+            if self.current_token.type != ']':
                 return None, SemanticError(tok.pos_start, tok.pos_end, "Expected: ']'")
+            self.advance()
+            if self.current_token.type == '[':
+                self.advance()
+                index2, error = self.parseExpr()
+                if error: return None, error
+                if self.current_token.type != ']':
+                    return None, SemanticError(tok.pos_start, tok.pos_end, "Expected: ']'")
+                self.advance()
+            return ClanAccessNode(name, index1, index2, pos_start, self.current_token.pos_end), None
         elif tok.type == 'id' and self.peek().type == '(':
             name = tok.value
             pos_start = tok.pos_start
