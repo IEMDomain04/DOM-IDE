@@ -111,7 +111,7 @@ CFG = {
     ],
 
     "<clan_multi_item>": [      
-        [",", "<literal>", "<clan_multi_item>"],########### 56
+        [",", "<expression>", "<clan_multi_item>"],########### 56
         []                                   ########### 57
     ],
 
@@ -172,7 +172,7 @@ CFG = {
         ["dismantle", "(", "<arguments>", ")", ";"], ###########
         ["capture", "(", "id", ")", ";"],    ###########
         ["len", "(", "<arguments>", ")", ";"],    ###########
-        ["<recall_stm>"],        ###########
+        ["<recall_stm>", ';'],        ###########
         ["<conditional_stm>"],            ###########
         ["<looping_stm>"],                ###########
         []
@@ -182,6 +182,7 @@ CFG = {
     "<local>": [
         ["<datatype>", "<curse_or_var>"], ###########
         ["curse", "<local_void_curse>"], ###########
+        ["restrict", "<datatype>", "id", "<type_choice>"] ###########
     ],
 
     "<local_void_curse>": [
@@ -199,7 +200,7 @@ CFG = {
 
     "<id_call>": [
         ["<assign_op>", "<expression>"], ###########
-        ["[", "<value>", "]", "<assign_op>", "<expression>"], ###########
+        ["[", "<expression>", "]", "<two_dimensional>", "<assign_op>", "<expression>"], ###########
         ["(", "<arguments>", ")"], ###########
         ["++"], 
         ["--"], 
@@ -477,6 +478,11 @@ PREDICT_SET = {
         "[": ["<two_dimensional>", 0],
         "=": ["<two_dimensional>", 1],
         ";": ["<two_dimensional>", 1],
+        '+=': ["<two_dimensional>", 1],
+        '-=': ["<two_dimensional>", 1],
+        '*=': ["<two_dimensional>", 1],
+        '/=': ["<two_dimensional>", 1],
+        '%=': ["<two_dimensional>", 1],
     },
 
     "<clan_assign>": { ############# verified
@@ -685,6 +691,7 @@ PREDICT_SET = {
         ")": ["<more_logic>", 1],  
         ",": ["<more_logic>", 1], 
         "(": ["<more_logic>", 1],  
+        "}": ["<more_logic>", 1],
         ";": ["<more_logic>", 1], 
         ":": ["<more_logic>", 1], 
         "]": ["<more_logic>", 1],
@@ -738,6 +745,7 @@ PREDICT_SET = {
         "sustain": ["<body>", 0],
         "perform": ["<body>", 0],
         "recall": ["<body>", 0],
+        "restrict": ["<body>", 0],
         "}": ["<body>", 1],
         "Ø": ["<body>", 1]
     },
@@ -748,6 +756,7 @@ PREDICT_SET = {
         "float": ["<statement>", 0],
         "bool": ["<statement>", 0],
         "curse": ["<statement>", 0],
+        "restrict": ["<statement>", 0],
         "id": ["<statement>", 1],
         "invoke": ["<statement>", 2],
         "cleave": ["<statement>", 3],
@@ -769,7 +778,8 @@ PREDICT_SET = {
         "float": ["<local>", 0],
         "string": ["<local>", 0],
         "bool": ["<local>", 0],
-        "curse": ["<local>", 1]
+        "curse": ["<local>", 1],
+        "restrict": ["<local>", 2]
     },
 
     "<local_void_curse>": { ############# verified
@@ -995,6 +1005,7 @@ PREDICT_SET = {
         "float": ["<con_loop_body>", 0],
         "bool": ["<con_loop_body>", 0],
         "curse": ["<con_loop_body>", 0],
+        "restrict": ["<con_loop_body>", 0],
         "id": ["<con_loop_body>", 1],
         "invoke": ["<con_loop_body>", 2],
         "cleave": ["<con_loop_body>", 3],
