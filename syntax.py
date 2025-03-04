@@ -111,7 +111,7 @@ CFG = {
     ],
 
     "<clan_multi_item>": [      
-        [",", "<literal>", "<clan_multi_item>"],########### 56
+        [",", "<expression>", "<clan_multi_item>"],########### 56
         []                                   ########### 57
     ],
 
@@ -199,7 +199,7 @@ CFG = {
 
     "<id_call>": [
         ["<assign_op>", "<expression>"], ###########
-        ["[", "<value>", "]", "<assign_op>", "<expression>"], ###########
+        ["[", "<expression>", "]", "<two_dimensional>", "<assign_op>", "<expression>"], ###########
         ["(", "<arguments>", ")"], ###########
         ["++"], 
         ["--"], 
@@ -477,6 +477,11 @@ PREDICT_SET = {
         "[": ["<two_dimensional>", 0],
         "=": ["<two_dimensional>", 1],
         ";": ["<two_dimensional>", 1],
+        '+=': ["<two_dimensional>", 1],
+        '-=': ["<two_dimensional>", 1],
+        '*=': ["<two_dimensional>", 1],
+        '/=': ["<two_dimensional>", 1],
+        '%=': ["<two_dimensional>", 1],
     },
 
     "<clan_assign>": { ############# verified
@@ -685,6 +690,7 @@ PREDICT_SET = {
         ")": ["<more_logic>", 1],  
         ",": ["<more_logic>", 1], 
         "(": ["<more_logic>", 1],  
+        "}": ["<more_logic>", 1],
         ";": ["<more_logic>", 1], 
         ":": ["<more_logic>", 1], 
         "]": ["<more_logic>", 1],
