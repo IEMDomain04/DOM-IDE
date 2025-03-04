@@ -979,7 +979,7 @@ PREDICT_SET = {
         "id": ["<ite_val>", 0],
         "int_literal": ["<ite_val>", 1],
         "float_literal": ["<ite_val>", 2],
-    },
+    }, 
 
     "<val_tail>": { ############# verified
         "+": ["<val_tail>", 0],
