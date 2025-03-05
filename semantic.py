@@ -268,7 +268,10 @@ class ClanDecNode(ASTNode): # for arrays
         if size2:
             self.add_child(size2)
         if self.initial_values:
-            self.add_child(ClanLiteralNode(self.initial_values, pos_start, pos_end))
+            if isinstance(self.initial_values, list):
+                self.add_child(ClanLiteralNode(self.initial_values, pos_start, pos_end))
+            else:
+                self.add_child(self.initial_values)
 
     def __repr__(self):
         return f"ClanDecNode_Object: {self.name}]"
@@ -919,9 +922,26 @@ class MyASTVisitor(ASTVisitor):
                     else:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch in clan values: Expected '{node.datatype}', got '{value_type}'"))
         else:
-            for inner_node in node.initial_values:
-                for value in inner_node.values:
-                    print(f'Value Type: {type(value)}')
+            if isinstance(node.initial_values, list):
+                for inner_node in node.initial_values:
+                    print(f'Inner Node Type: {type(inner_node)}')
+                    #if isinstance(inner_node, ClanLiteralNode):
+                    for value in inner_node.values:
+                        print(f'Value Type: {type(value)}')
+                        value_type = self.infer_type(value)
+                        if isinstance(value, IdNode) and value_type is None:
+                            self.unresolved_cases.append((value, node))
+                            return
+                        elif isinstance(value, CurseCallNode) and value_type == 'unknown':
+                            self.unresolved_cases.append((value, node))
+                            return
+                        if node.datatype != value_type:
+                            if hasattr(value, 'pos_start') and hasattr(value, 'pos_end'):
+                                self.errors.append(SemanticError(value.pos_start, value.pos_end, f"Type mismatch in clan values: Expected '{node.datatype}', got '{value_type}'"))
+                            else:
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch in clan values: Expected '{node.datatype}', got '{value_type}'"))
+            elif isinstance(node.initial_values, ClanLiteralNode):
+                for value in node.initial_values.values:
                     value_type = self.infer_type(value)
                     if isinstance(value, IdNode) and value_type is None:
                         self.unresolved_cases.append((value, node))
@@ -934,7 +954,6 @@ class MyASTVisitor(ASTVisitor):
                             self.errors.append(SemanticError(value.pos_start, value.pos_end, f"Type mismatch in clan values: Expected '{node.datatype}', got '{value_type}'"))
                         else:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch in clan values: Expected '{node.datatype}', got '{value_type}'"))
-
         self.visit_children(node)
         print(f"Exiting ClanDecNode")
 
@@ -1822,7 +1841,7 @@ class Parser:
                 return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '(', '++', '--', '!', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal'")
             
             if self.current_token.type == 'id' and self.peek().type == '(':
-                value, error = self.parseExpr
+                value, error = self.parseExpr()
                 if error: return None, error
                 pos_end = self.current_token.pos_end
                 return VarAssignNode(name, value, pos_start, pos_end), None
@@ -2314,7 +2333,8 @@ class Parser:
                             self.advance()
                     pos_end = self.current_token.pos_end
                     self.advance() # move past the closing brace
-                    return ClanDecNode(None, datatype, name, None, None, initial_values, pos_start, pos_end), None
+                    clan_literal_node = ClanLiteralNode(initial_values, pos_start, pos_end)
+                    return ClanDecNode(None, datatype, name, None, None, clan_literal_node, pos_start, pos_end), None
                 elif self.current_token.type == ',':
                     declarations = [VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end)]
 
@@ -2930,6 +2950,7 @@ def semantic_run(tokens):
     if not any(isinstance(node, CurseDomainNode) for node in ast.children):
         errors.insert(0, DomainError(parser.current_token.pos_start, parser.current_token.pos_end, "Curse domain function is not defined"))
 
+    ast.print_tree()
     if ast:
         visitor.visit(ast)
         visitor.resolve_unresolved()  
@@ -2937,7 +2958,6 @@ def semantic_run(tokens):
         print("No AST built")
         return "No AST built", None
     
-    ast.print_tree()
     if visitor.errors:
         errors.extend(visitor.errors)
         if errors:
