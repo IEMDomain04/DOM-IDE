@@ -401,7 +401,7 @@ PREDICT_SET = {
         "bool": ["<program_tail>", 0],    
         "curse": ["<program_tail>",0],
         "restrict": ["<program_tail>", 0],
-        "Ø": ["<program_tail>", 1]
+        "λ": ["<program_tail>", 1]
     }, 
 
     "<global>": { ############# verified
@@ -487,7 +487,7 @@ PREDICT_SET = {
 
     "<clan_assign>": { ############# verified
         "=": ["<clan_assign>", 0],
-        "Ø": ["<clan_assign>", 1],
+        "λ": ["<clan_assign>", 1],
         ";": ["<clan_assign>", 1]
     },
 
@@ -747,7 +747,7 @@ PREDICT_SET = {
         "recall": ["<body>", 0],
         "restrict": ["<body>", 0],
         "}": ["<body>", 1],
-        "Ø": ["<body>", 1]
+        "λ": ["<body>", 1]
     },
         
     "<statement>": { ############# verified
@@ -770,7 +770,7 @@ PREDICT_SET = {
         "sustain": ["<statement>"   , 9],
         "perform": ["<statement>", 9],
         "}": ["<statement>", 10],
-        "Ø": ["<statement>", 10]
+        "λ": ["<statement>", 10]
     },
 
     "<local>": { ############# verified
@@ -1083,7 +1083,7 @@ PREDICT_SET = {
         "cleave": ["<more_not_op>", 1],
         "dismantle": ["<more_not_op>", 1],
         "len": ["<more_not_op>", 1],
-        "Ø": ["<more_not_op>", 1]
+        "λ": ["<more_not_op>", 1]
     },
 
     "<assign_op>": { ############# verified
@@ -1235,7 +1235,7 @@ class SyntaxAnalyzer:
             print(f"1. New Stack: {stack}\n2. Current Token: {self.current_token.type}")  
             if self.current_token is None or self.current_token.type == 'EOF':
                 self.current_token = type('Token', (object,), {
-                    'type': 'Ø',
+                    'type': 'λ',
                     'pos_start': self.tokens[-1].pos_end if self.tokens else None,
                     'pos_end': self.tokens[-1].pos_end if self.tokens else None
                 })()

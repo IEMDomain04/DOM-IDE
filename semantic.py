@@ -668,42 +668,54 @@ class MyASTVisitor(ASTVisitor):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 1: Cannot concatenate '{left_type}' and '{right_type}'"))
             elif left_type == 'bool' and right_type == 'int':
                 if isinstance(parent, BinOpNode):
-                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    try:
+                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    except: return
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 6"))
                 pass
             elif left_type == 'int' and right_type == 'bool':
                 if isinstance(parent, BinOpNode):
-                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    try:
+                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    except: return
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 7"))
                 pass
             elif left_type == 'bool' and right_type == 'float':
                 if isinstance(parent, BinOpNode):
-                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    try:
+                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    except: return
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 8"))
                 pass
             elif left_type == 'float' and right_type == 'bool':
                 if isinstance(parent, BinOpNode):
-                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    try:
+                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    except: return
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 9"))
                 pass
             elif left_type == 'int' and right_type == 'float':
                 if isinstance(parent, BinOpNode):
-                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    try:
+                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    except: return
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 10"))
                 pass
             elif left_type == 'float' and right_type == 'int':
                 if isinstance(parent, BinOpNode):
-                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    try:
+                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    except: return
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 11"))
@@ -736,17 +748,24 @@ class MyASTVisitor(ASTVisitor):
             if isinstance(parent, BinOpNode):
                 if left_type == 'int' and right_type == 'int':
                     print("686")
-                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    try:
+                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    except: 
+                     return
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 12"))
                 elif left_type == 'float' and right_type == 'float':
-                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    try:
+                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    except: return
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 13"))
                 elif left_type == 'bool' and right_type == 'bool':
-                    evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    try:
+                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    except: return
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 14"))
@@ -927,7 +946,9 @@ class MyASTVisitor(ASTVisitor):
                 left_value = self.evaluate_node(node.left)
                 right_value = self.evaluate_node(node.right)
                 if left_value is not None and right_value is not None:
-                    return eval(f'{left_value} {node.op} {right_value}')
+                    try:
+                     return eval(f'{left_value} {node.op} {right_value}')
+                    except: return None
             return None
         except:
             return None
