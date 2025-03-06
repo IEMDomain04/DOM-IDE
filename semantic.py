@@ -331,6 +331,9 @@ class CurseDecNode(ASTNode): # for functions
         for param in parameters:
             self.add_child(param)
         self.add_child(body)
+    
+    def __repr__(self):
+        return f"CurseDecNode_Object: {self.name}"
 
 class CurseDomainNode(ASTNode): # for function domain
     def __init__(self, body, pos_start=None, pos_end=None):
@@ -822,7 +825,7 @@ class MyASTVisitor(ASTVisitor):
         if not self.symbol_table.get(node.name):
             self.unresolved_cases.append((node, parent))
         elif isinstance(node.value, BinOpNode):
-            self.unresolved_cases.append((node, parent))
+            self.unresolved_cases.append((node.value, node))
         else:
             value_type = self.infer_type(node.value)
             var_type = self.symbol_table.get_type(node.name)
@@ -1120,9 +1123,11 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_BodyNode(self, node, parent):
         print(f"Visiting BodyNode")
-        self.symbol_table.push()  # Enter new scope for body
+        if not isinstance(parent, (CycleNode, SustainNode, PerformSustainNode)):
+            self.symbol_table.push()  # Enter new scope for body
         self.visit_children(node)
-        self.symbol_table.pop()  # Exit body scope
+        if not isinstance(parent, (CycleNode, SustainNode, PerformSustainNode)):
+            self.symbol_table.pop()  # Exit body scope
         print(f"Exiting BodyNode")
 
     def visit_CurseCallNode(self, node, parent):
@@ -1240,7 +1245,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting VowNode")
         condition_type = self.infer_type(node.condition)
         if condition_type != 'bool':
-            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, f"Condition must be a boolean expression, got '{condition_type}'"))
+            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, f"1 Condition must be a boolean expression, got '{condition_type}'"))
         self.visit_children(node)
         print(f"Exiting VowNode")
 
@@ -1248,7 +1253,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting ElseVow")
         condition_type = self.infer_type(node.condition)
         if condition_type != 'bool':
-            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, f"Condition must be a boolean expression, got '{condition_type}'"))
+            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, f"2 Condition must be a boolean expression, got '{condition_type}'"))
         self.visit_children(node)
         print(f"Exiting ElseVow")
 
@@ -1317,6 +1322,7 @@ class MyASTVisitor(ASTVisitor):
             print(f'Node Type: {type(node)}\n')
             if isinstance(node, VarAssignNode):
                 symbol_type = self.symbol_table.get_type(node.name)
+                print(f"\n\n\nSymbol_table: {self.symbol_table.scopes}")
                 if symbol_type is None:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 1 '{node.name}'"))
                 else:
@@ -1406,7 +1412,7 @@ class MyASTVisitor(ASTVisitor):
                 if isinstance(node, IdNode):
                     symbol = self.symbol_table.get(node.name)
                     if symbol is None:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 3 '{node.value.name}'"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 3 '{node.name}'"))
                     else:
                         parent_function = parent
                         while parent_function and not isinstance(parent_function, CurseDecNode):
@@ -1458,13 +1464,13 @@ class MyASTVisitor(ASTVisitor):
                     else: print(f"Unhandled Error: {parent.function.datatype} and {binop_type}")
                 elif isinstance(binop_parent, (CycleConditionNode)):
                     if binop_type != 'bool':
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Condition must be a boolean expression, got '{binop_type}'"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"3 Condition must be a boolean expression, got '{binop_type}'"))
                 elif isinstance(binop_parent, (VowNode, ElseVow)):
                     if binop_type != 'bool':
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Condition must be a boolean expression, got '{binop_type}'"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"4 Condition must be a boolean expression, got '{binop_type}'"))
                 elif isinstance(binop_parent, (WoogieTrueNode)):
                     if binop_type != 'bool':
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Condition must be a boolean expression, got '{binop_type}'"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"5 Condition must be a boolean expression, got '{binop_type}'"))
             elif isinstance(node, CycleConditionNode):
                 node_init = node.init
                 init_type = self.symbol_table.get_type(node_init.name)
@@ -1540,6 +1546,10 @@ class MyASTVisitor(ASTVisitor):
             return 'string'
         elif isinstance(node, BoolNode):
             return 'bool'
+        elif isinstance(node, RelOpNode):
+            return 'bool'
+        elif isinstance(node, LogOpNode):
+            return 'bool'
         elif isinstance(node, NullNode):
             return 'null'
         elif isinstance(node, IdNode):
@@ -1547,6 +1557,8 @@ class MyASTVisitor(ASTVisitor):
                return self.symbol_table.get_type(node.name)
            else: return 'unknown'
         elif isinstance(node, BinOpNode):
+            if node.op in ['<', '>', '<=', '>=', '==', '!=', '!', '&&', '||']:
+                return 'bool'
             left = node.left
             right = node.right
             left_type = self.infer_type(left)
@@ -1627,8 +1639,12 @@ class SymbolTable:
 
     def set(self, name, value):
         # Set in the current (innermost) scope
-        self.scopes[-1][name] = value
-        print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
+        if self.scopes:
+            self.scopes[-1][name] = value
+            print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
+        else: 
+            self.scopes.append({})
+            print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
 
 ###################
 # Parser Class
