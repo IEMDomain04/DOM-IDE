@@ -172,7 +172,7 @@ CFG = {
         ["dismantle", "(", "<arguments>", ")", ";"], ###########
         ["capture", "(", "id", ")", ";"],    ###########
         ["len", "(", "<arguments>", ")", ";"],    ###########
-        ["<recall_stm>", ';'],        ###########
+        ["<recall_stm>"],        ###########
         ["<conditional_stm>"],            ###########
         ["<looping_stm>"],                ###########
         []
@@ -1248,8 +1248,9 @@ class SyntaxAnalyzer:
                     stack.pop()
                     stack.extend(reversed(production))
                 else:
+                    expected_tokens = list(PREDICT_SET[top].keys())
                     error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                               f"Unexpected token '{self.current_token.type}' here.\n[FOR DEV: No prediction for '{self.current_token.type}' in '{top}']")
+                                               f"Unexpected token '{self.current_token.type}' here. Expected one of {expected_tokens}\n[FOR DEV: No prediction for {top} in {self.current_token.type}]")
                     break
             else:
                 if top == self.current_token.type:

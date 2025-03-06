@@ -1120,9 +1120,11 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_BodyNode(self, node, parent):
         print(f"Visiting BodyNode")
-        self.symbol_table.push()  # Enter new scope for body
+        if not isinstance(parent, (CycleNode, SustainNode, PerformSustainNode)):
+            self.symbol_table.push()  # Enter new scope for body
         self.visit_children(node)
-        self.symbol_table.pop()  # Exit body scope
+        if not isinstance(parent, (CycleNode, SustainNode, PerformSustainNode)):
+            self.symbol_table.pop()  # Exit body scope
         print(f"Exiting BodyNode")
 
     def visit_CurseCallNode(self, node, parent):
@@ -1317,6 +1319,7 @@ class MyASTVisitor(ASTVisitor):
             print(f'Node Type: {type(node)}\n')
             if isinstance(node, VarAssignNode):
                 symbol_type = self.symbol_table.get_type(node.name)
+                print(f"\n\n\nSymbol_table: {self.symbol_table.scopes}")
                 if symbol_type is None:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 1 '{node.name}'"))
                 else:
@@ -1406,7 +1409,7 @@ class MyASTVisitor(ASTVisitor):
                 if isinstance(node, IdNode):
                     symbol = self.symbol_table.get(node.name)
                     if symbol is None:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 3 '{node.value.name}'"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 3 '{node.name}'"))
                     else:
                         parent_function = parent
                         while parent_function and not isinstance(parent_function, CurseDecNode):
@@ -1627,8 +1630,12 @@ class SymbolTable:
 
     def set(self, name, value):
         # Set in the current (innermost) scope
-        self.scopes[-1][name] = value
-        print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
+        if self.scopes:
+            self.scopes[-1][name] = value
+            print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
+        else: 
+            self.scopes.append({})
+            print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
 
 ###################
 # Parser Class
