@@ -88,7 +88,7 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
   ];
 
   const compilerButtons = [
-    { name: "Tokenizer", onClick: onTokenizerClick },
+    { name: "Lexical", onClick: onTokenizerClick },
     { name: "Syntax", onClick: onSyntaxClick },
     { name: "Semantic", onClick: onSemanticClick },
   ];
@@ -105,11 +105,12 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
               <h1 className='text-xs'>{functionButton.name}</h1>
             </div>
           ))}
-          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950"
+
+          {/* <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950"
             onClick={onRunClick}>
             <Image src="/run-icon.svg" width={20} height={10} alt="Run img" />
             <h1 className='text-xs'>Run</h1>
-          </div>
+          </div> */}
         </div>
 
         <div className="flex gap-x-5">
