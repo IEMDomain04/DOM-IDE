@@ -3,6 +3,7 @@ from flask_cors import CORS
 from lexer import run as lexer
 from syntax import parse_run as syntax
 from semantic import semantic_run as semantic
+from interpreter import interpreter_run as interpreter
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -51,6 +52,30 @@ def run_semantic():
     if ast:
         return jsonify({'semantic_result': "Successful from Semantic Analyzer", 'errors': None})
     return jsonify({'semantic_result': "No AST Built", 'errors': None})
+
+@app.route('/api/interpreter', methods=['POST'])
+def run_interpreter():
+    data = request.json
+    text = data.get('text', '')
+    tokens, lexer_errors = lexer(text)
+    if lexer_errors:  
+        return jsonify({'result': "Error: Failure from Interpreter\nFile: <stdin>, Message: Check lexical analysis.", 'error': None})
+    syntax_result, syntax_error = syntax(tokens)
+    if syntax_error:
+        return jsonify({'result': "Error: Failure from Interpreter\nFile: <stdin>, Message: Check syntax analysis.", 'error': None})
+    ast, semantic_errors = semantic(tokens)
+    if semantic_errors:  
+        error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(semantic_errors)]
+        return jsonify({'result': "Error: Failure from Interpreter", 'error': error_messages})
+    if ast:
+        output, errors = interpreter(ast)
+    if errors:
+        error_messages = [f"Error {i+1}: {errors.as_string()}\n" for i, error in enumerate(errors)]
+        return jsonify({'result': output, 'error': error_messages})
+    if output:
+        output_messages = [f"{out}\n" for i, out in enumerate(output)]
+        return jsonify({'result': output_messages, 'error': None})
+    return jsonify({'result': "No Output", 'error': None})
 
 if __name__ == '__main__':
     app.run(debug=True)
