@@ -70,10 +70,10 @@ def run_interpreter():
     if ast:
         output, errors = interpreter(ast)
     if errors:
-        error_messages = [f"Error {i+1}: {errors.as_string()}\n" for i, error in enumerate(errors)]
+        error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
         return jsonify({'result': output, 'error': error_messages})
     if output:
-        output_messages = [f"{out}\n" for i, out in enumerate(output)]
+        output_messages = "\n".join(output)
         return jsonify({'result': output_messages, 'error': None})
     return jsonify({'result': "No Output", 'error': None})
 
