@@ -35,17 +35,6 @@ class CodeRunner(DOMInterpreter):
         self.errors = []
         self.unresolved_cases = []  # List to keep track of unresolved cases
 
-    def visit_NumNode(self, node, parent):
-        print(f"Visiting NumNode with value: {node.value}")
-        ancestor = parent
-        while not isinstance(ancestor, InvokeNode):
-            if hasattr(ancestor, 'parent'):
-                ancestor = ancestor.parent
-            else: break
-            
-        if isinstance(ancestor, InvokeNode):
-            self.output.append(str(node.value))
-        print(f"Exiting NumNode")
 
     def visit_DatatypeNode(self, node, parent):
         print(f"Visiting DatatypeNode with type: {node.datatype}")
@@ -67,8 +56,31 @@ class CodeRunner(DOMInterpreter):
         self.visit_children(node)
         print(f"Exiting NullNode")
 
+    def visit_NumNode(self, node, parent):
+        print(f"Visiting NumNode with value: {node.value}")
+        ancestor = parent
+        while not isinstance(ancestor, InvokeNode):
+            if hasattr(ancestor, 'parent'):
+                ancestor = ancestor.parent
+            else: break
+
+        if isinstance(ancestor, InvokeNode) and not isinstance(parent, ExponentNode):
+            self.output.append(str(node.value))
+        print(f"Exiting NumNode")
+
     def visit_ExponentNode(self, node, parent):
         print(f"Visiting ExponentNode")
+        ancestor = parent
+        while not isinstance(ancestor, InvokeNode):
+            if hasattr(ancestor, 'parent'):
+                ancestor = ancestor.parent
+            else: break
+        if isinstance(ancestor, InvokeNode):
+            self.output.append("(")
+            self.output.append(str(node.left.value))
+            self.output.append("**")
+            self.output.append(str(node.right.value))
+            self.output.append(")")
         self.visit_children(node)
         print(f"Exiting ExponentNode")
 
@@ -92,17 +104,41 @@ class CodeRunner(DOMInterpreter):
 
     def visit_RelOpNode(self, node, parent):
         print(f"Visiting RelOpNode with operator: {node.op}")
-        self.visit_children(node)
+        ancestor = parent
+        while not isinstance(ancestor, InvokeNode):
+            if hasattr(ancestor, 'parent'):
+                ancestor = ancestor.parent
+            else: break
+        if isinstance(ancestor, InvokeNode):
+            self.output.append("(")
+            self.visit(node.left, node)
+            self.output.append(node.op)
+            self.visit(node.right, node)
+            self.output.append(")")
+        else:
+            self.visit_children(node)
         print(f"Exiting RelOpNode")
 
     def visit_LogOpNode(self, node, parent):
         print(f"Visiting LogOpNode with operator: {node.op}")
-        self.visit_children(node)
+        ancestor = parent
+        while not isinstance(ancestor, InvokeNode):
+            if hasattr(ancestor, 'parent'):
+                ancestor = ancestor.parent
+            else: break
+        if isinstance(ancestor, InvokeNode):
+            self.output.append("(")
+            self.visit(node.left, node)
+            self.output.append(node.op)
+            self.visit(node.right, node)
+            self.output.append(")")
+        else: self.visit_children(node)
         print(f"Exiting LogOpNode")
 
     def visit_UnaryOpNode(self, node, parent):
         print(f"Visiting UnaryOpNode with operator: {node.op.op}")
         if node.pre is True:
+            print("HHEYHEYHEY")
             self.output.append(node.op.op)
             self.visit(node.expr, node)
         if node.post is True:

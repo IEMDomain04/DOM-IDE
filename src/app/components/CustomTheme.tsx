@@ -53,7 +53,7 @@ const CustomTheme = ( {isDarkMode}: { isDarkMode: boolean} ) => {
                     [/".*?[^\\]"/, "string"],
 
                     // Operators
-                    [/[+\-*/%**!&&||<>]+/, "operators"]
+                    [/[+\-*/%**!&&||<><=>=]+/, "operators"]
                 ],
             },
         });

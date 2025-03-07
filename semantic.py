@@ -626,7 +626,6 @@ class MyASTVisitor(ASTVisitor):
             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
 
         if node.op == '/':
-            print(f'Node_Right: {node.right}\nParent_Node: {node.right.parent}\nParent_Value: {node.right.parent.value}')
             if isinstance(node.right, NumNode) and node.right.value == 0:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 1"))
             elif isinstance(node.right, IdNode) and isinstance(node.right.parent, BinOpNode):
@@ -1550,6 +1549,15 @@ class MyASTVisitor(ASTVisitor):
             return 'bool'
         elif isinstance(node, LogOpNode):
             return 'bool'
+        elif isinstance(node, UnaryOpNode):
+            type = self.infer_type(node.expr) 
+            return type
+        elif isinstance(node, ExponentNode):
+            left = node.left
+            right = node.right
+            if left == 'float' or right == 'float':
+                return 'float'
+            else: return 'int'
         elif isinstance(node, NullNode):
             return 'null'
         elif isinstance(node, IdNode):
@@ -1719,6 +1727,11 @@ class Parser:
 
         if tok.type in ('int_literal', 'float_literal'):
             self.advance()
+            if self.current_token.type in ('++', '--'):
+                op = self.current_token
+                pos_end = self.current_token.pos_end
+                self.advance()
+                return UnaryOpNode(op, NumNode(tok.value, tok.pos_start, tok.pos_end), post=True, pos_start=tok.pos_start, pos_end=pos_end), None
             return NumNode(tok.value, tok.pos_start, tok.pos_end), None
         elif tok.type == 'string_literal':
             self.advance()
@@ -1798,8 +1811,14 @@ class Parser:
             self.advance()
             factor, error = self.parseFactor()
             return UnaryOpNode(op, factor, pre=True, pos_start=op.pos_start, pos_end=factor.pos_end), None
+        elif tok.type in ('-', '+'):
+            op = tok
+            self.advance()
+            factor, error = self.parseFactor()
+            if error: return None, error
+            return UnaryOpNode(op, factor, pre=True, pos_start=op.pos_start, pos_end=factor.pos_end), None
         else:
-            return None, SemanticError(tok.pos_start, tok.pos_end, "Expected: int, float, bool, null, identifier, or '('")
+            return None, SemanticError(tok.pos_start, tok.pos_end, "Expected one of [int, float, bool, null, identifier, '(', '++', '--', '+', '-', '!']")
 
     def parseExpr(self):
         return self.parseLogExpr()
@@ -1848,13 +1867,13 @@ class Parser:
         self.advance()
         
         if self.current_token.type not in ['=', '+=', '-=', '*=', '/=', '%=', '++', '--', '(', '[', ',', ';']:
-            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '=', '+=', '-=', '*=', '/=', '%=', '++', '--', '(', '[', ';'")
+            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of ['=', '+=', '-=', '*=', '/=', '%=', '++', '--', '(', '[', ';']")
         
         if self.current_token.type in ['=', '+=', '-=', '*=', '/=', '%=']:
             op = self.current_token.type
             self.advance()
             if self.current_token.type not in ['(', '++', '--', '!', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal']:
-                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '(', '++', '--', '!', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal'")
+                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of ['(', '++', '--', '!', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal']")
             
             if self.current_token.type == 'id' and self.peek().type == '(':
                 value, error = self.parseExpr()
@@ -2006,14 +2025,14 @@ class Parser:
             self.advance()
 
             if self.current_token.type not in ['id', 'curse']:
-                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier or curse")
+                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: id or 'curse'")
                 
             if self.current_token.type == 'id':
                 name = self.current_token.value
                 self.advance()
 
                 if self.current_token.type not in ['=', '[', '[...]', ';', ',']:
-                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '=', '[', '[...]', ';', ',', ';'")
+                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of ['=', '[', '[...]', ';', ',', ';']")
 
                 if self.current_token.type == '=':
                     self.advance()
@@ -2063,8 +2082,8 @@ class Parser:
                         pos_start = self.current_token.pos_start
                         self.advance()
                         self.advance()
-                        if self.current_token.type not in ['int_literal', 'float_literal', 'id']:
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, or identifier")
+                        if self.current_token.type not in ['int_literal', 'float_literal', 'id', '+', '-', '++', '--']:
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, identifier, '+', '-', '++', '--']")
                         index1, error = self.parseExpr()
                         if error: return None, error
                         if self.current_token.type == '[':
@@ -2122,7 +2141,7 @@ class Parser:
                         else:
                             self.advance()
                             if self.current_token.type not in ['string_literal', 'id']:
-                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: string or identifier")
+                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [string, identifier]")
 
                             if self.current_token.type == 'string_literal':
                                 cleave_id = StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
@@ -2135,8 +2154,8 @@ class Parser:
                                 return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Missing Parameter")
                             
                             self.advance()
-                            if self.current_token.type not in ['int_literal', 'float_literal', 'id']:
-                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, or identifier")
+                            if self.current_token.type not in ['int_literal', 'float_literal', 'id', '+', '-', '++', '--']:
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, identifier, '+', '-', '++', '--']")
                             index1, error = self.parseExpr()
                             if error: return None, error
 
@@ -2144,8 +2163,8 @@ class Parser:
                                 return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Missing Parameter")
             
                             self.advance()
-                            if self.current_token.type not in ['int_literal', 'float_literal', 'id']:
-                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, or identifier")
+                            if self.current_token.type not in ['int_literal', 'float_literal', 'id', '+', '-', '++', '--']:
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, identifier , '+', '-', '++', '--']")
                             index2, error = self.parseExpr()
                             if error: return None, error
 
@@ -2161,7 +2180,7 @@ class Parser:
                         else:
                             self.advance()
                             if self.current_token.type not in ['string_literal', 'id']:
-                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: string or identifier")
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [string, identifier]")
                             if self.current_token.type == 'string_literal':
                                 dismantle_id = StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
                             if self.current_token.type == 'id':
@@ -2192,8 +2211,8 @@ class Parser:
                         self.advance()
                         return VarDecNode(None, datatype, name, LenNode(len_id, pos_start, self.current_token.pos_end), pos_start, self.current_token.pos_end), None
                     else:
-                        if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'bool_literal', 'null_literal', 'id', '(', '[']:
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, string, boolean, identifier, or '('")
+                        if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'bool_literal', 'null_literal', 'id', '(', '[', '+', '-', '++', '--']:
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, boolean, identifier, '(', '+', '-', '++', '--']")
                         value, error = self.parseExpr()
                         if error: return None, error
                         if self.current_token.type == ',': # for parsing multi variable declaration
@@ -2212,14 +2231,14 @@ class Parser:
                                 elif self.current_token.type == ';':
                                     declarations.append(VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end))
                                 else:
-                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '=' or ';'")
+                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected '=' or ';'")
                             return declarations, None
                         return VarDecNode(None, datatype, name, value, pos_start, self.current_token.pos_end), None
                 elif self.current_token.type == '[':
                     size1, size2 = None, None
                     self.advance()
-                    if self.current_token.type not in ['int_literal', 'id', '(']:
-                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, identifier, or '('")
+                    if self.current_token.type not in ['int_literal', 'id', '(', '+', '-', '++', '--']:
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, identifier, '(', '+', '-', '++', '--']")
                     size1, error = self.parseExpr()
                     if error: return None, error
                     if self.current_token.type != ']':
@@ -2227,18 +2246,18 @@ class Parser:
                     self.advance()
 
                     if self.current_token.type not in ['=', '[']:
-                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '=', '['")
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '=' or '['")
 
                     if self.current_token.type == '=': # Parse one dimensional clan declaration
                         initial_values = [] 
                         self.advance()
                         if self.current_token.type != '{':
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: opening brace (1)")
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '(')")
                         self.advance()
                         clan_lit_start = self.current_token.pos_start
                         while self.current_token.type != '}':
-                            if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(']:
-                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, string, identifier, or '('")
+                            if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(', '+', '-', '++', '--']:
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, '(', '+', '-', '++', '--']")
                             new_val, error = self.parseExpr()
                             if error: return None, error
                             initial_values.append(new_val)
@@ -2256,8 +2275,8 @@ class Parser:
                         new_clan_literal = []
                         clan_literal_node = None
                         self.advance()
-                        if self.current_token.type not in ['int_literal', 'id', '(']:
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, identifier, or '('")
+                        if self.current_token.type not in ['int_literal', 'id', '(', '+', '-', '++', '--']:
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, identifier, '(', '+', '-', '++', '--']")
                         size2, error = self.parseExpr()
                         if error: return None, error
                         if self.current_token.type != ']':
@@ -2268,16 +2287,16 @@ class Parser:
                             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '='")
                         self.advance()
                         if self.current_token.type != '{':
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: opening brace (2)")
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
                         while self.current_token.type != '}':
                             self.advance()
                             if self.current_token.type != '{':
-                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: opening brace (3)")
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ('")
                             clan_lit_start = self.current_token.pos_start
                             self.advance()
                             while self.current_token.type != '}':
-                                if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(']:
-                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, string, identifier, or '('")
+                                if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(', '+', '-', '++', '--']:
+                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, '(', '+', '-', '++', '--']")
                                 new_val, error = self.parseExpr()
                                 if error: return None, error
                                 new_clan_literal.append(new_val)
@@ -2286,8 +2305,8 @@ class Parser:
                                 if self.current_token.type == ',':
                                     while self.current_token.type == ',': 
                                         self.advance()
-                                        if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(']:
-                                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, string, identifier, or '('")
+                                        if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(', '+', '-', '++', '--']:
+                                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, '(', '+', '-', '++', '--']")
                                         new_val, error = self.parseExpr()
                                         if error: return None, error
                                         new_clan_literal.append(new_val)
@@ -2301,12 +2320,12 @@ class Parser:
                                 while self.current_token.type == ',':
                                     self.advance()
                                     if self.current_token.type != '{':
-                                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: opening brace (4)")
+                                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
                                     clan_lit_start = self.current_token.pos_start
                                     self.advance()
                                     while self.current_token.type != '}':
-                                        if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(']:
-                                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, string, identifier, or '('")
+                                        if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(', '+', '-', '++', '--']:
+                                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, '(', '+', '-', '++', '--']")
                                         new_val, error = self.parseExpr()
                                         if error: return None, error
                                         new_clan_literal.append(new_val)
@@ -2315,8 +2334,8 @@ class Parser:
                                         if self.current_token.type == ',':
                                             while self.current_token.type == ',': 
                                                 self.advance()
-                                                if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(']:
-                                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, string, identifier, or '('")
+                                                if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(', '+', '-', '++', '--']:
+                                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, '(', '+', '-', '++', '--']")
                                                 new_val, error = self.parseExpr()
                                                 if error: return None, error
                                                 new_clan_literal.append(new_val)
@@ -2338,8 +2357,8 @@ class Parser:
                         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: opening brace (5)")
                     self.advance()
                     while self.current_token.type != '}':
-                        if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(']:
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, string, identifier, or '('")
+                        if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(', '+', '-', '++', '--']:
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, '(', '+', '-', '++', '--']")
                         new_val, error = self.parseExpr()
                         if error: return None, error
                         initial_values.append(new_val)
@@ -2363,7 +2382,7 @@ class Parser:
                         self.advance()
 
                         if self.current_token.type not in ['=', '[', ',', ';']:
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '=', '[', ',', ';'")
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of ['=', '[', ',', ';']")
                         
 
                         if self.current_token.type == '=':
@@ -2408,7 +2427,7 @@ class Parser:
                 while self.current_token.type != ')':
                     pos_start = self.current_token.pos_start
                     if self.current_token.type not in ['int', 'float', 'string', 'bool']:
-                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, string, bool")
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of ['int', 'float', 'string', 'bool']")   
                     param_type = self.current_token.type
                     self.advance()
                     if self.current_token.type != 'id':
@@ -2423,7 +2442,7 @@ class Parser:
                         self.advance()
                 self.advance()
                 if self.current_token.type != '{':
-                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: left brace for body")
+                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'")
                 self.advance()
                 body, error = self.parseBody()
                 if error: return None, error
@@ -2433,7 +2452,7 @@ class Parser:
         elif self.current_token.type == 'curse':
             self.advance()
             if self.current_token.type not in ['id', 'domain']:
-                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: identifier or domain")
+                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: identifier or 'domain'")
 
             if self.current_token.type == 'id':
                 pos_start = self.current_token.pos_start
@@ -2446,7 +2465,7 @@ class Parser:
                 while self.current_token.type != ')':
                     pos_start = self.current_token.pos_start
                     if self.current_token.type not in ['int', 'float', 'string', 'bool']:
-                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: int, float, string, bool")
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected one of ['int', 'float', 'string', 'bool']")
                     param_type = self.current_token.type
                     self.advance()
 
@@ -2466,7 +2485,7 @@ class Parser:
                 self.advance() # move past the closing ')'
 
                 if self.current_token.type != '{':
-                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: left brace for body")
+                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: '{{'")
                 else:
                     self.advance()
                     body, error = self.parseBody()
@@ -2493,7 +2512,7 @@ class Parser:
             pos_start = self.current_token.pos_start
             self.advance()
             if self.current_token.type not in ['int', 'float', 'string', 'bool']: 
-                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: int, float, string, bool")
+                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected one of ['int', 'float', 'string', 'bool']")
             datatype = self.current_token.type
             self.advance()
             if self.current_token.type != 'id':
@@ -2501,7 +2520,7 @@ class Parser:
             name = self.current_token.value
             self.advance()
             if self.current_token.type not in ['=', ',', ';']:
-                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: '=', ',' or ';'")
+                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected one of ['=', ',', ';']")
             if self.current_token.type == '=':
                 self.advance()
                 value, error = self.parseExpr()
@@ -2543,7 +2562,7 @@ class Parser:
             elif self.current_token.type == ';':
                 return VarDecNode(True, datatype, name, 0, pos_start, self.current_token.pos_end), None
         else:
-            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: int, float, string, bool, curse, or restrict")
+            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected one of ['int', 'float', 'string', 'bool', 'curse', 'restrict']")
     
     def parseBody(self):
         body = BodyNode()
@@ -2569,8 +2588,8 @@ class Parser:
                     if self.current_token.type != '(':
                         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
                     self.advance()
-                    if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(', '[']:
-                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, string, identifier, or '('")
+                    if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(', '[', '!', '+', '-', '++', '--']:
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, '(', '+', '-', '++', '--']")
                     value, error = self.parseInvokeArgument()
                     if error: return None, error
                     if self.current_token.type != ')':
@@ -2961,12 +2980,12 @@ def semantic_run(tokens):
     visitor = MyASTVisitor(symbol_table)
     parser = Parser(tokens)
     ast, errors = parser.build_ast()
+    ast.print_tree()
 
     # check if there is curse domain node in the ast
     if not any(isinstance(node, CurseDomainNode) for node in ast.children):
         errors.insert(0, DomainError(parser.current_token.pos_start, parser.current_token.pos_end, "Curse domain function is not defined"))
 
-    ast.print_tree()
     if ast:
         visitor.visit(ast)
         visitor.resolve_unresolved()  
