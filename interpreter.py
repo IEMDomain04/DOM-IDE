@@ -37,7 +37,14 @@ class CodeRunner(DOMInterpreter):
 
     def visit_NumNode(self, node, parent):
         print(f"Visiting NumNode with value: {node.value}")
-        self.visit_children(node)
+        ancestor = parent
+        while not isinstance(ancestor, InvokeNode):
+            if hasattr(ancestor, 'parent'):
+                ancestor = ancestor.parent
+            else: break
+            
+        if isinstance(ancestor, InvokeNode):
+            self.output.append(str(node.value))
         print(f"Exiting NumNode")
 
     def visit_DatatypeNode(self, node, parent):
@@ -67,7 +74,20 @@ class CodeRunner(DOMInterpreter):
 
     def visit_BinOpNode(self, node, parent):
         print(f"Visiting BinOpNode with operator: {node.op}")
-        self.visit_children(node)
+        ancestor = parent
+        while not isinstance(ancestor, InvokeNode):
+            if hasattr(ancestor, 'parent'):
+                ancestor = ancestor.parent
+            else: break
+
+        if isinstance(ancestor, InvokeNode):
+            self.output.append("(")
+            self.visit(node.left, node)
+            self.output.append(node.op)
+            self.visit(node.right, node)
+            self.output.append(")")
+        else:
+            self.visit_children(node)
         print(f"Exiting BinOpNode")
 
     def visit_RelOpNode(self, node, parent):
@@ -82,7 +102,12 @@ class CodeRunner(DOMInterpreter):
 
     def visit_UnaryOpNode(self, node, parent):
         print(f"Visiting UnaryOpNode with operator: {node.op.op}")
-        self.visit_children(node)
+        if node.pre is True:
+            self.output.append(node.op.op)
+            self.visit(node.expr, node)
+        if node.post is True:
+            self.visit(node.expr, node)
+            self.output.append(node.op.op)
         print(f"Exiting UnaryOpNode")
 
     def visit_IdNode(self, node, parent):
@@ -161,8 +186,7 @@ class CodeRunner(DOMInterpreter):
 
     def visit_InvokeNode(self, node, parent):
         print(f"Visiting InvokeNode")
-        print(f'Node value: {node.value.value}')
-        if isinstance(node.value.value, str):
+        if hasattr(node.value, 'value') and isinstance(node.value.value, str):
             self.output.append(node.value.value)
         self.visit_children(node)
         print(f"Exiting InvokeNode")
