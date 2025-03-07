@@ -221,7 +221,7 @@ class IdNode(ASTNode): # for identifier names
         self.name = name
 
     def __repr__(self):
-        return f"IdNode_Object: {self.name}"
+        return f"IdNode_Object"
 
 class VarDecNode(ASTNode): # for variable assignments
     def __init__(self, restrict, datatype, name, value, pos_start=None, pos_end=None):
@@ -239,7 +239,7 @@ class VarDecNode(ASTNode): # for variable assignments
 
     def __repr__(self):
         restrict_str = " restrict" if self.restrict else ""
-        return f"VarDecNode_Object: {self.datatype} {self.name} = {self.value}{restrict_str}"
+        return f"VarDecNode_Object"
 
 class VarAssignNode(ASTNode): # for variable assignments
     def __init__(self, name, value, pos_start=None, pos_end=None):
@@ -250,7 +250,7 @@ class VarAssignNode(ASTNode): # for variable assignments
         self.add_child(value)
 
     def __repr__(self):
-        return f"VarAssignNode_Object: {self.name}"
+        return f"VarAssignNode_Object"
 
 class ClanDecNode(ASTNode): # for arrays
     def __init__(self, restrict, datatype, name, size1=None, size2=None, initial_values=None, pos_start=None, pos_end=None):
@@ -274,7 +274,7 @@ class ClanDecNode(ASTNode): # for arrays
                 self.add_child(self.initial_values)
 
     def __repr__(self):
-        return f"ClanDecNode_Object: {self.name}"
+        return f"ClanDecNode_Object"
 
 class ClanLiteralNode(ASTNode): # for clan literals
     def __init__(self, values, pos_start=None, pos_end=None):
@@ -301,6 +301,9 @@ class ClanAccessNode(ASTNode): # for array access
         self.add_child(index1)
         if index2:
             self.add_child(index2)
+    
+    def __repr__(self):
+        return f"ClanAccessNode_Object"
 
 class ClanIndexAssignNode(ASTNode): # for array index assignments
     def __init__(self, name, index1, index2, value, pos_start=None, pos_end=None):
@@ -317,7 +320,7 @@ class ClanIndexAssignNode(ASTNode): # for array index assignments
             self.add_child(value)
 
     def __repr__(self):
-        return f"ClanIndexAssignNode_Object: {self.name}"
+        return f"ClanIndexAssignNode_Object"
 
 class CurseDecNode(ASTNode): # for functions
     def __init__(self, datatype, name, parameters, body, pos_start=None, pos_end=None):
@@ -851,8 +854,8 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting VarAssignNode with name: {node.name}")
         if not self.symbol_table.get(node.name):
             self.unresolved_cases.append((node, parent))
-        elif isinstance(node.value, BinOpNode):
-            self.unresolved_cases.append((node.value, node))
+        # elif isinstance(node.value, BinOpNode): # i forgot why i did this so im just gonna comment it for now
+        #     self.unresolved_cases.append((node.value, node))
         else:
             value_type = self.infer_type(node.value)
             var_type = self.symbol_table.get_type(node.name)
@@ -1282,17 +1285,63 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_VowNode(self, node, parent):
         print(f"Visiting VowNode")
-        condition_type = self.infer_type(node.condition)
-        if condition_type != 'bool':
-            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, f"1 Condition must be a boolean expression, got '{condition_type}'"))
+        if isinstance(node.condition, BinOpNode):
+            if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
+        elif isinstance(node.condition, IdNode):
+            if not self.symbol_table.get(node.condition.name):
+                self.unresolved_cases.append((node.condition, node))
+                return
+            condition_type = self.symbol_table.get_type(node.condition.name)
+            if condition_type != 'bool':
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
+        elif isinstance(node.condition, CurseCallNode):
+            curse_node = self.symbol_table.get(node.condition.name)
+            if curse_node is None:
+                self.unresolved_cases.append((node.condition, node))
+                return
+            curse_return_type = curse_node.datatype
+            if curse_return_type is None:
+                curse_return_type = 'void'
+            if curse_return_type != 'bool':
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
+        elif isinstance(node.condition, RelOpNode):
+            pass
+        elif isinstance(node.condition, LogOpNode):
+            pass
+        else:
+            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         self.visit_children(node)
         print(f"Exiting VowNode")
 
     def visit_ElseVow(self, node, parent):
         print(f"Visiting ElseVow")
-        condition_type = self.infer_type(node.condition)
-        if condition_type != 'bool':
-            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, f"2 Condition must be a boolean expression, got '{condition_type}'"))
+        if isinstance(node.condition, BinOpNode):
+            if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
+        elif isinstance(node.condition, IdNode):
+            if not self.symbol_table.get(node.condition.name):
+                self.unresolved_cases.append((node.condition, node))
+                return
+            condition_type = self.symbol_table.get_type(node.condition.name)
+            if condition_type != 'bool':
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
+        elif isinstance(node.condition, CurseCallNode):
+            curse_node = self.symbol_table.get(node.condition.name)
+            if curse_node is None:
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, f"Undefined curse 1 '{node.condition.name}'"))
+                return
+            curse_return_type = curse_node.datatype
+            if curse_return_type is None:
+                curse_return_type = 'void'
+            if curse_return_type != 'bool':
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
+        elif isinstance(node.condition, RelOpNode):
+            pass
+        elif isinstance(node.condition, LogOpNode):
+            pass
+        else:
+            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         self.visit_children(node)
         print(f"Exiting ElseVow")
 
@@ -1350,6 +1399,34 @@ class MyASTVisitor(ASTVisitor):
                 self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
         else: 
             self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Invalid cycle initialization"))
+
+        if isinstance(node.condition, BinOpNode):
+            if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
+        elif isinstance(node.condition, IdNode):
+            if not self.symbol_table.get(node.condition.name):
+                self.unresolved_cases.append((node.condition, node))
+                return
+            condition_type = self.symbol_table.get_type(node.condition.name)
+            if condition_type != 'bool':
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
+        elif isinstance(node.condition, CurseCallNode):
+            curse_node = self.symbol_table.get(node.condition.name)
+            if curse_node is None:
+                self.unresolved_cases.append((node.condition, node))
+                return
+            curse_return_type = curse_node.datatype
+            if curse_return_type is None:
+                curse_return_type = 'void'
+            if curse_return_type != 'bool':
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
+        elif isinstance(node.condition, RelOpNode):
+            pass
+        elif isinstance(node.condition, LogOpNode):
+            pass
+        else:
+            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
+
         self.visit_children(node)
         print(f"Exiting CycleConditionNode")
 
@@ -1644,7 +1721,7 @@ class MyASTVisitor(ASTVisitor):
                         pass
                     else:
                         if isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
-                            self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undeclared variable 4 '{node.left.name}'"))
+                            self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undeclared variable 4.1 '{node.left.name}'"))
                         if isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
                             self.errors.append(SemanticError(node.right.pos_start, node.right.pos_end, f"Undeclared variable 5 '{node.right.name}'"))
                         if isinstance(node.left, CurseCallNode) and not self.symbol_table.get(node.left.name):
@@ -1901,13 +1978,19 @@ class Parser:
                     else:
                         root.add_child(declaration)
                 if error:
-                    errors.append(error)
+                    if isinstance(error, list):
+                        errors.extend(error)
+                    else:
+                        errors.append(error)
             elif self.current_token is not None and self.current_token.type == 'id':
                 assignment, error = self.parseIdCall()
                 if assignment:
                     root.add_child(assignment)
                 if error:
-                    errors.append(error)
+                    if isinstance(error, list):
+                        errors.extend(error)
+                    else:
+                        errors.append(error)
             else: 
                 self.advance()
         return root, errors
@@ -1971,6 +2054,27 @@ class Parser:
                 pos_end = self.current_token.pos_end
                 self.advance()
             return CurseCallNode(name, arguments, pos_start, pos_end), None
+        elif tok.type == 'id' and self.peek().type in ['+=', '-=', '*=', '/=', '%=']:
+            name = tok.value
+            pos_start = tok.pos_start
+            self.advance()
+            if self.current_token.type == '+=':
+                op = '+'
+            elif self.current_token.type == '-=':
+                op = '-'
+            elif self.current_token.type == '*=':
+                op = '*'
+            elif self.current_token.type == '/=':
+                op = '/'
+            elif self.current_token.type == '%=':
+                op = '%'
+            self.advance()
+            value, error = self.parseExpr()
+            if error: return None, error
+            left = IdNode(name, pos_start, self.current_token.pos_end)
+            right = value
+            bin_op_node = BinOpNode(left, type('Token', (object,), {'type': op})(), right)
+            return VarAssignNode(name, bin_op_node, pos_start, self.current_token.pos_end), None
         elif tok.type == 'id':
             pos_start = tok.pos_start
             pos_end = tok.pos_end
@@ -2640,7 +2744,8 @@ class Parser:
                 if self.current_token.type != '{':
                     return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'")
                 self.advance()
-                body = self.parseBody()
+                body, errors = self.parseBody()
+                if errors: return None, errors
                 self.advance() # move past the closing '}'
                 return CurseDecNode(datatype, name, parameters, body, pos_start, self.current_token.pos_end), None
                 
@@ -2683,7 +2788,8 @@ class Parser:
                     return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: '{{'")
                 else:
                     self.advance()
-                    body = self.parseBody()
+                    body, errors = self.parseBody()
+                    if errors: return None, errors
                     self.advance() # move past the closing '}'
                     return CurseDecNode(None, name, parameters, body, pos_start, pos_end), None
             elif self.current_token.type == 'domain':
@@ -2699,7 +2805,9 @@ class Parser:
                 if self.current_token.type != '{':
                     return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: '{{'")
                 self.advance()
-                body = self.parseBody()
+                body, errors = self.parseBody()
+                if errors: return None, errors
+                self.advance() # move past the closing '}'
                 return CurseDomainNode(body, pos_start, pos_end), None
         elif self.current_token.type == 'restrict':
             pos_start = self.current_token.pos_start
@@ -2759,12 +2867,13 @@ class Parser:
     
     def parseBody(self):
         body = BodyNode()
-    
+        errors = []
+
         while self.current_token.type != '}':
                 if self.current_token.type in ['int', 'float', 'string', 'bool', 'curse', 'restrict']:
                     declarations, error = self.parseDeclaration()
                     if error: 
-                        self.errors.append(error)
+                        errors.append(error)
                         continue
                     if declarations:
                         if isinstance(declarations, list):
@@ -2775,7 +2884,7 @@ class Parser:
                 elif self.current_token.type == 'id':
                     assignment, error = self.parseIdCall()
                     if error:
-                        self.errors.append(error)
+                        errors.append(error)
                         continue
                     if assignment:
                         body.add_child(assignment)
@@ -2783,22 +2892,22 @@ class Parser:
                     invoke_pos_start = self.current_token.pos_start
                     self.advance()
                     if self.current_token.type != '(':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('"))
                         continue
                     self.advance()
                     if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(', '[', '!', '+', '-', '++', '--']:
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, '(', '+', '-', '++', '--']"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, '(', '+', '-', '++', '--']"))
                         continue
                     value, error = self.parseInvokeArgument()
                     if error:
-                        self.errors.append(error)
+                        errors.append(error)
                         continue
                     if self.current_token.type != ')':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
                         continue
                     self.advance() # move past the parenthesis
                     if self.current_token.type != ';':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ';'"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ';'"))
                         continue
                     invoke_pos_end = self.current_token.pos_end
                     self.advance() # advance past the semicolon
@@ -2807,15 +2916,15 @@ class Parser:
                     capture_pos_start = self.current_token.pos_start
                     self.advance()
                     if self.current_token.type != '(':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('"))
                         continue
                     self.advance()
                     if self.current_token.type != 'id':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier"))
                     name = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
                     self.advance()
                     if self.current_token.type != ')':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
                         continue
                     capture_pos_end = self.current_token.pos_end
                     self.advance()
@@ -2838,29 +2947,32 @@ class Parser:
                     else:
                         value, error = self.parseExpr()
                         if error:
-                            self.errors.append(error)
+                            errors.append(error)
                         continue
                         body.add_child(RecallNode(value, pos_start, self.current_token.pos_end))
                 elif self.current_token.type == 'vow':
                     pos_start = self.current_token.pos_start
                     self.advance()
                     if self.current_token.type != '(':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('"))
                         continue
                     self.advance()
                     condition, error = self.parseExpr()
                     if error:
-                        self.errors.append(error)
+                        errors.append(error)
                         continue
                     if self.current_token.type != ')':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
                         continue
                     self.advance()
                     if self.current_token.type != '{':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'"))
                         continue
                     self.advance()
-                    body_node = self.parseBody()
+                    body_node, body_errors = self.parseBody()
+                    if body_errors:
+                        errors.extend(body_errors)
+                        continue
                     if self.current_token.type == '}':
                         self.advance()  # advance past the closing brace '}'
                     else_vows = []
@@ -2868,22 +2980,25 @@ class Parser:
                         self.advance()
                         self.advance()
                         if self.current_token.type != '(':
-                            self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('"))
+                            errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('"))
                             continue
                         self.advance()
                         else_condition, error = self.parseExpr()
                         if error:
-                            self.errors.append(error)
+                            errors.append(error)
                             continue
                         if self.current_token.type != ')':
-                            self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
+                            errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
                             continue
                         self.advance()
                         if self.current_token.type != '{':
-                            self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'"))
+                            errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'"))
                             continue
                         self.advance()
-                        else_body_node = self.parseBody()
+                        else_body_node, else_body_errors = self.parseBody()
+                        if else_body_errors:
+                            errors.extend(else_body_errors)
+                            continue
                         if self.current_token.type == '}':
                             self.advance()  # advance past the closing '}'
                         else_vows.append(ElseVow(else_condition, else_body_node))
@@ -2892,7 +3007,10 @@ class Parser:
                         if self.current_token.type == '{':
                             self.advance()
                             else_pos_start = self.current_token.pos_start
-                            else_body_node = self.parseBody()
+                            else_body_node, else_body_errors = self.parseBody()
+                            if else_body_errors:
+                                errors.extend(else_body_errors)
+                                continue
                             else_pos_end = self.current_token.pos_end
                             self.advance()  # Advance past the closing '}'
                             body.add_child(VowNode(condition, body_node, else_vows, ElseNode(else_body_node, else_pos_start, else_pos_end), pos_start, self.current_token.pos_end))
@@ -2906,11 +3024,11 @@ class Parser:
                         expression = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
                         self.advance()
                         if self.current_token.type != ')':
-                            self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
+                            errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
                             continue
                         self.advance()
                         if self.current_token.type != '{':
-                            self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'"))
+                            errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'"))
                             continue
                         self.advance()
                         cases = []
@@ -2921,7 +3039,7 @@ class Parser:
                                 if self.current_token.type in ['int_literal', 'float_literal', 'id']:
                                     case_expr, error = self.parseExpr()
                                     if error:
-                                        self.errors.append(error)
+                                        errors.append(error)
                                         continue
                                 elif self.current_token.type == 'string_literal':
                                     case_expr = StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
@@ -2931,31 +3049,31 @@ class Parser:
                                     if self.current_token.type == 'id':
                                         case_expr, error = self.parseIdCall()
                                 else:
-                                    self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, "Expected: int_literal, float_literal, or string_literal"))
+                                    errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, "Expected: int_literal, float_literal, or string_literal"))
                                     continue
                                 if self.current_token.type != ':':
-                                    self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ':'"))
+                                    errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ':'"))
                                     continue
                                 self.advance()
                                 case_body, errors = self.parseWoogieBody()
                                 if errors: 
-                                    self.errors.append(errors)
+                                    errors.append(errors)
                                     continue
                                 cases.append(WoogieNode(case_expr, case_body, woogie_start, self.current_token.pos_end))
                             elif self.current_token.type == 'default':
                                 default_start = self.current_token.pos_start
                                 self.advance()
                                 if self.current_token.type != ':':
-                                    self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ':'"))
+                                    errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ':'"))
                                     continue
                                 self.advance()
                                 default_body, errors = self.parseWoogieBody()
                                 if errors: 
-                                    self.errors.append(errors)
+                                    errors.append(errors)
                                     continue
                                 cases.append(DefaultCaseNode(default_body, default_start, self.current_token.pos_end))
                             else: 
-                                self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: 'woogie' or 'default'"))
+                                errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: 'woogie' or 'default'"))
                                 continue
                         self.advance()
                         body.add_child(BoogieNode(expression, cases, boogie_start, self.current_token.pos_end))
@@ -2968,13 +3086,13 @@ class Parser:
                                 self.advance()
                                 case_expr, error = self.parseExpr()
                                 if error:
-                                    self.errors.append(error)
+                                    errors.append(error)
                                     continue
                                 if self.current_token.type == ':':
                                     self.advance()
                                     case_body, errors = self.parseWoogieBody()
                                     if errors: 
-                                        self.append.errors(errors)
+                                        errors.append(errors)
                                         continue
                                     cases.append(WoogieTrueNode(case_expr, case_body, woogie_start, self.current_token.pos_end))
                             elif self.current_token.type == 'default':
@@ -2984,92 +3102,101 @@ class Parser:
                                     self.advance()
                                     default_body, errors = self.parseWoogieBody()
                                     if errors: 
-                                        self.append.errors(errors)
+                                        errors.append(errors)
                                         continue
                                     cases.append(DefaultCaseNode(default_body, default_start, self.current_token.pos_end))
                         self.advance()
                         body.add_child(BoogieNode(None, cases, boogie_start, self.current_token.pos_end))
                     else: 
-                        self.append.errors(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '(' or '{{'"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '(' or '{{'"))
                         continue
 
                 elif self.current_token.type == 'cycle':
                     cycle_start = self.current_token.pos_start
                     self.advance()
                     if self.current_token.type != '(':
-                        self.append.errors(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('"))
                         continue
                     self.advance()
                     cycle_condition, error = self.parseCycleCondition()
                     if error:
-                        self.errors.append(error)
+                        errors.append(error)
                         continue
                     if self.current_token.type != ')':
-                        self.append.errors(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
                         continue
                     self.advance()
                     if self.current_token.type != '{':
-                        self.append.errors(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'"))
                         continue
                     self.advance()
-                    cycle_body = self.parseBody()
+                    cycle_body, cycle_errors = self.parseBody()
+                    if cycle_errors:
+                        errors.extend(cycle_errors)
+                        continue
                     self.advance() # advance past the closing brace
                     body.add_child(CycleNode(cycle_condition, cycle_body, cycle_start, self.current_token.pos_end)) 
                 elif self.current_token.type == 'sustain':
                     sustain_start = self.current_token.pos_start
                     self.advance()
                     if self.current_token.type != '(':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('"))
                         continue
                     self.advance()
                     condition, error = self.parseExpr()
                     if error:
-                        self.errors.append(error)
+                        errors.append(error)
                         continue
                     if self.current_token.type != ')':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
                         continue
                     self.advance()
                     if self.current_token.type != '{':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'"))
                         continue
                     self.advance()
-                    sustain_body = self.parseBody()
+                    sustain_body, sustain_errors = self.parseBody()
+                    if sustain_errors:
+                        errors.extend(sustain_errors)
+                        continue
                     self.advance() # advance past the closing brace
                     body.add_child(SustainNode(condition, sustain_body, sustain_start, self.current_token.pos_end))
                 elif self.current_token.type == 'perform':
                     perform_start = self.current_token.pos_start
                     self.advance()
                     if self.current_token.type != '{':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'"))
                         continue
                     self.advance()
-                    perform_body = self.parseBody()
+                    perform_body, perform_errors = self.parseBody()
+                    if perform_errors:
+                        errors.extend(perform_errors)
+                        continue
                     self.advance() # advance past the closing brace
                     if self.current_token.type != 'sustain':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: sustain"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: sustain"))
                         continue
                     self.advance()
                     if self.current_token.type != '(':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('"))
                         continue
                     self.advance()
                     condition, error = self.parseExpr()
                     if error:
-                        self.errors.append(error)
+                        errors.append(error)
                         continue
                     if self.current_token.type != ')':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
                         continue
                     self.advance()
                     if self.current_token.type != ';':
-                        self.errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ';'"))
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ';'"))
                         continue
                     self.advance()
                     body.add_child(PerformSustainNode(perform_body, condition, perform_start, self.current_token.pos_end))
                 else:
                     self.advance()
-        return body
+        return body, errors
 
     def parseCycleCondition(self):
         pos_start = self.current_token.pos_start
@@ -3170,7 +3297,8 @@ class Parser:
                 if self.current_token.type != '{':
                     return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'")
                 self.advance()
-                body_node = self.parseBody()
+                body_node, body_errors = self.parseBody()
+                if body_errors: return None, body_errors
                 self.advance()  # advance past the closing brace '}'
                 else_vows = []
                 while self.current_token.type == 'else' and self.peek().type == 'vow':
@@ -3187,17 +3315,22 @@ class Parser:
                     if self.current_token.type != '{':
                         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'")
                     self.advance()
-                    else_body_node = self.parseBody()
-                    self.advance()  # Advance past the closing '}'
+                    else_body_node, else_body_errors = self.parseBody()
+                    if else_body_errors: return None, else_body_errors
+                    if self.current_token.type == '}':
+                        self.advance()  # Advance past the closing '}'
                     else_vows.append(ElseVow(else_condition, else_body_node))
                 if self.current_token.type == 'else':
                     else_start = self.current_token.pos_start
                     self.advance()
                     if self.current_token.type == '{':
                         self.advance()
-                        else_body_node = self.parseBody()
+                        else_body_node, else_body_errors = self.parseBody()
+                        if else_body_errors: return None, else_body_errors
+                        else_end = self.current_token.pos_end
+                        self.advance()
                         self.advance()  # Advance past the closing '}'
-                        body.add_child(VowNode(condition, body_node, else_vows, ElseNode(else_body_node, else_start, self.current_token.pos_end), vow_start, self.current_token.pos_end))
+                        body.add_child(VowNode(condition, body_node, else_vows, ElseNode(else_body_node, else_start, self.current_token.pos_end), vow_start, else_end))
                 else:
                     body.add_child(VowNode(condition, body_node, else_vows, None, vow_start, self.current_token.pos_end))
             else:
