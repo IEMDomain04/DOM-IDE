@@ -1160,10 +1160,6 @@ class MyASTVisitor(ASTVisitor):
         for node in node.children:
             if isinstance(node, CurseDecNode):
                 self.symbol_table.set(node.name, node)
-            if isinstance(node, VarDecNode):
-                self.symbol_table.set(node.name, node)
-            if isinstance(node, ClanDecNode):
-                self.symbol_table.set(node.name, node)
 
         self.visit_children(node)
         if not isinstance(parent, (CycleNode, SustainNode, PerformSustainNode)):
