@@ -2112,18 +2112,28 @@ class Lexer:
         id_str = ''
         self.advance()
         pos_start = self.pos.copy()
+        escape_character = False
 
-        while self.current_char is not None and self.current_char in ASCII + ' \t':
+        while self.current_char is not None:
             pos_end = self.pos.copy()
-            if self.current_char == '"':
+            if escape_character:
+                if self.current_char in ['"', '\\']:
+                    id_str += self.current_char
+                else:
+                    id_str += '\\' + self.current_char
+                escape_character = False
+            elif self.current_char == '\\':
+                escape_character = True
+            elif self.current_char == '"':
                 self.advance()
-                if self.current_char != None and self.current_char not in delim_map['str_delim']:
+                if self.current_char is not None and self.current_char not in delim_map['str_delim']:
                     return [], LexicalError(pos_start, self.pos, f"Invalid delimiter '{self.current_char}' after string")
                 else:
                     return Token(TT_STRLIT, id_str, pos_start, pos_end), None
-            if self.current_char == '\n':
+            elif self.current_char == '\n':
                 return [], LexicalError(pos_start, pos_end, 'String not properly closed with double quotes (")')
-            id_str += self.current_char
+            else:
+                id_str += self.current_char
             self.advance()
 
         pos_end = self.pos.copy()

@@ -73,7 +73,7 @@ def run_interpreter():
         error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
         return jsonify({'result': output, 'error': error_messages})
     if output:
-        output_messages = "\n".join(output)
+        output_messages = "".join(output)
         return jsonify({'result': output_messages, 'error': None})
     return jsonify({'result': "No Output", 'error': None})
 

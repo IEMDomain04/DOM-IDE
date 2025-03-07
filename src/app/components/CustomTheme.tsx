@@ -49,11 +49,11 @@ const CustomTheme = ( {isDarkMode}: { isDarkMode: boolean} ) => {
                     // Identifiers
                     [/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/, "identifier"],
 
-                    // Strings (detects text inside double quotes)
-                    [/".*?"/, "string"],
+                    // Strings (detects text inside double quotes, including escaped quotes)
+                    [/".*?[^\\]"/, "string"],
 
                     // Operators
-                    [/[+\-*/%**!&&||<>]+/, "operators"]
+                    [/[+\-*/%**!&&||<><=>=]+/, "operators"]
                 ],
             },
         });
