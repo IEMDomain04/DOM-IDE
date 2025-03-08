@@ -462,7 +462,7 @@ class VowNode(ASTNode): # if-else (vow-else)
             self.add_child(else_body)
 
     def __repr__(self):
-        return f"VowNode({self.condition}, {self.body}, {self.else_body})"
+        return f"VowNode_Object"
 
 class ElseVow(ASTNode):
     def __init__(self, condition, body, pos_start=None, pos_end=None):
@@ -1215,6 +1215,22 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_LenNode(self, node, parent):
         print(f"Visiting LenNode with name: {node.name}")
+        symbol = self.symbol_table.get(node.name)
+        if not symbol:
+            self.unresolved_cases.append((node, parent))
+        else:
+            symbol_type = self.symbol_table.get_type(node.name)
+            if isinstance(symbol, ClanDecNode):
+                pass
+            elif isinstance(symbol, VarDecNode):
+                if symbol_type == 'string':
+                    pass
+                else: 
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected string, got '{symbol_type}'"))
+            elif isinstance(symbol, StringNode):
+                pass
+            else:
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected string or clan name, got '{symbol_type}'"))
         self.visit_children(node)
         print(f"Exiting LenNode")
 
@@ -1289,7 +1305,7 @@ class MyASTVisitor(ASTVisitor):
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         elif isinstance(node.condition, IdNode):
             if not self.symbol_table.get(node.condition.name):
-                self.unresolved_cases.append((node.condition, node))
+                self.unresolved_cases.append((node, parent))
                 return
             condition_type = self.symbol_table.get_type(node.condition.name)
             if condition_type != 'bool':
@@ -1297,7 +1313,7 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(node.condition, CurseCallNode):
             curse_node = self.symbol_table.get(node.condition.name)
             if curse_node is None:
-                self.unresolved_cases.append((node.condition, node))
+                self.unresolved_cases.append((node, parent))
                 return
             curse_return_type = curse_node.datatype
             if curse_return_type is None:
@@ -1320,7 +1336,7 @@ class MyASTVisitor(ASTVisitor):
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         elif isinstance(node.condition, IdNode):
             if not self.symbol_table.get(node.condition.name):
-                self.unresolved_cases.append((node.condition, node))
+                self.unresolved_cases.append((node, parent))
                 return
             condition_type = self.symbol_table.get_type(node.condition.name)
             if condition_type != 'bool':
@@ -1328,7 +1344,7 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(node.condition, CurseCallNode):
             curse_node = self.symbol_table.get(node.condition.name)
             if curse_node is None:
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, f"Undefined curse 1 '{node.condition.name}'"))
+                self.unresolved_cases.append((node, parent))
                 return
             curse_return_type = curse_node.datatype
             if curse_return_type is None:
@@ -1438,7 +1454,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Unresolved cases: {self.unresolved_cases}")
 
         for node, parent in self.unresolved_cases:
-            print(f'Node Type: {type(node)}\n')
+            print(f'\tSolving: {type(node)}\n')
             if isinstance(node, VarAssignNode):
                 symbol_type = self.symbol_table.get_type(node.name)
                 print(f"\n\n\nSymbol_table: {self.symbol_table.scopes}")
@@ -1741,11 +1757,36 @@ class MyASTVisitor(ASTVisitor):
                         if isinstance(node.right, BinOpNode) and not self.symbol_table.get(node.right.name):
                             self.errors.append(SemanticError(node.right.pos_start, node.right.pos_end, f"Undefined variable '{node.right.name}'"))
                 
+            elif isinstance(node, VowNode):
+                if isinstance(node.condition, BinOpNode):
+                    if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
+                        self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
+                elif isinstance(node.condition, IdNode):
+                    if not self.symbol_table.get(node.condition.name):
+                        self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, f"Undeclared variable 7 '{node.condition.name}'"))
+                        return
+                    condition_type = self.symbol_table.get_type(node.condition.name)
+                    if condition_type != 'bool':
+                        self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
+                elif isinstance(node.condition, CurseCallNode):
+                    curse_node = self.symbol_table.get(node.condition.name)
+                    if curse_node is None:
+                        self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, f"Undefined curse 8 '{node.condition.name}'"))
+                        return
+                    curse_return_type = curse_node.datatype
+                    if curse_return_type is None:
+                        curse_return_type = 'void'
+                    if curse_return_type != 'bool':
+                        self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
+                elif isinstance(node.condition, RelOpNode):
+                    pass
+                elif isinstance(node.condition, LogOpNode):
+                    pass
+                else:
+                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
             elif isinstance(node, CycleConditionNode):
                 node_init = node.init
                 init_type = self.symbol_table.get_type(node_init.name)
-                print(f"Init type: {init_type}\nInit instance: {node_init}\nSymbol Table: {self.symbol_table.scopes}")
-                print("I reached here")
                 if init_type != 'int':
                     self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
             elif isinstance(node, ClanIndexAssignNode):
@@ -1807,6 +1848,24 @@ class MyASTVisitor(ASTVisitor):
 
                             if index2_value is not None and size2_value is not None and (index2_value < 0 or index2_value >= size2_value):
                                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Index out of bounds 9: index2 is {index2_value}, but size2 is {size2_value}"))
+            elif isinstance(node, LenNode):
+                symbol = self.symbol_table.get(node.name)
+                if not symbol:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 8 '{node.name}'"))
+                else:
+                    symbol_type = self.symbol_table.get_type(node.name)
+                    if isinstance(symbol, ClanDecNode):
+                        pass
+                    elif isinstance(symbol, VarDecNode):
+                        if symbol_type == 'string':
+                            pass
+                        else: 
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected string, got '{symbol_type}'"))
+                    elif isinstance(symbol, StringNode):
+                        pass
+                    else:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected string or clan name, got '{symbol_type}'"))
+
         print(f"Unresolved cases after resolution: {self.unresolved_cases}\n")
 
     def infer_type(self, node):
@@ -1872,6 +1931,8 @@ class MyASTVisitor(ASTVisitor):
             if isinstance(curse_node, CurseDecNode):
                 return curse_node.datatype
             return 'unknown'
+        elif isinstance(node, LenNode):
+            return 'int'
         else:
             return 'unknown'
 
@@ -2116,6 +2177,21 @@ class Parser:
             factor, error = self.parseFactor()
             if error: return None, error
             return UnaryOpNode(op, factor, pre=True, pos_start=op.pos_start, pos_end=factor.pos_end), None
+        elif tok.type == 'len':
+            pos_start = tok.pos_start
+            self.advance()
+            if self.current_token.type != '(':
+                return None, SemanticError(tok.pos_start, tok.pos_end, "Expected: '('")
+            self.advance()
+            if self.current_token.type != 'id':
+                return None, SemanticError(tok.pos_start, tok.pos_end, "Expected: identifier")
+            name = self.current_token.value
+            self.advance()
+            if self.current_token.type != ')':
+                return None, SemanticError(tok.pos_start, tok.pos_end, "Expected: ')'")
+            pos_end = self.current_token.pos_end
+            self.advance()
+            return LenNode(name, pos_start, pos_end), None
         else:
             return None, SemanticError(tok.pos_start, tok.pos_end, "Expected one of [int, float, bool, null, identifier, '(', '++', '--', '+', '-', '!']")
 
@@ -2556,26 +2632,100 @@ class Parser:
                     if self.current_token.type == '=': # Parse one dimensional clan declaration
                         initial_values = [] 
                         self.advance()
-                        if self.current_token.type != '{':
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '(')")
-                        self.advance()
-                        clan_lit_start = self.current_token.pos_start
-                        while self.current_token.type != '}':
-                            if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(', '+', '-', '++', '--']:
-                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, '(', '+', '-', '++', '--']")
-                            new_val, error = self.parseExpr()
-                            if error: return None, error
-                            initial_values.append(new_val)
-                            if self.current_token.type not in [',', '}']:
-                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected 3: ',' or '}}'")
-                            if self.current_token.type == ',': 
-                                self.advance() 
-                        if self.current_token.type != '}':
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '}}'")
-                        pos_end = self.current_token.pos_end
-                        self.advance() # move past the closing brace '}'
-                        clan_literal_node = ClanLiteralNode(initial_values, clan_lit_start, pos_end)
-                        return ClanDecNode(None, datatype, name, size1, size2, clan_literal_node, pos_start, self.current_token.pos_end), None
+                        if self.current_token.type not in ['cleave', 'dismantle', '{']:
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of ['cleave', 'dismantle', '{{']")
+                        
+                        if self.current_token.type == '{':
+                            self.advance()
+                            clan_lit_start = self.current_token.pos_start
+                            while self.current_token.type != '}':
+                                if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(', '+', '-', '++', '--']:
+                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, '(', '+', '-', '++', '--']")
+                                new_val, error = self.parseExpr()
+                                if error: return None, error
+                                initial_values.append(new_val)
+                                if self.current_token.type not in [',', '}']:
+                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected 3: ',' or '}}'")
+                                if self.current_token.type == ',': 
+                                    self.advance() 
+                            if self.current_token.type != '}':
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '}}'")
+                            pos_end = self.current_token.pos_end
+                            self.advance() # move past the closing brace '}'
+                            clan_literal_node = ClanLiteralNode(initial_values, clan_lit_start, pos_end)
+                            return ClanDecNode(None, datatype, name, size1, size2, clan_literal_node, pos_start, self.current_token.pos_end), None
+                        elif self.current_token.type == 'cleave':
+                            cleave_start = self.current_token.pos_start
+                            self.advance()
+                            if self.current_token.type != '(':
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
+                            self.advance()
+                            if self.current_token.type not in ['string_literal', 'id']:
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [string, identifier]")
+                            if self.current_token.type == 'string_literal':
+                                argument1 = StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                            if self.current_token.type == 'id':
+                                argument1 = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                            self.advance()
+                            if self.current_token.type != ',':
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Missing Parameter")
+                            self.advance()
+                            if self.current_token.type not in ['int_literal', 'id']:
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, identifier, '+', '-', '++', '--']")
+                            if self.peek().type in ['+', '-', '/', '%', '*', '**']:
+                                argument2, error = self.parseExpr()
+                                if error: return None, error
+                            elif self.current_token.type == 'id':
+                                argument2 = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                                self.advance()
+                            elif self.current_token.type == 'int_literal':
+                                argument2 = NumNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                                self.advance()
+                            if self.current_token.type != ',':
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ','")
+                            self.advance()
+                            if self.current_token.type not in ['int_literal', 'id']:
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, identifier, '+', '-', '++', '--']")
+                            if self.peek().type in ['+', '-', '/', '%', '*', '**']:
+                                argument3, error = self.parseExpr()
+                                if error: return None, error
+                            elif self.current_token.type == 'id':
+                                argument3 = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                                self.advance()
+                            elif self.current_token.type == 'int_literal':
+                                argument3 = NumNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                                self.advance()
+                            if self.current_token.type != ')':
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+                            pos_end = self.current_token.pos_end
+                            self.advance()
+                            return ClanDecNode(None, datatype, name, size1, size2, CleaveNode(argument1, argument2, argument3, cleave_start, pos_end), pos_start, pos_end), None
+                        elif self.current_token.type == 'dismantle':
+                            dismantle_start = self.current_token.pos_start
+                            self.advance()
+                            if self.current_token.type != '(':
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
+                            self.advance()
+                            if self.current_token.type not in ['string_literal', 'id']:
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [string, identifier]")
+                            if self.current_token.type == 'string_literal':
+                                argument1 = StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                            if self.current_token.type == 'id':
+                                argument1 = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                            self.advance()
+                            if self.current_token.type != ',':
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Missing Parameter")
+                            self.advance()
+                            if self.current_token.type != 'string_literal':
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: string type parameter")
+                            argument2 = StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                            self.advance()
+                            if self.current_token.type != ')':
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+                            pos_end = self.current_token.pos_end
+                            self.advance()
+                            return ClanDecNode(None, datatype, name, size1, size2, DismantleNode(argument1, argument2, dismantle_start, pos_end), pos_start, pos_end), None
+                    
                     elif self.current_token.type == '[':
                         new_clan_literal = []
                         clan_literal_node = None
@@ -2658,23 +2808,101 @@ class Parser:
                     if self.current_token.type != '=':
                         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '='")
                     self.advance()
-                    if self.current_token.type != '{':
-                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: opening brace (5)")
-                    self.advance()
-                    while self.current_token.type != '}':
-                        if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(', '+', '-', '++', '--']:
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, '(', '+', '-', '++', '--']")
-                        new_val, error = self.parseExpr()
-                        if error: return None, error
-                        initial_values.append(new_val)
-                        if self.current_token.type not in [',', '}']:
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected 6: ',' or '}}'")
-                        if self.current_token.type == ',':
+                    if self.current_token.type not in ['cleave', 'dismantle', '{']:
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of ['cleave', 'dismantle', '{{']")
+                    if self.current_token.type == '{':
+                        self.advance()
+                        while self.current_token.type != '}':
+                            if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(', '+', '-', '++', '--']:
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, '(', '+', '-', '++', '--']")
+                            new_val, error = self.parseExpr()
+                            if error: return None, error
+                            initial_values.append(new_val)
+                            if self.current_token.type not in [',', '}']:
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected 6: ',' or '}}'")
+                            if self.current_token.type == ',':
+                                self.advance()
+                        pos_end = self.current_token.pos_end
+                        self.advance() # move past the closing brace
+                        clan_literal_node = ClanLiteralNode(initial_values, pos_start, pos_end)
+                        return ClanDecNode(None, datatype, name, None, None, clan_literal_node, pos_start, pos_end), None
+                    
+                    elif self.current_token.type == 'cleave':
+                        cleave_start = self.current_token.pos_start
+                        self.advance()
+                        if self.current_token.type != '(':
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
+                        self.advance()
+                        if self.current_token.type not in ['string_literal', 'id']:
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [string, identifier]")
+                        if self.current_token.type == 'string_literal':
+                            argument1 = StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                        if self.current_token.type == 'id':
+                            argument1 = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                        self.advance()
+                        if self.current_token.type != ',':
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Missing Parameter")
+                        self.advance()
+                        if self.current_token.type not in ['int_literal', 'id']:
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, identifier, '+', '-', '++', '--']")
+                        if self.peek().type in ['+', '-', '/', '%', '*', '**']:
+                            argument2, error = self.parseExpr()
+                            if error: return None, error
+                        elif self.current_token.type == 'id':
+                            argument2 = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
                             self.advance()
-                    pos_end = self.current_token.pos_end
-                    self.advance() # move past the closing brace
-                    clan_literal_node = ClanLiteralNode(initial_values, pos_start, pos_end)
-                    return ClanDecNode(None, datatype, name, None, None, clan_literal_node, pos_start, pos_end), None
+                        elif self.current_token.type == 'int_literal':
+                            argument2 = NumNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                            self.advance()
+                        if self.current_token.type != ',':
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ','")
+                        self.advance()
+                        if self.current_token.type not in ['int_literal', 'id']:
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, identifier, '+', '-', '++', '--']")
+                        if self.peek().type in ['+', '-', '/', '%', '*', '**']:
+                            argument3, error = self.parseExpr()
+                            if error: return None, error
+                        elif self.current_token.type == 'id':
+                            argument3 = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                            self.advance()
+                        elif self.current_token.type == 'int_literal':
+                            argument3 = NumNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                            self.advance()
+                        if self.current_token.type != ')':
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+                        pos_end = self.current_token.pos_end
+                        self.advance()
+                        return ClanDecNode(None, datatype, name, None, None, CleaveNode(argument1, argument2, argument3, cleave_start, pos_end), pos_start, pos_end), None
+                    
+                    elif self.current_token.type == 'dismantle':
+                        dismantle_start = self.current_token.pos_start
+                        self.advance()
+                        if self.current_token.type != '(':
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
+                        self.advance()
+                        if self.current_token.type not in ['string_literal', 'id']:
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [string, identifier]")
+                        if self.current_token.type == 'string_literal':
+                            argument1 = StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                        if self.current_token.type == 'id':
+                            argument1 = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                        self.advance()
+                        if self.current_token.type != ',':
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Missing Parameter")
+                        self.advance()
+                        if self.current_token.type not in ['string_literal', 'id']:
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [string, identifier]")
+                        if self.current_token.type == 'string_literal':
+                            argument2 = StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                        if self.current_token.type == 'id':
+                            argument2 = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                        self.advance()
+                        if self.current_token.type != ')':
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+                        pos_end = self.current_token.pos_end
+                        self.advance()
+                        return ClanDecNode(None, datatype, name, None, None, DismantleNode(argument1, argument2, dismantle_start, pos_end), pos_start, pos_end), None
+                
                 elif self.current_token.type == ',':
                     declarations = [VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end)]
 
