@@ -843,9 +843,7 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_VarDecNode(self, node, parent):
         print(f"Visiting VarDecNode with type: {node.datatype}")
-        if not isinstance(parent, (CycleConditionNode)) and self.symbol_table.get_local(node.name):
-            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' already declared"))
-        else:
+        if not self.symbol_table.get_local(node.name):
             self.symbol_table.set(node.name, node)  # Store the VarDecNode object itself
         self.visit_children(node)
         print(f"Exiting VarDecNode")
@@ -1157,16 +1155,17 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_BodyNode(self, node, parent):
         print(f"Visiting BodyNode")
-        if not isinstance(parent, (CycleNode, SustainNode, PerformSustainNode)):
+        if not isinstance(parent, CycleNode):
             self.symbol_table.push()  # Enter new scope for body
         
-        for node in node.children:
-            if isinstance(node, CurseDecNode):
-                self.symbol_table.set(node.name, node)
+            for child in list(node.children):
+                if isinstance(child, CurseDecNode):
+                    self.symbol_table.set(child.name, child)
 
-        self.visit_children(node)
-        if not isinstance(parent, (CycleNode, SustainNode, PerformSustainNode)):
+            self.visit_children(node)
             self.symbol_table.pop()  # Exit body scope
+        else:
+            self.visit_children(node)
         print(f"Exiting BodyNode")
 
     def visit_CurseCallNode(self, node, parent):
@@ -1382,7 +1381,9 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_CycleNode(self, node, parent):
         print(f"Visiting CycleNode")
+        self.symbol_table.push()  # Enter new scope for cycle body
         self.visit_children(node)
+        self.symbol_table.pop()  # Exit cycle scope 
         print(f"Exiting CycleNode")
 
     def visit_CycleConditionNode(self, node, parent):
@@ -1391,10 +1392,12 @@ class MyASTVisitor(ASTVisitor):
             if not isinstance(node.init.value, NumNode):
                 self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
         elif isinstance(node.init, VarAssignNode):
-            if not self.symbol_table.get(node.init.name):
+            symbol_node = self.symbol_table.get(node.init.name)
+            if not symbol_node:
                 self.unresolved_cases.append((node.init, node))
                 return
-            init_type = self.symbol_table.get_type(node.init.name)
+
+            init_type = symbol_node.datatype
             if init_type != 'int':
                 self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
         else: 
@@ -1439,6 +1442,7 @@ class MyASTVisitor(ASTVisitor):
             if isinstance(node, VarAssignNode):
                 symbol_type = self.symbol_table.get_type(node.name)
                 print(f"\n\n\nSymbol_table: {self.symbol_table.scopes}")
+
                 if symbol_type is None:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 1 '{node.name}'"))
                 else:
@@ -1911,6 +1915,7 @@ class SymbolTable:
                 return scope[name].datatype if hasattr(scope[name], 'datatype') else scope[name]
         print(f"'{name}' not found in any scope, get_type returns None")
         return None
+
 
     def set(self, name, value):
         # Set in the current (innermost) scope
