@@ -1247,7 +1247,7 @@ class MyASTVisitor(ASTVisitor):
     def visit_CleaveNode(self, node, parent):
         print(f"Visiting CleaveNode: {node.arg1}")
         true_parent = parent
-        while true_parent and not isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode, ClanDecNode, LenNode)):
+        while true_parent and not isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode, ClanDecNode, LenNode, InvokeNode)):
             true_parent = true_parent.parent
         arg1 = node.arg1
         arg2 = node.index1
@@ -1263,7 +1263,7 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(arg1, StringNode):
             pass
         else:
-            if isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode)):
+            if isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode, InvokeNode)):
                 arg1_symbol = self.symbol_table.get(arg1.name)
                 print(f'Arg1 Symbol: {arg1_symbol}')
                 if arg1_symbol is None:
@@ -1272,6 +1272,7 @@ class MyASTVisitor(ASTVisitor):
                 else: 
                     if isinstance(arg1_symbol, ClanDecNode):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot assign clan to a non-clan variable"))
+                    
                 if not arg1_type == 'string':
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected string for cleave first argument, got '{arg1_type}'"))
                     return
@@ -1294,11 +1295,10 @@ class MyASTVisitor(ASTVisitor):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan in first argument"))
                 elif true_parent.datatype != arg1_symbol.datatype:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 17: Expected '{true_parent.datatype}', got '{arg1_symbol.datatype}'"))
-            
             elif isinstance(true_parent, LenNode):
                 pass
             else:
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan or string, got '{arg1_type}'"))
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan or string (2), got '{arg1_type}'"))
 
         if isinstance(arg2, IdNode) and not self.symbol_table.get(arg2.name):
             self.unresolved_cases.append((node, parent))
@@ -2136,7 +2136,7 @@ class MyASTVisitor(ASTVisitor):
             
             elif isinstance(node, CleaveNode):
                 true_parent = parent
-                while true_parent and not isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode, ClanDecNode)):
+                while true_parent and not isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode, ClanDecNode, InvokeNode)):
                     true_parent = true_parent.parent
                 arg1 = node.arg1
                 arg2 = node.index1
@@ -2150,9 +2150,9 @@ class MyASTVisitor(ASTVisitor):
                 elif isinstance(arg1, StringNode):
                     pass
                 else:
-                    if isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode)):
+                    print(f'Arg1 Symbol: {arg1_symbol}\n True Parent: {true_parent}')
+                    if isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode, InvokeNode)):
                         arg1_symbol = self.symbol_table.get(arg1.name)
-                        print(f'Arg1 Symbol: {arg1_symbol}')
                         if arg1_symbol is None:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 8 '{arg1.name}'"))
                             continue
@@ -2183,7 +2183,7 @@ class MyASTVisitor(ASTVisitor):
                         elif true_parent.datatype != arg1_symbol.datatype:
                                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 17: Expected '{true_parent.datatype}', got '{arg1_symbol.datatype}'"))
                     else:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan or string, got '{arg1_type}'"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan or string (1), got '{arg1_type}'"))
 
                 if isinstance(arg2, IdNode) and not self.symbol_table.get(arg2.name):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 11 '{arg2.name}'"))
@@ -2432,6 +2432,12 @@ class Parser:
             self.advance()
             argument1, error = self.parseExpr()
             if error: return None, error
+
+            if isinstance(argument1, IdNode):
+                arg1_node = self.symbol_table.get(argument1.name)
+                if isinstance(arg1_node, ClanDecNode):
+                    return None, SemanticError(argument1.pos_start, argument1.pos_end, f"Cannot perform operation on a clan")
+
             if self.current_token.type != ',':
                 return None, SemanticError(tok.pos_start, tok.pos_end, "Expected: ','")
             self.advance()
@@ -2452,6 +2458,8 @@ class Parser:
             return BoolNode(tok.value, tok.pos_start, tok.pos_end), None
         elif tok.type == 'null_literal':
             self.advance()
+            if not self.current_token.type == ';':
+                return None, SemanticError(self.current_token.pos_start, self.current_token.pos_end, "Expected: ';'")
             return NullNode(tok.value, tok.pos_start, tok.pos_end), None
         elif tok.type == 'id' and self.peek().type == '[':
             index1, index2 = None, None
@@ -2555,10 +2563,29 @@ class Parser:
             if self.current_token.type != '(':
                 return None, SemanticError(tok.pos_start, tok.pos_end, "Expected: '('")
             self.advance()
-            if self.current_token.type not in ['id', 'string_literal', 'cleave']:
-                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [id, string_literal, 'cleave']")
-            len_value, error = self.parseExpr()
-            if error: return None, error
+            if self.current_token.type not in ['id', 'string_literal', 'cleave', 'dismantle']:
+                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [id, string_literal, 'cleave', 'dismantle']")
+            if self.current_token.type == 'dismantle':
+                dismantle_start = self.current_token.pos_start
+                self.advance()
+                if self.current_token.type != '(':
+                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
+                self.advance()
+                clan_name, error = self.parseExpr()
+                if error: return None, error
+                if self.current_token.type != ',':
+                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ','")
+                self.advance()
+                delimiter, errors = self.parseExpr()
+                if errors: return None, errors
+                if self.current_token.type != ')':
+                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+                dismantle_end = self.current_token.pos_end
+                self.advance()
+                len_value = DismantleNode(clan_name, delimiter, dismantle_start, dismantle_end)
+            else:
+                len_value, error = self.parseExpr()
+                if error: return None, error
             if self.current_token.type != ')':
                 return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
             len_end = self.current_token.pos_end
@@ -2691,10 +2718,29 @@ class Parser:
             elif self.current_token.type == 'len':
                 len_pos_start = self.current_token.pos_start
                 self.advance()
-                if self.current_token.type not in ['id', 'string_literal', 'cleave']:
-                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [id, string_literal, 'cleave']")
-                len_value, error = self.parseExpr()
-                if error: return None, error
+                if self.current_token.type not in ['id', 'string_literal', 'cleave', 'dismantle']:
+                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [id, string_literal, 'cleave', 'dismantle']")
+                if self.current_token.type == 'dismantle':
+                    dismantle_start = self.current_token.pos_start
+                    self.advance()
+                    if self.current_token.type != '(':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
+                    self.advance()
+                    clan_name, error = self.parseExpr()
+                    if error: return None, error
+                    if self.current_token.type != ',':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ','")
+                    self.advance()
+                    delimiter, errors = self.parseExpr()
+                    if errors: return None, errors
+                    if self.current_token.type != ')':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+                    dismantle_end = self.current_token.pos_end
+                    self.advance()
+                    len_value = DismantleNode(clan_name, delimiter, dismantle_start, dismantle_end)
+                else:
+                    len_value, error = self.parseExpr()
+                    if error: return None, error
                 if self.current_token.type != ')':
                     return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
                 len_end = self.current_token.pos_end
@@ -2933,10 +2979,29 @@ class Parser:
                         if self.current_token.type != '(':
                             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
                         self.advance()
-                        if self.current_token.type not in ['id', 'string_literal', 'cleave']:
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [id, string_literal, 'cleave']")
-                        len_value, error = self.parseExpr()
-                        if error: return None, error
+                        if self.current_token.type not in ['id', 'string_literal', 'cleave', 'dismantle']:
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [id, string_literal, 'cleave', 'dismantle']")
+                        if self.current_token.type == 'dismantle':
+                            dismantle_start = self.current_token.pos_start
+                            self.advance()
+                            if self.current_token.type != '(':
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
+                            self.advance()
+                            clan_name, error = self.parseExpr()
+                            if error: return None, error
+                            if self.current_token.type != ',':
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ','")
+                            self.advance()
+                            delimiter, errors = self.parseExpr()
+                            if errors: return None, errors
+                            if self.current_token.type != ')':
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+                            dismantle_end = self.current_token.pos_end
+                            self.advance()
+                            len_value = DismantleNode(clan_name, delimiter, dismantle_start, dismantle_end)
+                        else:
+                            len_value, error = self.parseExpr()
+                            if error: return None, error
                         if self.current_token.type != ')':
                             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
                         len_end = self.current_token.pos_end
@@ -3559,10 +3624,29 @@ class Parser:
                     if self.current_token.type != '(':
                         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
                     self.advance()
-                    if self.current_token.type not in ['id', 'string_literal', 'cleave']:
-                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [id, string_literal, 'cleave']")
-                    len_value, error = self.parseExpr()
-                    if error: return None, error
+                    if self.current_token.type not in ['id', 'string_literal', 'cleave', 'dismantle']:
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [id, string_literal, 'cleave', 'dismantle']")
+                    if self.current_token.type == 'dismantle':
+                        dismantle_start = self.current_token.pos_start
+                        self.advance()
+                        if self.current_token.type != '(':
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
+                        self.advance()
+                        clan_name, error = self.parseExpr()
+                        if error: return None, error
+                        if self.current_token.type != ',':
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ','")
+                        self.advance()
+                        delimiter, errors = self.parseExpr()
+                        if errors: return None, errors
+                        if self.current_token.type != ')':
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+                        dismantle_end = self.current_token.pos_end
+                        self.advance()
+                        len_value = DismantleNode(clan_name, delimiter, dismantle_start, dismantle_end)
+                    else:
+                        len_value, error = self.parseExpr()
+                        if error: return None, error
                     if self.current_token.type != ')':
                         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
                     len_end = self.current_token.pos_end
@@ -3935,10 +4019,10 @@ class Parser:
                         errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('"))
                         continue
                     self.advance()
-                    if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(', '[', '!', '+', '-', '++', '--']:
-                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, '(', '+', '-', '++', '--']"))
+                    if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', 'cleave', 'len', '(', '[', '!', '+', '-', '++', '--']:
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, 'cleave', 'len', '(', '+', '-', '++', '--']"))
                         continue
-                    value, error = self.parseInvokeArgument()
+                    value, error = self.parseExpr()
                     if error:
                         errors.append(error)
                         continue
@@ -4284,9 +4368,9 @@ class Parser:
                 if self.current_token.type != '(':
                     return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
                 self.advance()
-                if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', '(', '[']:
-                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: int, float, string, identifier, or '('")
-                value, error = self.parseInvokeArgument()
+                if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', 'cleave', 'len', '(', '[', '!', '+', '-', '++', '--']:
+                    errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, 'cleave', 'len', '(', '+', '-', '++', '--']"))
+                value, error = self.parseExpr()
                 if error: return None, error
                 if self.current_token.type != ')':
                     return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
@@ -4376,31 +4460,6 @@ class Parser:
             else:
                 self.advance()
         return body, None
-
-    def parseInvokeArgument(self):
-        if self.current_token.type == 'string_literal':
-            return self.parseString()
-        else:
-            return self.parseExpr()
-
-    def parseString(self):
-        pos_start = self.current_token.pos_start
-        left = StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
-        self.advance()
-        if self.current_token.type not in ['+', ')']:
-            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '+' or ')'")
-        if self.current_token.type == '+':
-            while self.current_token.type == '+':
-                op = self.current_token
-                self.advance()
-                if self.current_token.type == 'string_literal':
-                    right = StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
-                    self.advance()
-                else:
-                    right, error = self.parseFactor()
-                    if error: return None, error
-                left = StringConcatNode(left, op, right, pos_start, self.current_token.pos_end)
-        return left, None
 
 def semantic_run(tokens):
     symbol_table = SymbolTable()
