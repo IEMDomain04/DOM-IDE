@@ -224,7 +224,7 @@ class IdNode(ASTNode): # for identifier names
         return f"IdNode_Object"
 
 class VarDecNode(ASTNode): # for variable assignments
-    def __init__(self, restrict, datatype, name, value, pos_start=None, pos_end=None):
+    def __init__(self, restrict, datatype, name, value=None, pos_start=None, pos_end=None):
         super().__init__("Variable Declaration", pos_start, pos_end)
         self.restrict = restrict
         self.datatype = datatype
@@ -238,7 +238,6 @@ class VarDecNode(ASTNode): # for variable assignments
             self.add_child(value)
 
     def __repr__(self):
-        restrict_str = " restrict" if self.restrict else ""
         return f"VarDecNode_Object"
 
 class VarAssignNode(ASTNode): # for variable assignments
@@ -729,8 +728,8 @@ class MyASTVisitor(ASTVisitor):
 
         if left_type != right_type:
             if (left_type == 'string' and right_type in ['int', 'float']) or (right_type == 'string' and left_type in ['int', 'float']):
-                if not isinstance(parent, StringConcatNode):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 1: Cannot concatenate '{left_type}' and '{right_type}'"))
+                if not isinstance(parent, (StringConcatNode, InvokeNode)):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 1.1: Cannot concatenate '{left_type}' and '{right_type}'"))
 
             elif left_type == 'int' and right_type == 'float':
                 if isinstance(parent, BinOpNode):
@@ -843,6 +842,11 @@ class MyASTVisitor(ASTVisitor):
             self.symbol_table.set(node.name, node)  # Store the VarDecNode object itself
         value_type = self.infer_type(node.value)
         var_type = self.symbol_table.get_type(node.name)
+        
+        print(f'Node Value: {node.value}')
+        if not node.value:
+            value_type = 'null'
+
         if value_type == 'null':
             pass
         else:
@@ -1294,18 +1298,21 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_DismissNode(self, node, parent):
         print(f"Visiting DismissNode")
-        if isinstance(parent, BodyNode):
-            true_parent = parent.parent
-        else: true_parent = parent
-        if not isinstance(true_parent, (SustainNode, PerformSustainNode, CycleNode, WoogieNode, WoogieTrueNode)):
-            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Dismiss statement not within a loop"))
+        true_parent = parent
+        while not isinstance(true_parent, (SustainNode, PerformSustainNode, CycleNode, WoogieNode, WoogieTrueNode)):
+            if true_parent.parent:
+                true_parent = true_parent.parent
+            else: self.errors.append(SemanticError(node.pos_start, node.pos_end, "Dismiss statement not within a loop or boogie"))
         self.visit_children(node)
         print(f"Exiting DismissNode")
 
     def visit_HopNode(self, node, parent):
         print(f"Visiting HopNode")
-        if not isinstance(parent, (SustainNode, PerformSustainNode, CycleNode)):
-            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Hop statement not within a loop"))
+        true_parent = parent
+        while not isinstance(true_parent, (SustainNode, PerformSustainNode, CycleNode)):
+            if true_parent.parent:
+                true_parent = true_parent.parent
+            else: self.errors.append(SemanticError(node.pos_start, node.pos_end, "Hop statement not within a loop"))
         self.visit_children(node)
         print(f"Exiting HopNode")
 
@@ -1334,6 +1341,10 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(node.condition, RelOpNode):
             pass
         elif isinstance(node.condition, LogOpNode):
+            pass
+        elif isinstance(node.condition, UnaryOpNode):
+            if not node.condition.op.op == '!':
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
             pass
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
@@ -1365,6 +1376,10 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(node.condition, RelOpNode):
             pass
         elif isinstance(node.condition, LogOpNode):
+            pass
+        elif isinstance(node.condition, UnaryOpNode):
+            if not node.condition.op.op == '!':
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
             pass
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
@@ -1407,6 +1422,10 @@ class MyASTVisitor(ASTVisitor):
             pass
         elif isinstance(node.condition, LogOpNode):
             pass
+        elif isinstance(node.condition, UnaryOpNode):
+            if not node.condition.op.op == '!':
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
+            pass
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         self.visit_children(node)
@@ -1440,8 +1459,12 @@ class MyASTVisitor(ASTVisitor):
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Woogie cannot be a boolean expression"))
         elif isinstance(node.condition, LogOpNode):
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Woogie cannot be a boolean expression"))
+        elif isinstance(node.condition, UnaryOpNode):
+            if node.condition.op.op == '!':
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Woogie cannot be a boolean expression"))
+            pass
         else:
-            if node.condition in ['int_literal', 'float_literal', 'string_literal']:
+            if isinstance(node.condition, (NumNode, StringNode)):
                 pass
             else: 
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Woogie must be a valid value"))
@@ -1479,6 +1502,10 @@ class MyASTVisitor(ASTVisitor):
             pass
         elif isinstance(node.condition, LogOpNode):
             pass
+        elif isinstance(node.condition, UnaryOpNode):
+            if not node.condition.op.op == '!':
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
+            pass
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         self.visit_children(node)
@@ -1509,6 +1536,10 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(node.condition, RelOpNode):
             pass
         elif isinstance(node.condition, LogOpNode):
+            pass
+        elif isinstance(node.condition, UnaryOpNode):
+            if not node.condition.op.op == '!':
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
             pass
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
@@ -1562,6 +1593,10 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(node.condition, RelOpNode):
             pass
         elif isinstance(node.condition, LogOpNode):
+            pass
+        elif isinstance(node.condition, UnaryOpNode):
+            if not node.condition.op.op == '!':
+                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
             pass
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
@@ -1825,7 +1860,7 @@ class MyASTVisitor(ASTVisitor):
                 if left_type != right_type:
                     if (left_type == 'string' and right_type in ['int', 'float']) or (right_type == 'string' and left_type in ['int', 'float']):
                         if not isinstance(parent, StringConcatNode):
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 1: Cannot concatenate '{left_type}' and '{right_type}'"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 1.2: Cannot concatenate '{left_type}' and '{right_type}'"))
                     elif left_type == 'int' and right_type == 'float':
                         if isinstance(parent, BinOpNode):
                             try:
@@ -1861,7 +1896,7 @@ class MyASTVisitor(ASTVisitor):
                             self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undefined variable '{node.left.name}'"))
                         if isinstance(node.right, BinOpNode) and not self.symbol_table.get(node.right.name):
                             self.errors.append(SemanticError(node.right.pos_start, node.right.pos_end, f"Undefined variable '{node.right.name}'"))
-                        if node.pos_start: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform operatioon between '{left_type}' and '{right_type}'"))
+                        if node.pos_start: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform operation between '{left_type}' and '{right_type}'"))
                         else: self.errors.append(SemanticError(parent.pos_start, parent.pos_end, f"Cannot perform operation between '{left_type}' and '{right_type}'"))
                 
             elif isinstance(node, VowNode):
@@ -2565,7 +2600,7 @@ class Parser:
                                     if error: return None, error
                                     declarations.append(VarDecNode(None, datatype, name, value, pos_start, self.current_token.pos_end))
                                 else:
-                                    declarations.append(VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end))
+                                    declarations.append(VarDecNode(None, datatype, name, None, pos_start, self.current_token.pos_end))
                             return declarations, None
                         return VarDecNode(None, datatype, name, value, pos_start, self.current_token.pos_end), None
                     elif self.current_token.type == 'id' and self.peek().type in ['+', '-', '/', '%', '*', '**']:
@@ -2585,7 +2620,7 @@ class Parser:
                                     if error: return None, error
                                     declarations.append(VarDecNode(None, datatype, name, value, pos_start, self.current_token.pos_end))
                                 else:
-                                    declarations.append(VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end))
+                                    declarations.append(VarDecNode(None, datatype, name, None, pos_start, self.current_token.pos_end))
                             return declarations, None
                         return VarDecNode(None, datatype, name, value, pos_start, self.current_token.pos_end), None
                     elif self.current_token.type == 'id' and self.peek().type == '[':
@@ -2623,7 +2658,7 @@ class Parser:
                                     if error: return None, error
                                     declarations.append(VarDecNode(None, datatype, name, value, pos_start, self.current_token.pos_end))
                                 else:
-                                    declarations.append(VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end))
+                                    declarations.append(VarDecNode(None, datatype, name, None, pos_start, self.current_token.pos_end))
                         return VarDecNode(None, datatype, name, value, pos_start, self.current_token.pos_end), None
                     elif self.current_token.type == 'id' and self.peek().type == '(':
                         value, error = self.parseExpr()
@@ -2646,7 +2681,7 @@ class Parser:
                                     if error: return None, error
                                     declarations.append(VarDecNode(None, datatype, name, value, pos_start, self.current_token.pos_end))
                                 else:
-                                    declarations.append(VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end))
+                                    declarations.append(VarDecNode(None, datatype, name, None, pos_start, self.current_token.pos_end))
                             return declarations, None
                         return VarDecNode(None, datatype, name, value, pos_start, self.current_token.pos_end), None
                     elif self.current_token.type == 'cleave':
@@ -2731,7 +2766,7 @@ class Parser:
                                     if error: return None, error
                                     declarations.append(VarDecNode(None, datatype, name, value, pos_start, self.current_token.pos_end))
                                 elif self.current_token.type == ';':
-                                    declarations.append(VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end))
+                                    declarations.append(VarDecNode(None, datatype, name, None, pos_start, self.current_token.pos_end))
                                 else:
                                     return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected '=' or ';'")
                             return declarations, None
@@ -3025,7 +3060,7 @@ class Parser:
                         return ClanDecNode(None, datatype, name, None, None, DismantleNode(argument1, argument2, dismantle_start, pos_end), pos_start, pos_end), None
                 
                 elif self.current_token.type == ',':
-                    declarations = [VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end)]
+                    declarations = [VarDecNode(None, datatype, name, None, pos_start, self.current_token.pos_end)]
 
                     while self.current_token.type == ',':
                         pos_start = self.current_token.pos_start
@@ -3061,13 +3096,13 @@ class Parser:
                             declarations.append(VarDecNode(None, datatype, name, value, pos_start, self.current_token.pos_end))
                             self.advance()
                         elif self.current_token.type == ',':
-                            declarations.append(VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end))
+                            declarations.append(VarDecNode(None, datatype, name, None, pos_start, self.current_token.pos_end))
                         elif self.current_token.type == ';':
-                            declarations.append(VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end))
+                            declarations.append(VarDecNode(None, datatype, name, None, pos_start, self.current_token.pos_end))
                     return declarations, None
                 
                 elif self.current_token.type == ';':
-                    return VarDecNode(None, datatype, name, 0, pos_start, self.current_token.pos_end), None
+                    return VarDecNode(None, datatype, name, None, pos_start, self.current_token.pos_end), None
             elif self.current_token.type == 'curse': # curse with return type [int, float, bool, string]
                 self.advance()
                 if self.current_token.type != 'id':
@@ -3196,7 +3231,7 @@ class Parser:
                                 if error: return None, error
                                 declarations.append(VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end))
                             else:
-                                declarations.append(VarDecNode(True, datatype, name, 0, pos_start, self.current_token.pos_end))
+                                declarations.append(VarDecNode(True, datatype, name, None, pos_start, self.current_token.pos_end))
                         return declarations, None
                     return VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end), None
                 elif self.current_token.type == 'id' and self.peek().type in ['+', '-', '/', '%', '*', '**']:
@@ -3216,7 +3251,7 @@ class Parser:
                                 if error: return None, error
                                 declarations.append(VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end))
                             else:
-                                declarations.append(VarDecNode(True, datatype, name, 0, pos_start, self.current_token.pos_end))
+                                declarations.append(VarDecNode(True, datatype, name, None, pos_start, self.current_token.pos_end))
                         return declarations, None
                     return VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end), None
                 elif self.current_token.type == 'id' and self.peek().type == '[':
@@ -3254,7 +3289,7 @@ class Parser:
                                 if error: return None, error
                                 declarations.append(VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end))
                             else:
-                                declarations.append(VarDecNode(True, datatype, name, 0, pos_start, self.current_token.pos_end))
+                                declarations.append(VarDecNode(True, datatype, name, None, pos_start, self.current_token.pos_end))
                     return VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end), None
                 elif self.current_token.type == 'id' and self.peek().type == '(': # curse call?
                     value, error = self.parseExpr()
@@ -3277,7 +3312,7 @@ class Parser:
                                 if error: return None, error
                                 declarations.append(VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end))
                             else:
-                                declarations.append(VarDecNode(True, datatype, name, 0, pos_start, self.current_token.pos_end))
+                                declarations.append(VarDecNode(True, datatype, name, None, pos_start, self.current_token.pos_end))
                         return declarations, None
                     return VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end), None
                 elif self.current_token.type == 'cleave':
@@ -3362,7 +3397,7 @@ class Parser:
                                 if error: return None, error
                                 declarations.append(VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end))
                             elif self.current_token.type == ';':
-                                declarations.append(VarDecNode(True, datatype, name, 0, pos_start, self.current_token.pos_end))
+                                declarations.append(VarDecNode(True, datatype, name, None, pos_start, self.current_token.pos_end))
                             else:
                                 return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected '=' or ';'")
                         return declarations, None
@@ -3659,7 +3694,7 @@ class Parser:
 
             elif self.current_token.type == ',':
                 pos_start = self.current_token.pos_start
-                declarations = [VarDecNode('restrict', datatype, name, 0, pos_start, self.current_token.pos_end)]
+                declarations = [VarDecNode('restrict', datatype, name, None, pos_start, self.current_token.pos_end)]
                 while self.current_token.type == ',':
                     self.advance()
                     if self.current_token.type != 'id':
@@ -3672,7 +3707,7 @@ class Parser:
                         if error: return None, error
                         declarations.append(VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end))
                     else:
-                        declarations.append(VarDecNode(True, datatype, name, 0, pos_start, self.current_token.pos_end))
+                        declarations.append(VarDecNode(True, datatype, name, None, pos_start, self.current_token.pos_end))
                 return declarations, None
             elif self.current_token.type == ';':
                 return VarDecNode(True, datatype, name, 0, pos_start, self.current_token.pos_end), None
@@ -4161,16 +4196,19 @@ class Parser:
         pos_start = self.current_token.pos_start
         left = StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
         self.advance()
-        while self.current_token.type == '+':
-            op = self.current_token
-            self.advance()
-            if self.current_token.type == 'string_literal':
-                right = StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+        if self.current_token.type not in ['+', ')']:
+            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '+' or ')'")
+        if self.current_token.type == '+':
+            while self.current_token.type == '+':
+                op = self.current_token
                 self.advance()
-            else:
-                right, error = self.parseFactor()
-                if error: return None, error
-            left = StringConcatNode(left, op, right, pos_start, self.current_token.pos_end)
+                if self.current_token.type == 'string_literal':
+                    right = StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                    self.advance()
+                else:
+                    right, error = self.parseFactor()
+                    if error: return None, error
+                left = StringConcatNode(left, op, right, pos_start, self.current_token.pos_end)
         return left, None
 
 def semantic_run(tokens):
@@ -4178,7 +4216,7 @@ def semantic_run(tokens):
     visitor = MyASTVisitor(symbol_table)
     parser = Parser(tokens)
     ast, errors = parser.build_ast()
-    ast.print_tree()
+    
 
     # check if there is curse domain node in the ast
     if not any(isinstance(node, CurseDomainNode) for node in ast.children):
@@ -4188,6 +4226,7 @@ def semantic_run(tokens):
         visitor.visit(ast)
         visitor.resolve_unresolved()  
         print(symbol_table.scopes)
+        ast.print_tree()
     else:
         print("No AST built")
         return "No AST built", None
