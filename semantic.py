@@ -847,7 +847,7 @@ class MyASTVisitor(ASTVisitor):
             value_type = 'null'
         else: 
             if isinstance(node.value, CleaveNode):
-                return
+                pass
 
         if value_type == 'null':
             pass
@@ -1239,20 +1239,41 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting CleaveNode: {node.arg1}")
         true_parent = parent
         while true_parent and not isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode, ClanDecNode)):
-            true_parent = true_parent.paren
+            true_parent = true_parent.parent
         arg1 = node.arg1
         arg2 = node.index1
         arg3 = node.index2
         arg1_type = self.infer_type(arg1)
         arg2_type = self.infer_type(arg2)
         arg3_type = self.infer_type(arg3)
+        
+        print(f"HELLO WORLD, arg1: {type(arg1)}")
 
         if isinstance(arg1, IdNode) and not self.symbol_table.get(arg1.name):
             self.unresolved_cases.append((node, parent))
         else:
             if isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode)):
+                arg1_symbol = self.symbol_table.get(arg1.name)
+                print(f'Arg1 Symbol: {arg1_symbol}')
+                if arg1_symbol is None:
+                    self.unresolved_cases.append((node, parent))
+                    return
+                else: 
+                    if isinstance(arg1_symbol, ClanDecNode):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot assign clan to a non-clan variable"))
                 if not arg1_type == 'string':
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected 'string', got '{arg1_type}'"))
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected string for cleave first argument, got '{arg1_type}'"))
+                    return
+                if isinstance(true_parent, VarDecNode):
+                    if true_parent.datatype != 'string':
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected '{true_parent.datatype}', got '{arg1_type}'"))
+                elif isinstance(true_parent, (VarAssignNode, ClanIndexAssignNode)):
+                    if not self.symbol_table.get(true_parent.name):
+                        self.unresolved_cases.append(node, parent)
+                    else:
+                        if true_parent.datatype != 'string':
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected '{true_parent.datatype}', got '{arg1_type}'"))
+
             elif isinstance(true_parent, ClanDecNode):
                 arg1_symbol = self.symbol_table.get(arg1.name)
                 if arg1_symbol is None:
@@ -2102,65 +2123,66 @@ class MyASTVisitor(ASTVisitor):
             elif isinstance(node, CleaveNode):
                 true_parent = parent
                 while true_parent and not isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode, ClanDecNode)):
-                    true_parent = true_parent.paren
+                    true_parent = true_parent.parent
                 arg1 = node.arg1
                 arg2 = node.index1
                 arg3 = node.index2
                 arg1_type = self.infer_type(arg1)
                 arg2_type = self.infer_type(arg2)
                 arg3_type = self.infer_type(arg3)
-
+        
                 if isinstance(arg1, IdNode) and not self.symbol_table.get(arg1.name):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 8 '{arg1.name}'"))
-                    continue
+                    self.unresolved_cases.append((node, parent))
                 else:
                     if isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode)):
+                        arg1_symbol = self.symbol_table.get(arg1.name)
+                        print(f'Arg1 Symbol: {arg1_symbol}')
+                        if arg1_symbol is None:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 8 '{arg1.name}'"))
+                            continue
+                        else: 
+                            if isinstance(arg1_symbol, ClanDecNode):
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot assign clan to a non-clan variable"))
                         if not arg1_type == 'string':
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected 'string', got '{arg1_type}'"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected string for cleave first argument, got '{arg1_type}'"))
+                            continue
+                        if isinstance(true_parent, VarDecNode):
+                            if true_parent.datatype != 'string':
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected '{true_parent.datatype}', got '{arg1_type}'"))
+                        elif isinstance(true_parent, (VarAssignNode, ClanIndexAssignNode)):
+                            if not self.symbol_table.get(true_parent.name):
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 9 '{true_parent.name}'"))
+                                continue
+                            else:
+                                if true_parent.datatype != 'string':
+                                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected '{true_parent.datatype}', got '{arg1_type}'"))
+
                     elif isinstance(true_parent, ClanDecNode):
                         arg1_symbol = self.symbol_table.get(arg1.name)
                         if arg1_symbol is None:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined clan 1 '{arg1.name}'"))
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 10 '{arg1.name}'"))
                             continue
                         elif not isinstance(arg1_symbol, ClanDecNode):
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan in first argument"))
                         elif true_parent.datatype != arg1_symbol.datatype:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 17: Expected '{true_parent.datatype}', got '{arg1_symbol.datatype}'"))
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 17: Expected '{true_parent.datatype}', got '{arg1_symbol.datatype}'"))
                     else:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan or string, got '{arg1_type}'"))
 
                 if isinstance(arg2, IdNode) and not self.symbol_table.get(arg2.name):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 9 '{arg2.name}'"))
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 11 '{arg2.name}'"))
                     continue
                 else: 
                     if not arg2_type == 'int':
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected 'int', got '{arg2_type}'"))
 
                 if isinstance(arg3, IdNode) and not self.symbol_table.get(arg3.name):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 10 '{arg3.name}'"))
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 12 '{arg3.name}'"))
+                    continue
                 else:
                     if not arg3_type == 'int':
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected 'int', got '{arg3_type}'"))
-                    
-            elif isinstance(node, DismantleNode):
-                arg1 = node.value
-                arg2 = node.delimiter
 
-                arg1_type = self.infer_type(arg1)
-                arg2_type = self.infer_type(arg2)
-
-                if isinstance(arg1, IdNode) and not self.symbol_table.get(arg1.name):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 11 '{arg1.name}'"))
-                    continue
-                else:
-                    if arg1_type != 'string':
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected 'string', got '{arg1_type}'"))
-
-                if isinstance(arg2, IdNode) and not self.symbol_table.get(arg2.name):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 12 '{arg2.name}'"))
-                else:
-                    if arg2_type != 'string':
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected 'string', got '{arg2_type}'"))
 
         print(f"Unresolved cases after resolution: {self.unresolved_cases}\n")
 
@@ -2231,6 +2253,20 @@ class MyASTVisitor(ASTVisitor):
             return 'unknown'
         elif isinstance(node, LenNode):
             return 'int'
+        elif isinstance(node, CleaveNode):
+            if isinstance(node.arg1, IdNode):
+                symbol = self.symbol_table.get(node.arg1.name)
+                if isinstance(symbol, ClanDecNode):
+                    return symbol.datatype
+                elif isinstance(symbol, VarDecNode):
+                    return symbol.datatype
+                elif isinstance(symbol, CurseDecNode):
+                    if symbol.datatype:
+                        return symbol.datatype
+                    else: return 'void'
+                else: return 'unknown'
+            elif isinstance(node.arg1, StringNode):
+                return 'string'
         else:
             return 'unknown'
 
@@ -2842,6 +2878,7 @@ class Parser:
                             return declarations, None
                         return VarDecNode(None, datatype, name, value, pos_start, self.current_token.pos_end), None
                     elif self.current_token.type == 'cleave':
+                        cleave_start = self.current_token.pos_start
                         self.advance()
                         if self.current_token.type != '(':
                             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
@@ -2879,7 +2916,7 @@ class Parser:
                                 return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
                             
                             self.advance()
-                            return VarDecNode(None, datatype, name, CleaveNode(cleave_id, index1, index2, pos_start, self.current_token.pos_end), pos_start, self.current_token.pos_end), None
+                            return VarDecNode(None, datatype, name, CleaveNode(cleave_id, index1, index2, cleave_start, self.current_token.pos_end), pos_start, self.current_token.pos_end), None
                     
                     elif self.current_token.type == 'len':
                         self.advance()
@@ -3474,6 +3511,7 @@ class Parser:
                         return declarations, None
                     return VarDecNode(True, datatype, name, value, pos_start, self.current_token.pos_end), None
                 elif self.current_token.type == 'cleave':
+                    cleave_start = self.current_token.pos_start
                     self.advance()
                     if self.current_token.type != '(':
                         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
@@ -3511,7 +3549,7 @@ class Parser:
                             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
                         
                         self.advance()
-                        return VarDecNode(True, datatype, name, CleaveNode(cleave_id, index1, index2, pos_start, self.current_token.pos_end), pos_start, self.current_token.pos_end), None
+                        return VarDecNode(True, datatype, name, CleaveNode(cleave_id, index1, index2, cleave_start, self.current_token.pos_end), pos_start, self.current_token.pos_end), None
                 
                 elif self.current_token.type == 'len':
                     self.advance()
