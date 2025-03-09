@@ -93,6 +93,15 @@ class ASTNode:
             for child in self.children:
                 child.print_tree()
 
+    def tree_to_str(self):
+        spaces = ' ' * self.get_level() * 3 
+        prefix = spaces + "ᴸ--" if self.parent else spaces
+        result = prefix + str(self.data) + '\n'
+        if self.children:
+            for child in self.children:
+                result += child.tree_to_str()
+        return result
+
     def get_parent(self):
         return self.parent
     
@@ -1238,7 +1247,7 @@ class MyASTVisitor(ASTVisitor):
     def visit_CleaveNode(self, node, parent):
         print(f"Visiting CleaveNode: {node.arg1}")
         true_parent = parent
-        while true_parent and not isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode, ClanDecNode)):
+        while true_parent and not isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode, ClanDecNode, LenNode)):
             true_parent = true_parent.parent
         arg1 = node.arg1
         arg2 = node.index1
@@ -1285,6 +1294,9 @@ class MyASTVisitor(ASTVisitor):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan in first argument"))
                 elif true_parent.datatype != arg1_symbol.datatype:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 17: Expected '{true_parent.datatype}', got '{arg1_symbol.datatype}'"))
+            
+            elif isinstance(true_parent, LenNode):
+                pass
             else:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan or string, got '{arg1_type}'"))
 
@@ -4405,18 +4417,19 @@ def semantic_run(tokens):
         visitor.visit(ast)
         visitor.resolve_unresolved()  
         print(symbol_table.scopes)
+        tree_str = ast.tree_to_str()
         ast.print_tree()
     else:
         print("No AST built")
-        return "No AST built", None
+        return "No AST built", None, tree_str
     
     if visitor.errors:
         errors.extend(visitor.errors)
         if errors:
             errors.sort(key=lambda e: e.pos_start.ln)
-        return None, errors
+        return None, errors, tree_str
     
     if errors:
         errors.sort(key=lambda e: e.pos_start.ln)
 
-    return ast, errors
+    return ast, errors, tree_str
