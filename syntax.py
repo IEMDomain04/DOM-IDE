@@ -559,12 +559,14 @@ PREDICT_SET = {
         "cleave": ["<expression>", 1],
         "dismantle": ["<expression>", 1],
         "len": ["<expression>", 1],
-        "!": ["<expression>", 2],
+        "-": ["<expression>", 1],
+        "!": ["<expression>", 2]
     },
 
     "<operand>": { ############# verified
         "++": ["<operand>", 0],
         "--": ["<operand>", 0],
+        "-": ["<operand>", 0],
         "id": ["<operand>", 1],
         "string_literal": ["<operand>", 1],
         "float_literal": ["<operand>", 1],
@@ -962,7 +964,8 @@ PREDICT_SET = {
     "<iteration>": { ############# verified
         "++": ["<iteration>", 0],
         "--": ["<iteration>", 0],
-        "id": ["<iteration>", 1]
+        "id": ["<iteration>", 1],
+        "-":  ["<iteration>", 0]
     },
 
     "<iteration_tail>": { ############# verified
@@ -1252,7 +1255,7 @@ class SyntaxAnalyzer:
                 else:
                     expected_tokens = list(PREDICT_SET[top].keys())
                     error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                               f"Unexpected token '{self.current_token.type}' here. Expected one of {expected_tokens}\n[FOR DEV: No prediction for {top} in {self.current_token.type}]")
+                                               f"Unexpected token '{self.current_token.type}' here. Expected one of {expected_tokens}\n[FOR DEV: No prediction for {self.current_token.type} in {top}]")
                     break
             else:
                 if top == self.current_token.type:
