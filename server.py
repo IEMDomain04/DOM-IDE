@@ -45,13 +45,13 @@ def run_semantic():
     if syntax_error:
         return jsonify({'semantic_result': "Error: Failure from Semantic Analyzer\nFile: <stdin>, Message: Check syntax analysis.", 'errors': None})
     
-    ast, errors = semantic(tokens)
+    ast, errors, tree_str = semantic(tokens)
     if errors:  
         error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
-        return jsonify({'semantic_result': "AST Building Failed", 'errors': error_messages})
+        return jsonify({'semantic_result': "AST Building Failed", 'errors': error_messages, 'tree_str': tree_str})
     if ast:
-        return jsonify({'semantic_result': "Successful from Semantic Analyzer", 'errors': None})
-    return jsonify({'semantic_result': "No AST Built", 'errors': None})
+        return jsonify({'semantic_result': "Successful from Semantic Analyzer", 'errors': None, 'tree_str': tree_str})
+    return jsonify({'semantic_result': "No AST Built", 'errors': None, 'tree_str': tree_str})
 
 @app.route('/api/interpreter', methods=['POST'])
 def run_interpreter():
