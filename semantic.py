@@ -1251,6 +1251,8 @@ class MyASTVisitor(ASTVisitor):
 
         if isinstance(arg1, IdNode) and not self.symbol_table.get(arg1.name):
             self.unresolved_cases.append((node, parent))
+        elif isinstance(arg1, StringNode):
+            pass
         else:
             if isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode)):
                 arg1_symbol = self.symbol_table.get(arg1.name)
@@ -2133,6 +2135,8 @@ class MyASTVisitor(ASTVisitor):
         
                 if isinstance(arg1, IdNode) and not self.symbol_table.get(arg1.name):
                     self.unresolved_cases.append((node, parent))
+                elif isinstance(arg1, StringNode):
+                    pass
                 else:
                     if isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode)):
                         arg1_symbol = self.symbol_table.get(arg1.name)
