@@ -1149,6 +1149,19 @@ class MyASTVisitor(ASTVisitor):
         for param in node.parameters:
             self.symbol_table.set(param.name, param)  # Store the ParamNode object itself
         self.visit_children(node)
+        
+        # Check for recall statement if datatype is not None or 'void'
+        if node.datatype and node.datatype != 'void':
+            recall_found = False
+            children_copy = node.body.children[:]
+            for child in children_copy:
+                print(f'Child Type: {type(child)}')
+                if isinstance(child, RecallNode):
+                    recall_found = True
+                    break
+            if not recall_found:
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' must have a recall statement of type '{node.datatype}'"))
+        
         self.symbol_table.pop()  # Exit function scope
         print(f"Exiting CurseDecNode")
 
@@ -1223,7 +1236,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Exiting CaptureNode")
 
     def visit_CleaveNode(self, node, parent):
-        print(f"Visiting CleaveNode with name: {node.name}")
+        print(f"Visiting CleaveNode: {node.arg1}")
         true_parent = parent
         while true_parent and not isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode, ClanDecNode)):
             true_parent = true_parent.paren
@@ -1241,8 +1254,14 @@ class MyASTVisitor(ASTVisitor):
                 if not arg1_type == 'string':
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected 'string', got '{arg1_type}'"))
             elif isinstance(true_parent, ClanDecNode):
-                if not isinstance(arg1, ClanDecNode):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan, got '{type(arg1)}'"))
+                arg1_symbol = self.symbol_table.get(arg1.name)
+                if arg1_symbol is None:
+                    self.unresolved_cases.append((node, parent))
+                    return
+                elif not isinstance(arg1_symbol, ClanDecNode):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan in first argument"))
+                elif true_parent.datatype != arg1_symbol.datatype:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 17: Expected '{true_parent.datatype}', got '{arg1_symbol.datatype}'"))
             else:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan or string, got '{arg1_type}'"))
 
@@ -2099,8 +2118,14 @@ class MyASTVisitor(ASTVisitor):
                         if not arg1_type == 'string':
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected 'string', got '{arg1_type}'"))
                     elif isinstance(true_parent, ClanDecNode):
-                        if not isinstance(arg1, ClanDecNode):
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan, got '{type(arg1)}'"))
+                        arg1_symbol = self.symbol_table.get(arg1.name)
+                        if arg1_symbol is None:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined clan 1 '{arg1.name}'"))
+                            continue
+                        elif not isinstance(arg1_symbol, ClanDecNode):
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan in first argument"))
+                        elif true_parent.datatype != arg1_symbol.datatype:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 17: Expected '{true_parent.datatype}', got '{arg1_symbol.datatype}'"))
                     else:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan or string, got '{arg1_type}'"))
 
@@ -3267,8 +3292,9 @@ class Parser:
                 self.advance()
                 body, errors = self.parseBody()
                 if errors: return None, errors
+                pos_end = self.current_token.pos_end
                 self.advance() # move past the closing '}'
-                return CurseDecNode(datatype, name, parameters, body, pos_start, self.current_token.pos_end), None
+                return CurseDecNode(datatype, name, parameters, body, pos_start, pos_end), None
                 
         elif self.current_token.type == 'curse': # curse with no return type
             self.advance()
@@ -3929,7 +3955,7 @@ class Parser:
                         value, error = self.parseExpr()
                         if error:
                             errors.append(error)
-                        continue
+                            continue
                         body.add_child(RecallNode(value, pos_start, self.current_token.pos_end))
                 elif self.current_token.type == 'vow':
                     pos_start = self.current_token.pos_start
