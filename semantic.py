@@ -2543,19 +2543,15 @@ class Parser:
             if self.current_token.type != '(':
                 return None, SemanticError(tok.pos_start, tok.pos_end, "Expected: '('")
             self.advance()
-            if self.current_token.type not in ['id', 'string_literal']:
-                return None, SemanticError(tok.pos_start, tok.pos_end, "Expected: identifier or string literal")
-            if self.current_token.type == 'id':
-                value = self.current_token.value
-                self.advance()
-            elif self.current_token.type == 'string_literal':
-                value = StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
-                self.advance()
+            if self.current_token.type not in ['id', 'string_literal', 'cleave']:
+                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [id, string_literal, 'cleave']")
+            len_value, error = self.parseExpr()
+            if error: return None, error
             if self.current_token.type != ')':
-                return None, SemanticError(tok.pos_start, tok.pos_end, "Expected: ')'")
-            pos_end = self.current_token.pos_end
+                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+            len_end = self.current_token.pos_end
             self.advance()
-            return LenNode(value, pos_start, pos_end), None
+            return LenNode(len_value, pos_start, len_end), None
         else:
             return None, SemanticError(tok.pos_start, tok.pos_end, "Expected one of [int, float, bool, null, identifier, '(', '++', '--', '+', '-', '!']")
 
@@ -2683,18 +2679,15 @@ class Parser:
             elif self.current_token.type == 'len':
                 len_pos_start = self.current_token.pos_start
                 self.advance()
-                if self.current_token.type != '(':
-                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
-                self.advance()  
-                if self.current_token.type != 'id':
-                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier")
-                len_id = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
-                self.advance()
-                if self.current_token.type != ')': 
+                if self.current_token.type not in ['id', 'string_literal', 'cleave']:
+                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [id, string_literal, 'cleave']")
+                len_value, error = self.parseExpr()
+                if error: return None, error
+                if self.current_token.type != ')':
                     return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+                len_end = self.current_token.pos_end
                 self.advance()
-                pos_end = self.current_token.pos_end
-                return VarAssignNode(name, LenNode(len_id, len_pos_start, pos_end), pos_start, pos_end), None
+                return VarAssignNode(name, LenNode(len_value, len_pos_start, len_end), pos_start, pos_end), None
             else:
                 value, error = self.parseExpr()
                 if error: return None, error
@@ -2923,27 +2916,20 @@ class Parser:
                             return VarDecNode(None, datatype, name, CleaveNode(cleave_id, index1, index2, cleave_start, self.current_token.pos_end), pos_start, self.current_token.pos_end), None
                     
                     elif self.current_token.type == 'len':
+                        len_start = self.current_token.pos_start
                         self.advance()
                         if self.current_token.type != '(':
                             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
                         self.advance()
-                        if self.current_token.type not in ['id', 'string_literal']:
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected identifier or string")
-                        
-                        if self.current_token.type == 'id':
-                            len_id = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
-                            self.advance()
-                            if self.current_token.type != ')':
-                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
-                            self.advance()
-                            return VarDecNode(None, datatype, name, LenNode(len_id, pos_start, self.current_token.pos_end), pos_start, self.current_token.pos_end), None
-                        elif self.current_token.type == 'string_literal':
-                            len_value= StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
-                            self.advance()
-                            if self.current_token.type != ')':
-                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
-                            self.advance()
-                            return VarDecNode(None, datatype, name, LenNode(len_value, pos_start, self.current_token.pos_end), pos_start, self.current_token.pos_end), None
+                        if self.current_token.type not in ['id', 'string_literal', 'cleave']:
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [id, string_literal, 'cleave']")
+                        len_value, error = self.parseExpr()
+                        if error: return None, error
+                        if self.current_token.type != ')':
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+                        len_end = self.current_token.pos_end
+                        self.advance()
+                        return VarDecNode(None, datatype, name, LenNode(len_value, len_start, len_end), pos_start, self.current_token.pos_end), None
                     
                     else:
                         if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'bool_literal', 'null_literal', 'id', '(', '[', '+', '-', '++', '--']:
@@ -3332,7 +3318,7 @@ class Parser:
                     return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '{{'")
                 self.advance()
                 body, errors = self.parseBody()
-                if errors: return None, errors
+                if errors: return body, errors
                 pos_end = self.current_token.pos_end
                 self.advance() # move past the closing '}'
                 return CurseDecNode(datatype, name, parameters, body, pos_start, pos_end), None
@@ -3377,7 +3363,7 @@ class Parser:
                 else:
                     self.advance()
                     body, errors = self.parseBody()
-                    if errors: return None, errors
+                    if errors: return body, errors
                     self.advance() # move past the closing '}'
                     return CurseDecNode(None, name, parameters, body, pos_start, pos_end), None
             elif self.current_token.type == 'domain':
@@ -3394,7 +3380,7 @@ class Parser:
                     return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.value}', Expected: '{{'")
                 self.advance()
                 body, errors = self.parseBody()
-                if errors: return None, errors
+                if errors: return body, errors
                 self.advance() # move past the closing '}'
                 return CurseDomainNode(body, pos_start, pos_end), None
         elif self.current_token.type == 'restrict':
@@ -3556,27 +3542,20 @@ class Parser:
                         return VarDecNode(True, datatype, name, CleaveNode(cleave_id, index1, index2, cleave_start, self.current_token.pos_end), pos_start, self.current_token.pos_end), None
                 
                 elif self.current_token.type == 'len':
+                    len_start = self.current_token.pos_start
                     self.advance()
                     if self.current_token.type != '(':
                         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
                     self.advance()
-                    if self.current_token.type not in ['id', 'string_literal']:
-                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected identifier or string")
-                    
-                    if self.current_token.type == 'id':
-                        len_id = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
-                        self.advance()
-                        if self.current_token.type != ')':
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
-                        self.advance()
-                        return VarDecNode(True, datatype, name, LenNode(len_id, pos_start, self.current_token.pos_end), pos_start, self.current_token.pos_end), None
-                    elif self.current_token.type == 'string_literal':
-                        len_value= StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
-                        self.advance()
-                        if self.current_token.type != ')':
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
-                        self.advance()
-                        return VarDecNode(True, datatype, name, LenNode(len_value, pos_start, self.current_token.pos_end), pos_start, self.current_token.pos_end), None
+                    if self.current_token.type not in ['id', 'string_literal', 'cleave']:
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [id, string_literal, 'cleave']")
+                    len_value, error = self.parseExpr()
+                    if error: return None, error
+                    if self.current_token.type != ')':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+                    len_end = self.current_token.pos_end
+                    self.advance()
+                    return VarDecNode(True, datatype, name, LenNode(len_value, len_start, len_end), pos_start, self.current_token.pos_end), None
                 
                 else:
                     if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'bool_literal', 'null_literal', 'id', '(', '[', '+', '-', '++', '--']:
