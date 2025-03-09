@@ -63,7 +63,7 @@ def run_interpreter():
     syntax_result, syntax_error = syntax(tokens)
     if syntax_error:
         return jsonify({'result': "Error: Failure from Interpreter\nFile: <stdin>, Message: Check syntax analysis.", 'error': None})
-    ast, semantic_errors = semantic(tokens)
+    ast, semantic_errors, tree_str = semantic(tokens)
     if semantic_errors:  
         error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(semantic_errors)]
         return jsonify({'result': "Error: Failure from Interpreter", 'error': error_messages})
