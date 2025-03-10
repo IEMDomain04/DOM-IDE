@@ -2,7 +2,7 @@ from semantic import (
     NumNode, DatatypeNode, StringNode, BoolNode, NullNode, ExponentNode, BinOpNode, 
     RelOpNode, LogOpNode, UnaryOpNode, IdNode, VarDecNode, VarAssignNode, ClanDecNode, 
     ClanLiteralNode, ClanAccessNode, ClanIndexAssignNode, 
-    CurseDecNode, CurseDomainNode, ParamNode, BodyNode, CurseCallNode, StringConcatNode, 
+    CurseDecNode, CurseDomainNode, ParamNode, BodyNode, CurseCallNode, 
     InvokeNode, CaptureNode, CleaveNode, DismantleNode, LenNode, RecallNode, DismissNode, 
     HopNode, VowNode, ElseVow, ElseNode, BoogieNode, WoogieTrueNode, WoogieNode, 
     DefaultCaseNode, SustainNode, PerformSustainNode, CycleNode, CycleConditionNode
