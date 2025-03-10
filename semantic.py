@@ -670,8 +670,13 @@ class MyASTVisitor(ASTVisitor):
                     if evaluation == 0:
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 13"))
-                elif left_type == 'null' or right_type == 'null':
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
+            if left_type == 'null' or right_type == 'null':
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
+            elif left_type == 'string' and right_type == 'string':
+                if node.op != '+':
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform operation '{node.op}' on strings"))
+            elif left_type == 'bool' or right_type == 'bool':
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform arithmetic operation on boolean values"))
 
 
         if isinstance(binop_parent, (VarDecNode)):
