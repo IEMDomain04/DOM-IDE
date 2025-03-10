@@ -136,7 +136,7 @@ CFG = {
         ["<literal>"],
         ["id", "<curse_or_clan>"],
         ["<invoke>", "(","<arguments>",")"],
-        ["<capture>", "(", "<id>", ")"],
+        ["capture", "(", "id", ")"],
         ["cleave", "(", "<arguments>", ")"],
         ["dismantle", "(", "<arguments>", ")"],
         ["len", "(", "<arguments>", ")"],

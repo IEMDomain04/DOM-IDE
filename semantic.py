@@ -652,7 +652,7 @@ class MyASTVisitor(ASTVisitor):
                 else:
                     break
             if parent_function and parent_function.datatype != binop_type:
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 16: Expected '{parent_function.datatype}', got '{binop_type}'"))
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 16.1: Expected '{parent_function.datatype}', got '{binop_type}'"))
             else: pass #FIXME: priority unhandled error
         elif isinstance(binop_parent, (CycleConditionNode)):
             if binop_type != 'bool':
@@ -669,6 +669,74 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(binop_parent, PerformSustainNode):
             if binop_type != 'bool':
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"7 Condition must be a boolean expression, got '{binop_type}'"))
+
+
+        if left_type != right_type:
+            if (left_type == 'string' and right_type in ['int', 'float']) or (right_type == 'string' and left_type in ['int', 'float']):
+                if not isinstance(parent, (StringConcatNode, InvokeNode)):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 1.1: Cannot concatenate '{left_type}' and '{right_type}'"))
+
+            elif left_type == 'int' and right_type == 'float':
+                if isinstance(parent, BinOpNode):
+                    try:
+                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    except: return
+                    if evaluation == 0:
+                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 10"))
+                pass
+            elif left_type == 'float' and right_type == 'int':
+                if isinstance(parent, BinOpNode):
+                    try:
+                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    except: return
+                    if evaluation == 0:
+                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 11"))
+                pass
+            else:
+                if isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
+                    self.unresolved_cases.append((node, parent))
+                    return
+                if isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
+                    self.unresolved_cases.append((node, parent))
+                    return
+                if isinstance(node.left, CurseCallNode) and not self.symbol_table.get(node.left.name):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined function: '{node.left.name}'"))
+                    return
+                if isinstance(node.right, CurseCallNode) and not self.symbol_table.get(node.right.name):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined function: '{node.right.name}'"))
+                    return
+                if isinstance(node.left, IdNode) and self.symbol_table.get(node.left.name):
+                    left_node = self.symbol_table.get(node.left.name)
+                    if isinstance(left_node, VarDecNode):
+                        if isinstance(left_node.value, NullNode):
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
+                if isinstance(node.right, IdNode) and self.symbol_table.get(node.right.name):
+                    right_node = self.symbol_table.get(node.right.name)
+                    if isinstance(right_node, VarDecNode):
+                        if isinstance(right_node.value, NullNode):
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
+                
+                if node.pos_start: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform operation between '{left_type}' and '{right_type}'"))
+                else: self.errors.append(SemanticError(parent.pos_start, parent.pos_end, f"Cannot perform operation between '{left_type}' and '{right_type}'"))
+        else:
+            if isinstance(parent, BinOpNode):
+                if left_type == 'int' and right_type == 'int':
+                    try:
+                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    except: 
+                     return
+                    if evaluation == 0:
+                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 12"))
+                elif left_type == 'float' and right_type == 'float':
+                    try:
+                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
+                    except: return
+                    if evaluation == 0:
+                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 13"))
 
         if node.op == '/':
             if isinstance(node.right, NumNode) and node.right.value == 0:
@@ -740,90 +808,7 @@ class MyASTVisitor(ASTVisitor):
                             if value == 0:
                                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 5"))
 
-        if left_type != right_type:
-            if (left_type == 'string' and right_type in ['int', 'float']) or (right_type == 'string' and left_type in ['int', 'float']):
-                if not isinstance(parent, (StringConcatNode, InvokeNode)):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 1.1: Cannot concatenate '{left_type}' and '{right_type}'"))
 
-            elif left_type == 'int' and right_type == 'float':
-                if isinstance(parent, BinOpNode):
-                    try:
-                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
-                    except: return
-                    if evaluation == 0:
-                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 10"))
-                pass
-            elif left_type == 'float' and right_type == 'int':
-                if isinstance(parent, BinOpNode):
-                    try:
-                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
-                    except: return
-                    if evaluation == 0:
-                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 11"))
-                pass
-            else:
-                if isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
-                    self.unresolved_cases.append((node, parent))
-                    return
-                if isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
-                    self.unresolved_cases.append((node, parent))
-                    return
-                if isinstance(node.left, CurseCallNode) and not self.symbol_table.get(node.left.name):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined function: '{node.left.name}'"))
-                    return
-                if isinstance(node.right, CurseCallNode) and not self.symbol_table.get(node.right.name):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined function: '{node.right.name}'"))
-                    return
-                if isinstance(node.left, IdNode) and self.symbol_table.get(node.left.name):
-                    left_node = self.symbol_table.get(node.left.name)
-                    if isinstance(left_node, VarDecNode):
-                        if isinstance(left_node.value, NullNode):
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
-                if isinstance(node.right, IdNode) and self.symbol_table.get(node.right.name):
-                    right_node = self.symbol_table.get(node.right.name)
-                    if isinstance(right_node, VarDecNode):
-                        if isinstance(right_node.value, NullNode):
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
-                
-                if node.pos_start: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform operation between '{left_type}' and '{right_type}'"))
-                else: self.errors.append(SemanticError(parent.pos_start, parent.pos_end, f"Cannot perform operation between '{left_type}' and '{right_type}'"))
-        else:
-            if isinstance(parent, BinOpNode):
-                if left_type == 'int' and right_type == 'int':
-                    print("686")
-                    try:
-                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
-                    except: 
-                     return
-                    if evaluation == 0:
-                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 12"))
-                elif left_type == 'float' and right_type == 'float':
-                    try:
-                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
-                    except: return
-                    if evaluation == 0:
-                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 13"))
-                elif left_type == 'bool' and right_type == 'bool':
-                    try:
-                        evaluation = eval(f"{node.left.value} {node.op} {node.right.value}")
-                    except: return
-                    if evaluation == 0:
-                        if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero 14"))
-            if isinstance(node.left, IdNode) and self.symbol_table.get(node.left.name):
-                left_node = self.symbol_table.get(node.left.name)
-                if isinstance(left_node, VarDecNode):
-                    if isinstance(left_node.value, NullNode):
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
-            if isinstance(node.right, IdNode) and self.symbol_table.get(node.right.name):
-                right_node = self.symbol_table.get(node.right.name)
-                if isinstance(right_node, VarDecNode):
-                    if isinstance(right_node.value, NullNode):
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
         self.visit_children(node)
         print(f"Exiting BinOpNode")
 
@@ -1030,21 +1015,6 @@ class MyASTVisitor(ASTVisitor):
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch in clan values: Expected '{node.datatype}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting ClanDecNode")
-
-    def evaluate_node(self, node):
-        try:
-            if isinstance(node, NumNode):
-                return node.value
-            elif isinstance(node, BinOpNode):
-                left_value = self.evaluate_node(node.left)
-                right_value = self.evaluate_node(node.right)
-                if left_value is not None and right_value is not None:
-                    try:
-                     return eval(f'{left_value} {node.op} {right_value}')
-                    except: return None
-            return None
-        except:
-            return None
 
     def visit_ClanLiteralNode(self, node, parent):
         print(f"Visiting ClanLiteralNode with values: {node.values}")
@@ -1740,6 +1710,21 @@ class MyASTVisitor(ASTVisitor):
         self.visit_children(node)
         print(f"Exiting CycleConditionNode")
 
+    def evaluate_node(self, node):
+        try:
+            if isinstance(node, NumNode):
+                return node.value
+            elif isinstance(node, BinOpNode):
+                left_value = self.evaluate_node(node.left)
+                right_value = self.evaluate_node(node.right)
+                if left_value is not None and right_value is not None:
+                    try:
+                     return eval(f'{left_value} {node.op} {right_value}')
+                    except: return None
+            return None
+        except:
+            return None
+
     def resolve_unresolved(self):
         print("Resolving unresolved references...")
         print(f"Unresolved cases: {self.unresolved_cases}")
@@ -1905,7 +1890,7 @@ class MyASTVisitor(ASTVisitor):
                             parent_function = parent_function.parent
                         else: break
                     if parent_function and parent_function.datatype != binop_type:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 16: Expected '{parent_function.datatype}', got '{binop_type}'"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 16.2: Expected '{parent_function.datatype}', got '{binop_type}'"))
                     else: pass #FIXME: unhandled error priority
                 elif isinstance(binop_parent, (CycleConditionNode)):
                     if binop_type != 'bool':
@@ -2376,7 +2361,6 @@ class SymbolTable:
 ###################
 # Parser Class
 ###################
-
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
