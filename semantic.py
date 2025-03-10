@@ -893,6 +893,8 @@ class MyASTVisitor(ASTVisitor):
             if size1_value is not None:
                 if not isinstance(node.initial_values, ClanLiteralNode):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot initialize multi-dimensional array with single-dimensional size"))
+                elif size1_value <=0:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Array size must be greater than 0 or implicit [...]"))
                 elif len(node.initial_values.values) > size1_value:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Array out of index 1: size1 is {size1_value}, but got {len(node.initial_values.values)} initial values"))
                 else:
@@ -912,18 +914,20 @@ class MyASTVisitor(ASTVisitor):
             size1_value = self.evaluate_node(node.size1)
             size2_value = self.evaluate_node(node.size2)
             if size1_value is not None and size2_value is not None:
+                if size1_value <= 0:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Array size1 must be greater than 0, got {size1_value}"))
+                if size2_value <= 0:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Array size2 must be greater than 0, got {size2_value}"))
                 if len(node.initial_values) > size1_value:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Array out of index 2: size1 is {size1_value}, but got {len(node.initial_values)} initial values"))
                 for inner_node in node.initial_values:
                     if not isinstance(inner_node, ClanLiteralNode):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, "Expected ClanLiteralNode for multi-dimensional array"))
-                        return
                     if len(inner_node.values) > size2_value:
                         self.errors.append(SemanticError(inner_node.pos_start, inner_node.pos_end, f"Array out of index 3: size2 is {size2_value}, but got {len(inner_node.values)} initial values"))
-    
                     else:
                         # Fill missing values
-                        while len(inner_node.values) < size1_value:
+                        while len(inner_node.values) < size2_value:
                             if node.datatype == 'int':
                                 inner_node.values.append(NumNode(0, None, None))
                             elif node.datatype == 'float':
@@ -1028,6 +1032,9 @@ class MyASTVisitor(ASTVisitor):
                 index1_type = self.infer_type(node.index1)
                 if not index1_type == 'int':
                     self.errors.append(SemanticError(node.index1.pos_start, node.index1.pos_end, f"Type mismatch 24.1: Expected int value, got '{index1_type}'"))
+                index1_value = self.evaluate_node(node.index1)
+                if index1_value is not None and index1_value < 0:
+                    self.errors.append(SemanticError(node.index1.pos_start, node.index1.pos_end, f"Index out of bounds: Index cannot be a negative integer"))
         
         if node.index2:
             if isinstance(node.index2, IdNode) and not self.symbol_table.get(node.index2.name):
@@ -1038,6 +1045,9 @@ class MyASTVisitor(ASTVisitor):
                 index2_type = self.infer_type(node.index2)
                 if not index2_type == 'int':
                     self.errors.append(SemanticError(node.index2.pos_start, node.index2.pos_end, f"Type mismatch 24.2: Expected int value, got '{index2_type}'"))
+                index2_value = self.evaluate_node(node.index2)
+                if index2_value is not None and index2_value < 0:
+                    self.errors.append(SemanticError(node.index2.pos_start, node.index2.pos_end, f"Index out of bounds: Index cannot be a negative integer"))
 
         self.visit_children(node)
         print(f"Exiting ClanAccessNode")
@@ -1099,6 +1109,9 @@ class MyASTVisitor(ASTVisitor):
                 index1_type = self.infer_type(node.index1)
                 if not index1_type == 'int':
                     self.errors.append(SemanticError(node.index1.pos_start, node.index1.pos_end, f"Type mismatch 24.1: Expected int value, got '{index1_type}'"))
+                index1_value = self.evaluate_node(node.index1)
+                if index1_value is not None and index1_value < 0:
+                    self.errors.append(SemanticError(node.index1.pos_start, node.index1.pos_end, f"Index out of bounds: Index cannot be a negative integer"))
         
         if node.index2:
             if isinstance(node.index2, IdNode) and not self.symbol_table.get(node.index2.name):
@@ -1109,6 +1122,9 @@ class MyASTVisitor(ASTVisitor):
                 index2_type = self.infer_type(node.index2)
                 if not index2_type == 'int':
                     self.errors.append(SemanticError(node.index2.pos_start, node.index2.pos_end, f"Type mismatch 24.2: Expected int value, got '{index2_type}'"))
+                index2_value = self.evaluate_node(node.index2)
+                if index2_value is not None and index2_value < 0:
+                    self.errors.append(SemanticError(node.index2.pos_start, node.index2.pos_end, f"Index out of bounds: Index cannot be a negative integer"))
 
         self.visit_children(node)
         print(f"Exiting ClanIndexAssignNode")
@@ -1220,8 +1236,6 @@ class MyASTVisitor(ASTVisitor):
         arg1_type = self.infer_type(arg1)
         arg2_type = self.infer_type(arg2)
         arg3_type = self.infer_type(arg3)
-        
-        print(f"HELLO WORLD, arg1: {type(arg1)}")
 
         if isinstance(arg1, IdNode) and not self.symbol_table.get(arg1.name):
             self.unresolved_cases.append((node, parent))
@@ -1267,12 +1281,18 @@ class MyASTVisitor(ASTVisitor):
 
         if isinstance(arg2, IdNode) and not self.symbol_table.get(arg2.name):
             self.unresolved_cases.append((node, parent))
+        elif isinstance(arg2, UnaryOpNode):
+            if arg2.op.op == '-':
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Index out of bounds: Index cannot be a negative integer"))
         else: 
             if not arg2_type == 'int':
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected 'int', got '{arg2_type}'"))
 
         if isinstance(arg3, IdNode) and not self.symbol_table.get(arg3.name):
             self.unresolved_cases.append((node, parent))
+        elif isinstance(arg3, UnaryOpNode):
+            if arg3.op.op == '-':
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Index out of bounds: Index cannot be a negative integer"))
         else:
             if not arg3_type == 'int':
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected 'int', got '{arg3_type}'"))
@@ -1705,6 +1725,10 @@ class MyASTVisitor(ASTVisitor):
                     try:
                      return eval(f'{left_value} {node.op} {right_value}')
                     except: return None
+            elif isinstance(node, UnaryOpNode):
+                if node.pre and node.op.op == '-':
+                    return -self.evaluate_node(node.expr)
+                return None
             return None
         except:
             return None
