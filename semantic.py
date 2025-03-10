@@ -829,6 +829,20 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_RelOpNode(self, node, parent):
         print(f"Visiting RelOpNode with operator: {node.op}")
+        left_type = self.infer_type(node.left)
+        right_type = self.infer_type(node.right)
+
+        if left_type == 'bool' or right_type == 'bool':
+            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on boolean values"))
+        elif isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
+            self.unresolved_cases.append((node, parent))
+        elif isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
+            self.unresolved_cases.append((node, parent))
+        elif isinstance(node.left, CurseCallNode) and not self.symbol_table.get(node.left.name):
+            self.unresolved_cases.append((node, parent))
+        elif isinstance(node.right, CurseCallNode) and not self.symbol_table.get(node.right.name):
+            self.unresolved_cases.append((node, parent))
+
         self.visit_children(node)
         print(f"Exiting RelOpNode")
 
@@ -2023,6 +2037,21 @@ class MyASTVisitor(ASTVisitor):
                         if node.pos_start: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform operation between '{left_type}' and '{right_type}'"))
                         else: self.errors.append(SemanticError(parent.pos_start, parent.pos_end, f"Cannot perform operation between '{left_type}' and '{right_type}'"))
                 
+            elif isinstance(node, RelOpNode):
+                left_type = self.infer_type(node.left)
+                right_type = self.infer_type(node.right)
+
+                if left_type == 'bool' or right_type == 'bool':
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on boolean values"))
+                if isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
+                    self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undeclared variable 6 '{node.left.name}'"))
+                if isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
+                    self.errors.append(SemanticError(node.right.pos_start, node.right.pos_end, f"Undeclared variable 7 '{node.right.name}'"))
+                if isinstance(node.left, CurseCallNode) and not self.symbol_table.get(node.left.name):
+                    self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undefined curse 8 '{node.left.name}'"))
+                if isinstance(node.right, CurseCallNode) and not self.symbol_table.get(node.right.name):
+                    self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undefined curse 8 '{node.left.name}'"))
+
             elif isinstance(node, VowNode):
                 if isinstance(node.condition, BinOpNode):
                     if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
