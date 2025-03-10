@@ -1185,6 +1185,10 @@ class MyASTVisitor(ASTVisitor):
                             self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch 5: Expected '{param_type}', got '{arg_type}'"))
             else:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a curse"))
+
+            if curse_node.datatype is None:
+                if isinstance(parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode, ClanDecNode, LenNode, InvokeNode, CleaveNode, DismantleNode, StringConcatNode, CurseCallNode, BinOpNode, RelOpNode, LogOpNode, UnaryOpNode, ClanAccessNode, ClanLiteralNode, CycleNode, CycleConditionNode, VowNode, ElseVow, WoogieTrueNode, SustainNode, PerformSustainNode, RecallNode)):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' has no return value"))
         self.visit_children(node)
         print(f"Exiting CurseCallNode")
 
@@ -1737,67 +1741,29 @@ class MyASTVisitor(ASTVisitor):
                             if symbol_type != value_type:
                                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 11: Expected '{symbol_type}', got '{value_type}'"))
                         
-
             elif isinstance(node, CurseCallNode):
                 curse_node = self.symbol_table.get(node.name)
-                print("HEYHEYHEY")
-                if isinstance(curse_node, VarDecNode):
+                if isinstance(curse_node, (VarDecNode, ClanDecNode)):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a curse"))
-                elif isinstance(parent, VarAssignNode):
-                    if isinstance(curse_node, CurseDecNode):
-                        if parent.datatype != curse_node.datatype:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 12: Expected '{parent.datatype}' curse, got '{curse_node.datatype}' curse"))  
-                elif isinstance(parent, ClanDecNode):
-                    print("HEYHEYHEY")
-                    if curse_node is None:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse 3 '{node.name}'"))
-                    else:
-                        if curse_node.datatype != parent.datatype:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 18: Expected '{parent.datatype}', got '{curse_node.datatype}'"))    
-                elif isinstance(parent, BinOpNode):
-                    if curse_node is None:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse 4 '{node.name}'"))
-                    else:
-                        while parent and not isinstance(parent, (CurseDecNode, VarDecNode, ClanDecNode, ClanIndexAssignNode)): #FIXME: Double check, i think this should be clan access node?
-                            parent = parent.parent
-                        if curse_node.datatype is None: curse_node_type = 'void'
-                        else: curse_node_type = curse_node.datatype
-                        if isinstance(parent, (CurseDecNode, VarDecNode, ClanDecNode)):
-                            if curse_node_type != parent.datatype:
-                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 19: Expected '{parent.datatype}' curse, got '{curse_node_type}' curse"))
-                        elif isinstance(parent, ClanIndexAssignNode):
-                            clan_type = self.symbol_table.get_type(parent.name)
-                            if clan_type == None:
-                                return # CLAN TYPE NONE, MEANING IT WASNT FOUND IN THE SYMBOL TABLE
-                            if curse_node_type != clan_type:
-                                print(f'Symbol Table: {self.symbol_table.scopes}')
-                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 20: Expected '{clan_type}' curse, got '{curse_node_type}' curse"))
-                elif isinstance(parent, ClanIndexAssignNode):
-                    if curse_node is None:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse 5 '{node.name}'"))
-                    else:
-                        parent_type = self.symbol_table.get_type(parent.name)
-                        if curse_node.datatype is None: curse_node_type = 'void'
-                        else: curse_node_type = curse_node.datatype
-                        if curse_node.datatype != parent_type:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 21: Expected '{parent_type}', got '{curse_node_type}'"))
-                    if curse_node is None:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse 6 '{node.name}'"))
-                        break
+                elif curse_node is None:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse 3 '{node.name}'"))
                 else:
                     if isinstance(curse_node, CurseDecNode):
                         if len(curse_node.parameters) != len(node.arguments):
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected {len(curse_node.parameters)} arguments, got {len(node.arguments)}"))
                         else:
                             for param, arg in zip(curse_node.parameters, node.arguments):
-                                param_type = param.datatype
+                                param_type = param.datatype  # Use param.datatype directly
                                 arg_type = self.infer_type(arg)
                                 if param_type != arg_type:
-                                    self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch 12: Expected '{param_type}' type argument, got '{arg_type}'"))
-                            if isinstance(parent, VarAssignNode):
-                                parent_datatype = self.symbol_table.get_type(parent.name)
-                                if parent_datatype != curse_node.datatype:
-                                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 13: Expected '{parent_datatype}' curse, got '{curse_node.datatype}' curse"))
+                                    self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch 5: Expected '{param_type}', got '{arg_type}'"))
+                    else:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a curse"))
+
+                    if curse_node.datatype is None:
+                        if isinstance(parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode, ClanDecNode, LenNode, InvokeNode, CleaveNode, DismantleNode, StringConcatNode, CurseCallNode, BinOpNode, RelOpNode, LogOpNode, UnaryOpNode, ClanAccessNode, ClanLiteralNode, CycleNode, CycleConditionNode, VowNode, ElseVow, WoogieTrueNode, SustainNode, PerformSustainNode, RecallNode)):
+                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' has no return value"))
+
             elif isinstance(node, InvokeNode):
                 if isinstance(node.value, IdNode):
                     symbol = self.symbol_table.get(node.value.name)
