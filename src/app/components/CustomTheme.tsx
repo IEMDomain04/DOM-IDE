@@ -52,6 +52,12 @@ const CustomTheme = ({ isDarkMode }: { isDarkMode: boolean }) => {
                     // Identifiers
                     [/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/, "identifier"],
 
+                    // Strings (detects text inside double quotes, including escaped quotes)
+                    [/".*?[^\\]"/, "string"],
+
+                    // Operators
+                    [/[+\-*/%**!&&||<><=>=]+/, "operators"],
+
                     // Strings with escape sequences highlighting
                     [/"/, { token: "string", next: "@string" }],
                 ],
@@ -90,6 +96,7 @@ const CustomTheme = ({ isDarkMode }: { isDarkMode: boolean }) => {
                 { token: "identifier", foreground: "#52b9e3" },
                 { token: "string", foreground: "#32CD32" },
                 { token: "escape-sequence", foreground: "#b5b1b1", fontStyle: "bold" },
+                { token: "operators", foreground: "#fa9bac" },
             ],
             colors: {
                 "editor.background": "#00000000",
