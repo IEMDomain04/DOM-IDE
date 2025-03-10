@@ -28,7 +28,7 @@ export const handleTokenizerClick = async (
       if (errors && errors.length > 0) {
         setTerminalOutput(errors.join('\n'));
       } else {
-        setTerminalOutput('');
+        setTerminalOutput('Successful from Lexical Analyzer');
       }
       return;
     }
@@ -56,7 +56,7 @@ export const handleTokenizerClick = async (
       cache.set(cacheKey, { tokens: newOutputData, errors });
     } else {
       setOutputData(newOutputData);
-      setTerminalOutput('');
+      setTerminalOutput('Successful from Lexical Analyzer');
       // Store the successful response in cache
       cache.set(cacheKey, { tokens: newOutputData, errors: [] });
     }
@@ -68,7 +68,7 @@ export const handleTokenizerClick = async (
       cache.set(cacheKey, { tokens: [], errors: error.response.data.errors });
     } else {
       console.error('Error:', error);
-      setTerminalOutput('An unexpected error occurred.');
+      setTerminalOutput('An unexpected error occurred.\n' + error);
     }
   }
 };

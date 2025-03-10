@@ -30,7 +30,6 @@ keywords = [
 
 # FROM THE DELIMITERS 
 delim_map = {
-    'adr_delim':        set(ALPHA_NUMERIC + ' ' + '#'),
     'arith_delim':      set(ALPHA_NUMERIC + ' ' + '-' + '(' + '#'),
     'assign_delim':     set(ALPHA_NUMERIC + ' ' + '"' + '-' + '(' + '\n' + '\t' + '!' + '#' + "{"),
     'boogie_delim':     {'(', ' ', '\n', '\t', '{', '#'},
@@ -40,24 +39,24 @@ delim_map = {
     'clssquare_delim':  {'+', '-', '*', '/', '%', ' !', '=', '<', '>', ')', ',', '[', ']', '\n', '\t', ';', ' ', '&', '|' , '#'},
     'codeblk_delim':    {'{', ' ', '\n', '\t', '#'},
     'col_delim':        set(ALPHA + '\n' + '\t' + ' ' + '#'),
-    'comma_delim':      set(ALPHA_NUMERIC + '"' + "'" + '(' + '[' + '-' + ' ' + "\n" + "\t" + '#'),
-    'comp_delim':       set(ALPHA_NUMERIC + '"' + "'" + '(' + '-' + ' ' + '!' + '#'),
+    'comma_delim':      set(ALPHA_NUMERIC + '"' + '(' + '[' + '{' + '-' + ' ' + "\n" + "\t" + '#'),
+    'comp_delim':       set(ALPHA_NUMERIC + '"' + '(' + '-' + ' ' + '\t' + '!' + '#'),
     'default_delim':    {' ', ':', '\t', '#'},
     'ex_delim':         {';', '#', '\n', '\t', ' '},
-    'ident_delim':      {'+', '-', '*', '/', '%', '!', '=', '<', '>', '(', ')', ',', '[', ']', ' ', ';', '&', '|', '}', '#'},
-    'incdec_delim':     set(ALPHA_NUMERIC + ')' + ' ' + ';' + '#' + ']'),
+    'ident_delim':      {'+', '-', '*', '/', '%', '!', '=', '<', '>', '(', ')', ',', '[', ']', ' ', '\t', ';', '&', '|', '}', '#'},
+    'incdec_delim':     set(ALPHA_NUMERIC + ')' + ' ' + '\t' + ';' + '#' + ']' + '-' + '+'),
     'kword_delim':      {' ', '\t', '#'},
-    'lend_delim':       set(ALPHA_NUMERIC + '#' + '#$' + '\n' + '\t' + ' ' + '}' + '#'),
+    'lend_delim':       set(ALPHA_NUMERIC + '#' + '\n' + '\t' + ' ' + '}'),
     'logic_delim':      set(ALPHA + ' ' + '(' + '#' + '!'),
     'minus_delim':      set(ALPHA_NUMERIC + '-' + '(' + ' ' + '#'),
-    'num_delim':        set(ARITH_OP + '>' + '<' + ' ' + ')' + ',' + ';' + ':' + ']' + '}' + '#'),
+    'num_delim':        set(ARITH_OP + '>' + '<' + '=' + ' ' + '\t' + ')' + ',' + ';' + ':' + ']' + '}' + '#'),
     'opnbrace_delim':   set(ALPHA_NUMERIC + '\n' + '\t' + '"' + ' ' + '{' + '#' + '}'),
-    'opnparen_delim':   set(ALPHA_NUMERIC + '"' + "'" + '-' + '+' + '(' + ')' + '\n' + '\t' + ' ' + '!' + '#'),
-    'opnsquare_delim':  set(ALPHA_NUMERIC + '"' + "'" + '-' + '(' + '[' + ']' + ' ' + '\n' + '\t' + '#'),
-    'plus_delim':       set(ALPHA_NUMERIC + '"' + "'" + '-' + '(' + ',' + ' ' + '\t' + '#'),
+    'opnparen_delim':   set(ALPHA_NUMERIC + '"' + '-' + '+' + '(' + ')' + '\n' + '\t' + ' ' + '!' + '#'),
+    'opnsquare_delim':  set(ALPHA_NUMERIC + '"' + '-' + '+' + '(' + '[' + ']' + ' ' + '\n' + '\t' + '#'),
+    'plus_delim':       set(ALPHA_NUMERIC + '"' + '-' + '(' + ',' + ' ' + '\t' + '#'),
     'para_delim':       {'(', ' ', '\t' , '#'},
     'recall_delim':     set(ALPHA + ' ' + ';' + '(' + '#'), 
-    'str_delim':        {'+', ')', ']', '\n', '\t', ',', ';', ' ', ':', '}', '#'},
+    'str_delim':        {'+', ')',  ']', '\n', '\t', ',', ';', ' ', ':', '}', '#'},
     'white_delim':      set(ASCII + ALL_OPERATOR + ' ' + '\n' + '\t' + '\0' + '#'),
     'woogie_delim':     set(NUMERIC + '(' + ' ' + '\t' + '#'),
 }
@@ -1447,15 +1446,39 @@ class Lexer:
 
             elif self.current_char == '-':          # minus, decrement, minus equals
                 states.append(169)
+                tok_type = TT_MINUS
                 pos_start = self.pos.copy()
-                self.advance()
                 pos_end = self.pos.copy()
+                self.advance()
 
                 if self.current_char == '-':
                     states.append(171)
                     self.advance()
                     pos_end = self.pos.copy()
                     tok_type = TT_DECR  #  -- operator
+
+                elif self.current_char == '=':
+                    states.append(173)
+                    self.advance()
+                    pos_end = self.pos.copy()
+                    tok_type = TT_MINUSEQ  # -= operator
+
+
+                if tok_type == TT_MINUS:
+                    if self.current_char != None and self.current_char not in delim_map['arith_delim']:
+                        if self.current_char == '\n':
+                            errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\n' after operator"))
+                        elif self.current_char == '\t':
+                            errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\t' after operator"))
+                        else:
+                            errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
+                        continue
+                    else:
+                        states.append(170)
+                        tokens.append(Token(tok_type, '-', pos_start=pos_start, pos_end=pos_end))
+                        continue
+
+                if tok_type == TT_DECR:
                     if self.current_char != None and self.current_char not in delim_map['incdec_delim']:
                         if self.current_char == '\n':
                             errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\n' after operator"))
@@ -1464,70 +1487,18 @@ class Lexer:
                         else:
                             errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
                         continue
-                    else:  
+                    else:
                         states.append(172)
-                        tokens.append(Token(tok_type, '--', pos_start=pos_start, pos_end=self.pos.copy()))
+                        tokens.append(Token(tok_type, '--', pos_start=pos_start, pos_end=pos_end))
                         continue
 
-                elif self.current_char == '=':
-                    states.append(173)
-                    self.advance()
-                    pos_end = self.pos.copy()
-                    tok_type = TT_MINUSEQ  # -= operator
+                if tok_type == TT_MINUSEQ:
                     if self.current_char != None and self.current_char not in delim_map['assign_delim']:
                         errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
                         continue
-                    else: 
-                        states.append(174)
-                        tokens.append(Token(tok_type, '-=', pos_start=pos_start, pos_end=self.pos.copy()))
-                        continue
-                    
-                else:
-                    i = -1
-                    if len(tokens) > 0 and tokens[-1].type in [TT_SPACE, TT_TAB]:
-                        white_start = self.pos.copy()
-                        i = i-1
-                        while len(tokens) > 0 and tokens[i].type in [TT_SPACE, TT_TAB]:
-                            i = i-1
-                    if len(tokens) > 0 and tokens[i].type in [TT_INTLIT, TT_FLOATLIT, TT_IDENTIFIER, TT_RPAREN, TT_RSQUARE]:
-                        tok_type = TT_MINUS
-                        states.append(170)
-                        if self.current_char != None and self.current_char not in delim_map['minus_delim']:
-                            if self.current_char == '\n':
-                                errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\n' after operator"))
-                            elif self.current_char == '\t':
-                                errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\t' after operator"))
-                            else:
-                                errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
-                            continue
-                        else: 
-                            tokens.append(Token(TT_MINUS, '-', pos_start=pos_start, pos_end=self.pos.copy()))
-                            continue
-                    elif len(tokens) > 0 and tokens[i].type in [TT_PLUS, TT_MINUS, TT_MUL, TT_DIV, TT_MOD, TT_POW, TT_PLUSEQ, TT_MINUSEQ, TT_MULEQ, TT_DIVEQ, TT_MODEQ,
-                                                                TT_ASSIGN, TT_EQ, TT_NE, TT_LT, TT_GT, TT_LTE, TT_GTE, TT_AND, TT_OR, TT_NOT, TT_LPAREN, TT_LSQUARE, TT_COMMA]:
-                        while self.current_char in [' ', '\t', '\n']:
-                            self.advance()
-                        if self.current_char in NUMERIC: 
-                            tok, error = self.make_number(is_negative=True)
-                            if error: 
-                                if self.current_char == '\n':
-                                    errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\n' after number"))
-                                elif self.current_char == '\t':
-                                    errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '\\t' after number"))
-                                else:
-                                    errors.append(error)
-                                continue
-                            else: 
-                                tokens.append(tok)
-                                continue
-                        elif self.current_char in ALPHA + '(':
-                            tokens.append(Token(TT_MINUS, '-', pos_start=pos_start, pos_end=self.pos.copy()))
-                            continue
-                        else:
-                            errors.append(LexicalError(pos_start, pos_end, f"Unexpected '-' without a valid number or identifier."))
-                            continue
                     else:
-                        errors.append(LexicalError(pos_start, pos_end, f"Unexpected '-' without a valid number or identifier."))
+                        states.append(174)
+                        tokens.append(Token(tok_type, '-=', pos_start=pos_start, pos_end=pos_end))
                         continue
 
         
@@ -2141,18 +2112,28 @@ class Lexer:
         id_str = ''
         self.advance()
         pos_start = self.pos.copy()
+        escape_character = False
 
-        while self.current_char is not None and self.current_char in ASCII + ' \t':
+        while self.current_char is not None:
             pos_end = self.pos.copy()
-            if self.current_char == '"':
+            if escape_character:
+                if self.current_char in ['"', '\\']:
+                    id_str += self.current_char
+                else:
+                    id_str += '\\' + self.current_char
+                escape_character = False
+            elif self.current_char == '\\':
+                escape_character = True
+            elif self.current_char == '"':
                 self.advance()
-                if self.current_char != None and self.current_char not in delim_map['str_delim']:
+                if self.current_char is not None and self.current_char not in delim_map['str_delim']:
                     return [], LexicalError(pos_start, self.pos, f"Invalid delimiter '{self.current_char}' after string")
                 else:
                     return Token(TT_STRLIT, id_str, pos_start, pos_end), None
-            if self.current_char == '\n':
+            elif self.current_char == '\n':
                 return [], LexicalError(pos_start, pos_end, 'String not properly closed with double quotes (")')
-            id_str += self.current_char
+            else:
+                id_str += self.current_char
             self.advance()
 
         pos_end = self.pos.copy()

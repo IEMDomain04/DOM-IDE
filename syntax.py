@@ -111,7 +111,7 @@ CFG = {
     ],
 
     "<clan_multi_item>": [      
-        [",", "<literal>", "<clan_multi_item>"],########### 56
+        [",", "<expression>", "<clan_multi_item>"],########### 56
         []                                   ########### 57
     ],
 
@@ -182,6 +182,7 @@ CFG = {
     "<local>": [
         ["<datatype>", "<curse_or_var>"], ###########
         ["curse", "<local_void_curse>"], ###########
+        ["restrict", "<datatype>", "id", "<type_choice>"] ###########
     ],
 
     "<local_void_curse>": [
@@ -199,7 +200,7 @@ CFG = {
 
     "<id_call>": [
         ["<assign_op>", "<expression>"], ###########
-        ["[", "<value>", "]", "<assign_op>", "<expression>"], ###########
+        ["[", "<expression>", "]", "<two_dimensional>", "<assign_op>", "<expression>"], ###########
         ["(", "<arguments>", ")"], ###########
         ["++"], 
         ["--"], 
@@ -360,7 +361,7 @@ CFG = {
 
     "<more_not_op>": [
         ["!"],                                      ###########
-        []                                       ###########
+        []                                          ###########
     ],
 
     "<assign_op>": [
@@ -368,13 +369,14 @@ CFG = {
         ["+="],                                     ###########
         ["-="],                                     ###########
         ["*="],                                     ###########
-        ["/="]              ,                        ###########
+        ["/="],                                     ###########
         ["%="]                                      ###########
     ],
 
     "<pre>": [
         ["++"],                                     ########### 
-        ["--"]                                      ########### 
+        ["--"],                                     ########### 
+        ["-"]
     ],
 
     "<post>": [
@@ -400,7 +402,7 @@ PREDICT_SET = {
         "bool": ["<program_tail>", 0],    
         "curse": ["<program_tail>",0],
         "restrict": ["<program_tail>", 0],
-        "Ø": ["<program_tail>", 1]
+        "λ": ["<program_tail>", 1]
     }, 
 
     "<global>": { ############# verified
@@ -477,11 +479,16 @@ PREDICT_SET = {
         "[": ["<two_dimensional>", 0],
         "=": ["<two_dimensional>", 1],
         ";": ["<two_dimensional>", 1],
+        '+=': ["<two_dimensional>", 1],
+        '-=': ["<two_dimensional>", 1],
+        '*=': ["<two_dimensional>", 1],
+        '/=': ["<two_dimensional>", 1],
+        '%=': ["<two_dimensional>", 1],
     },
 
     "<clan_assign>": { ############# verified
         "=": ["<clan_assign>", 0],
-        "Ø": ["<clan_assign>", 1],
+        "λ": ["<clan_assign>", 1],
         ";": ["<clan_assign>", 1]
     },
 
@@ -552,12 +559,14 @@ PREDICT_SET = {
         "cleave": ["<expression>", 1],
         "dismantle": ["<expression>", 1],
         "len": ["<expression>", 1],
-        "!": ["<expression>", 2],
+        "-": ["<expression>", 1],
+        "!": ["<expression>", 2]
     },
 
     "<operand>": { ############# verified
         "++": ["<operand>", 0],
         "--": ["<operand>", 0],
+        "-": ["<operand>", 0],
         "id": ["<operand>", 1],
         "string_literal": ["<operand>", 1],
         "float_literal": ["<operand>", 1],
@@ -685,6 +694,7 @@ PREDICT_SET = {
         ")": ["<more_logic>", 1],  
         ",": ["<more_logic>", 1], 
         "(": ["<more_logic>", 1],  
+        "}": ["<more_logic>", 1],
         ";": ["<more_logic>", 1], 
         ":": ["<more_logic>", 1], 
         "]": ["<more_logic>", 1],
@@ -738,8 +748,9 @@ PREDICT_SET = {
         "sustain": ["<body>", 0],
         "perform": ["<body>", 0],
         "recall": ["<body>", 0],
+        "restrict": ["<body>", 0],
         "}": ["<body>", 1],
-        "Ø": ["<body>", 1]
+        "λ": ["<body>", 1]
     },
         
     "<statement>": { ############# verified
@@ -748,6 +759,7 @@ PREDICT_SET = {
         "float": ["<statement>", 0],
         "bool": ["<statement>", 0],
         "curse": ["<statement>", 0],
+        "restrict": ["<statement>", 0],
         "id": ["<statement>", 1],
         "invoke": ["<statement>", 2],
         "cleave": ["<statement>", 3],
@@ -761,7 +773,7 @@ PREDICT_SET = {
         "sustain": ["<statement>"   , 9],
         "perform": ["<statement>", 9],
         "}": ["<statement>", 10],
-        "Ø": ["<statement>", 10]
+        "λ": ["<statement>", 10]
     },
 
     "<local>": { ############# verified
@@ -769,7 +781,8 @@ PREDICT_SET = {
         "float": ["<local>", 0],
         "string": ["<local>", 0],
         "bool": ["<local>", 0],
-        "curse": ["<local>", 1]
+        "curse": ["<local>", 1],
+        "restrict": ["<local>", 2]
     },
 
     "<local_void_curse>": { ############# verified
@@ -951,7 +964,8 @@ PREDICT_SET = {
     "<iteration>": { ############# verified
         "++": ["<iteration>", 0],
         "--": ["<iteration>", 0],
-        "id": ["<iteration>", 1]
+        "id": ["<iteration>", 1],
+        "-":  ["<iteration>", 0]
     },
 
     "<iteration_tail>": { ############# verified
@@ -969,7 +983,7 @@ PREDICT_SET = {
         "id": ["<ite_val>", 0],
         "int_literal": ["<ite_val>", 1],
         "float_literal": ["<ite_val>", 2],
-    },
+    }, 
 
     "<val_tail>": { ############# verified
         "+": ["<val_tail>", 0],
@@ -995,6 +1009,7 @@ PREDICT_SET = {
         "float": ["<con_loop_body>", 0],
         "bool": ["<con_loop_body>", 0],
         "curse": ["<con_loop_body>", 0],
+        "restrict": ["<con_loop_body>", 0],
         "id": ["<con_loop_body>", 1],
         "invoke": ["<con_loop_body>", 2],
         "cleave": ["<con_loop_body>", 3],
@@ -1072,7 +1087,7 @@ PREDICT_SET = {
         "cleave": ["<more_not_op>", 1],
         "dismantle": ["<more_not_op>", 1],
         "len": ["<more_not_op>", 1],
-        "Ø": ["<more_not_op>", 1]
+        "λ": ["<more_not_op>", 1]
     },
 
     "<assign_op>": { ############# verified
@@ -1086,7 +1101,8 @@ PREDICT_SET = {
 
     "<pre>": { ############# verified
         "++": ["<pre>", 0],
-        "--": ["<pre>", 1]
+        "--": ["<pre>", 1],
+        "-" : ["<pre>", 2]
     },
 
     "<post>": { ############# verified
@@ -1221,10 +1237,10 @@ class SyntaxAnalyzer:
 
         while stack:
             top = stack[-1]
-            print(f"1. New Stack: {stack}\n2. Current Token: {self.current_token.type}")  
+            #print(f"1. New Stack: {stack}\n2. Current Token: {self.current_token.type}")  
             if self.current_token is None or self.current_token.type == 'EOF':
                 self.current_token = type('Token', (object,), {
-                    'type': 'Ø',
+                    'type': 'λ',
                     'pos_start': self.tokens[-1].pos_end if self.tokens else None,
                     'pos_end': self.tokens[-1].pos_end if self.tokens else None
                 })()
@@ -1233,16 +1249,17 @@ class SyntaxAnalyzer:
                 if top in PREDICT_SET and self.current_token.type in PREDICT_SET[top]:
                     production_key = PREDICT_SET[top][self.current_token.type]
                     production = CFG[production_key[0]][production_key[1]]
-                    print(f"3. Production found for {top}: {self.current_token.type}")  
+                    #print(f"3. Production found for {top}: {self.current_token.type}")  
                     stack.pop()
                     stack.extend(reversed(production))
                 else:
+                    expected_tokens = list(PREDICT_SET[top].keys())
                     error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                               f"Unexpected token '{self.current_token.type}' here.\n[FOR DEV: No prediction for '{self.current_token.type}' in '{top}']")
+                                               f"Unexpected token '{self.current_token.type}' here. Expected one of {expected_tokens}\n[FOR DEV: No prediction for {self.current_token.type} in {top}]")
                     break
             else:
                 if top == self.current_token.type:
-                    print(f"3. Matched terminal {self.current_token.type}")  
+                    #print(f"3. Matched terminal {self.current_token.type}")  
                     stack.pop()
                     self.advance()
                 else:

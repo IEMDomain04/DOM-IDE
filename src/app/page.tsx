@@ -7,6 +7,7 @@ import CodeEditor from "./components/CodeEditor";
 import { handleTokenizerClick } from "./lexical/lexical";
 import { handleSyntaxClick } from "./syntax/syntax";
 import { handleSemanticClick } from "./semantic/semantic";
+import { handleRunClick } from "./interpreter/interpreter";
 import Terminal from "./components/Terminal";
 import * as monaco from 'monaco-editor';
 
@@ -39,9 +40,9 @@ curse domain(){
     codeEditorRef.current = editor;
   };
 
-  const handleRunClick = async () => {
+  const Interpreter = async () => {
     setOutputData([]);
-    setTerminalOutput("\n============= COMPILER COMING SOON ==============");
+    handleRunClick(code, setTerminalOutput);
   };
 
   const SyntaxAnalyzer = async () => {
@@ -90,7 +91,7 @@ curse domain(){
           style={{ height: `${height}px` }}
         >
           <Topnav
-            onRunClick={handleRunClick}
+            onRunClick={Interpreter}
             onTokenizerClick={Tokenizer}
             onSyntaxClick={SyntaxAnalyzer}
             onSemanticClick={SemanticAnalyzer}
