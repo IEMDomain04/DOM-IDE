@@ -823,6 +823,7 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_VarDecNode(self, node, parent):
         print(f"Visiting VarDecNode with type: {node.datatype}")
+        
         if not self.symbol_table.get_local(node.name):
             self.symbol_table.set(node.name, node)  # Store the VarDecNode object itself
         value_type = self.infer_type(node.value)
@@ -1139,7 +1140,7 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_CurseDecNode(self, node, parent):
         print(f"Visiting CurseDecNode with name: {node.name}")
-        if self.symbol_table.get(node.name):
+        if self.symbol_table.get(node.name) and parent is None:
             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' already declared"))
         else:
             self.symbol_table.set(node.name, node)  # Store the CurseDecNode object itself
@@ -1183,12 +1184,15 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_BodyNode(self, node, parent):
         print(f"Visiting BodyNode")
-        if not isinstance(parent, CycleNode):
+        if not isinstance(parent, (CycleNode, SustainNode, PerformSustainNode)):
             self.symbol_table.push()  # Enter new scope for body
         
             for child in list(node.children):
                 if isinstance(child, CurseDecNode):
-                    self.symbol_table.set(child.name, child)
+                    if self.symbol_table.get(child.name):
+                        self.errors.append(SemanticError(child.pos_start, child.pos_end, f"Curse '{child.name}' already declared in this scope"))
+                    else:
+                        self.symbol_table.set(child.name, child)
 
             self.visit_children(node)
             self.symbol_table.pop()  # Exit body scope
@@ -1369,7 +1373,7 @@ class MyASTVisitor(ASTVisitor):
                 if isinstance(node.value, CurseCallNode):
                     curse_node = self.symbol_table.get(node.value.name)
                     if curse_node is None:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined curse  1 '{node.value.name}'"))
+                        self.unresolved_cases.append((node, parent))
                     else:
                         curse_return_type = curse_node.datatype
                         if curse_return_type is None:
