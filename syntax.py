@@ -267,8 +267,7 @@ CFG = {
     ],
 
     "<cycle_condition>": [
-        ["<expression>"],
-        ["<not_op>", "(", "<cycle_condition>", ")"]
+        ["<expression>"]
     ],
 
     "<iteration>": [
@@ -514,6 +513,7 @@ PREDICT_SET = {
         "dismantle": ["<clan_item>", 0],
         "len": ["<clan_item>", 0],
         "!": ["<clan_item>", 0],
+        "-": ["<clan_item>", 0],
         "{": ["<clan_item>", 1],
         "}": ["<clan_item>", 2]
     },
@@ -809,6 +809,7 @@ PREDICT_SET = {
         "dismantle": ["<recall_val>", 0],
         "len": ["<recall_val>", 0],
         "!": ["<recall_val>", 0],
+        "-": ["<recall_val>", 0],
         ";": ["<recall_val>", 1]
     },
 
@@ -841,6 +842,7 @@ PREDICT_SET = {
         "dismantle": ["<arguments>", 0],
         "len": ["<arguments>", 0],
         "!": ["<arguments>", 0],
+        "-": ["<arguments>", 0],
         ")": ["<arguments>", 1]
     },
 
@@ -958,7 +960,8 @@ PREDICT_SET = {
         "cleave": ["<cycle_condition>", 0],
         "dismantle": ["<cycle_condition>", 0],
         "len": ["<cycle_condition>", 0],
-        "!": ["<cycle_condition>", 1],
+        "-": ["<cycle_condition>", 0],
+        "!": ["<cycle_condition>", 0],
     },
 
     "<iteration>": { ############# verified

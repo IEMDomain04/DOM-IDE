@@ -644,11 +644,16 @@ class MyASTVisitor(ASTVisitor):
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 15: Expected '{binop_parent.datatype}', got '{binop_type}'"))
         elif isinstance(binop_parent, (RecallNode)):
             parent_function = binop_parent.parent
-            while parent_function and not isinstance(parent_function, CurseDecNode):
-                parent_function = parent_function.parent
+            while not isinstance(parent_function, CurseDecNode):
+                if parent_function.parent:
+                    print(f"Parent: {type(parent_function)}")
+                    parent_function = parent_function.parent
+                    print(f"New Parent: {type(parent_function)}")
+                else:
+                    break
             if parent_function and parent_function.datatype != binop_type:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 16: Expected '{parent_function.datatype}', got '{binop_type}'"))
-            else: print(f"Unhandled Error: {parent.function.datatype} and {binop_type}")
+            else: pass #FIXME: priority unhandled error
         elif isinstance(binop_parent, (CycleConditionNode)):
             if binop_type != 'bool':
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"3 Condition must be a boolean expression, got '{binop_type}'"))
@@ -1881,11 +1886,13 @@ class MyASTVisitor(ASTVisitor):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 15: Expected '{binop_parent.datatype}', got '{binop_type}'"))
                 elif isinstance(binop_parent, (RecallNode)):
                     parent_function = binop_parent.parent
-                    while parent_function and not isinstance(parent_function, CurseDecNode):
-                        parent_function = parent_function.parent
+                    while not isinstance(parent_function, CurseDecNode):
+                        if parent_function.parent:
+                            parent_function = parent_function.parent
+                        else: break
                     if parent_function and parent_function.datatype != binop_type:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 16: Expected '{parent_function.datatype}', got '{binop_type}'"))
-                    else: print(f"Unhandled Error: {parent.function.datatype} and {binop_type}")
+                    else: pass #FIXME: unhandled error priority
                 elif isinstance(binop_parent, (CycleConditionNode)):
                     if binop_type != 'bool':
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"3 Condition must be a boolean expression, got '{binop_type}'"))
