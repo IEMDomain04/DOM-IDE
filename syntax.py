@@ -1258,7 +1258,7 @@ class SyntaxAnalyzer:
                 else:
                     expected_tokens = list(PREDICT_SET[top].keys())
                     error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                               f"Unexpected token '{self.current_token.type}' here. Expected one of {expected_tokens}\n[FOR DEV: No prediction for {self.current_token.type} in {top}]")
+                                               f"Unexpected token '{self.current_token.type}' here. Expected one of {expected_tokens}\n[No prediction for {self.current_token.type} in {top}]")
                     break
             else:
                 if top == self.current_token.type:
@@ -1283,5 +1283,5 @@ def parse_run(tokens):
 
     if error:
         print(error)
-        return "Failure from Syntax Analyzer", error.as_string()
+        return "Failure from Syntax Analyzer", error
     return "Successful from Syntax Analyzer", None

@@ -30,7 +30,8 @@ def run_syntax():
         return jsonify({'result': "Error: Failure from Syntax Analyzer\nFile: <stdin>, Message: Check lexical analysis.", 'error': None})
     syntax_result, syntax_error = syntax(tokens)
     if syntax_error:
-        return jsonify({'result': syntax_result, 'error': syntax_error})
+        syntax_error_message = f"{syntax_error.as_string()}"
+        return jsonify({'result': syntax_result, 'error': syntax_error_message})
     return jsonify({'result': syntax_result, 'error': None})
 
 @app.route('/api/semantic', methods=['POST'])
@@ -49,6 +50,7 @@ def run_semantic():
     if errors:  
         error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
         return jsonify({'semantic_result': "AST Building Failed", 'errors': error_messages, 'tree_str': tree_str})
+    
     if ast:
         return jsonify({'semantic_result': "Successful from Semantic Analyzer", 'errors': None, 'tree_str': tree_str})
     return jsonify({'semantic_result': "No AST Built", 'errors': None, 'tree_str': tree_str})

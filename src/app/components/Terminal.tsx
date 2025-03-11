@@ -10,7 +10,7 @@ const Terminal: React.FC<TerminalProps> = ({ terminalOutput, isDarkMode }) => {
     <main>
 
     <div
-      className="w-full h-screen flex flex-col overflow-hidden"
+      className="w-full h-screen flex flex-col overflow-hidden text-wrap"
       style={{ borderRight: '2px solid #131314' }}
     >
       {/* Sticky Header */}
