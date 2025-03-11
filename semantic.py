@@ -655,6 +655,7 @@ class MyASTVisitor(ASTVisitor):
                 if node.pos_start: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform operation between '{left_type}' and '{right_type}'"))
                 else: self.errors.append(SemanticError(parent.pos_start, parent.pos_end, f"Cannot perform operation between '{left_type}' and '{right_type}'"))
         else:
+            evaluation = None
             if isinstance(parent, BinOpNode):
                 if left_type == 'int' and right_type == 'int':
                     try:
@@ -817,13 +818,13 @@ class MyASTVisitor(ASTVisitor):
         else:
             symbol = self.symbol_table.get(node.name)
             true_parent = parent
-            while true_parent.parent and not isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode)):
+            while true_parent.parent and not isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode, LenNode, CleaveNode, DismantleNode, InvokeNode, BinOpNode, RecallNode)):
                 true_parent = true_parent.parent
 
-            if isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode)):
-                if isinstance(symbol, CurseDecNode):
+            if isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode, LenNode, CleaveNode, DismantleNode, InvokeNode, BinOpNode, RecallNode)):
+                if isinstance(symbol, CurseDecNode) and not isinstance(parent, CurseCallNode):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot call curse '{node.name}' without arguments"))
-                elif isinstance(symbol, ClanDecNode) and not isinstance(true_parent, CurseCallNode):
+                elif isinstance(symbol, ClanDecNode) and not isinstance(parent, (ClanAccessNode, ClanIndexAssignNode)) and not isinstance(parent, (LenNode, CleaveNode, InvokeNode)):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot access array '{node.name}' without specified index"))
         print(f"Exiting IdNode")
 
@@ -1815,16 +1816,23 @@ class MyASTVisitor(ASTVisitor):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 2 '{node.value.name}'"))
             
             elif isinstance(node, IdNode) and isinstance(parent, RecallNode):
-                if isinstance(node, IdNode):
-                    symbol = self.symbol_table.get(node.name)
-                    if symbol is None:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 3 '{node.name}'"))
-                    else:
-                        parent_function = parent
-                        while parent_function and not isinstance(parent_function, CurseDecNode):
-                            parent_function = parent_function.parent
-                        if parent_function and parent_function.datatype != symbol.datatype:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 14: Expected '{parent_function.datatype}', got '{symbol.datatype}'"))
+                symbol = self.symbol_table.get(node.name)
+                if symbol is None:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 3 '{node.name}'"))
+                else:
+                    parent_function = parent
+                    while parent_function and not isinstance(parent_function, CurseDecNode):
+                        parent_function = parent_function.parent
+                    if parent_function and parent_function.datatype != symbol.datatype:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 14: Expected '{parent_function.datatype}', got '{symbol.datatype}'"))
+                
+                while true_parent.parent and not isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode, LenNode, CleaveNode, DismantleNode, InvokeNode, BinOpNode, RecallNode)):
+                    true_parent = true_parent.parent
+                if isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode, LenNode, CleaveNode, DismantleNode, InvokeNode, BinOpNode, RecallNode)):
+                    if isinstance(symbol, CurseDecNode) and not isinstance(parent, CurseCallNode):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot call curse '{node.name}' without arguments"))
+                    elif isinstance(symbol, ClanDecNode) and not isinstance(parent, (ClanAccessNode, ClanIndexAssignNode)) and not isinstance(parent, (LenNode, CleaveNode, InvokeNode)):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot access array '{node.name}' without specified index"))
 
             elif isinstance(node, IdNode) and isinstance(parent, BinOpNode):
                 symbol = self.symbol_table.get(node.name)
@@ -1846,19 +1854,27 @@ class MyASTVisitor(ASTVisitor):
                     if symbol != parent.datatype:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 17: Expected '{parent.datatype}', got '{symbol}'"))
 
+                while true_parent.parent and not isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode, LenNode, CleaveNode, DismantleNode, InvokeNode, BinOpNode, RecallNode)):
+                    true_parent = true_parent.parent
+                if isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode, LenNode, CleaveNode, DismantleNode, InvokeNode, BinOpNode, RecallNode)):
+                    if isinstance(symbol, CurseDecNode) and not isinstance(parent, CurseCallNode):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot call curse '{node.name}' without arguments"))
+                    elif isinstance(symbol, ClanDecNode) and not isinstance(parent, (ClanAccessNode, ClanIndexAssignNode)) and not isinstance(parent, (LenNode, CleaveNode, InvokeNode)):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot access array '{node.name}' without specified index"))
+
             elif isinstance(node, IdNode):
                 symbol = self.symbol_table.get(node.name)
                 symbol_type = self.symbol_table.get_type(node.name)
                 if symbol is None:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 6 '{node.name}'"))
                 true_parent = parent
-                while true_parent.parent and not isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode)):
+                while true_parent.parent and not isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode, LenNode, CleaveNode, DismantleNode, InvokeNode, BinOpNode, RecallNode)):
                     true_parent = true_parent.parent
 
-                if isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode)):
-                    if isinstance(symbol, CurseDecNode):
+                if isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode, LenNode, CleaveNode, DismantleNode, InvokeNode, BinOpNode, RecallNode)):
+                    if isinstance(symbol, CurseDecNode) and not isinstance(parent, CurseCallNode):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot call curse '{node.name}' without arguments"))
-                    elif isinstance(symbol, ClanDecNode) and not isinstance(true_parent, CurseCallNode):
+                    elif isinstance(symbol, ClanDecNode) and not isinstance(parent, (ClanAccessNode, ClanIndexAssignNode)) and not isinstance(parent, (LenNode, CleaveNode, InvokeNode)):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot access array '{node.name}' without specified index"))
 
             elif isinstance(node, BinOpNode):
@@ -2348,12 +2364,12 @@ class MyASTVisitor(ASTVisitor):
             if isinstance(node.arg1, IdNode):
                 symbol = self.symbol_table.get(node.arg1.name)
                 if isinstance(symbol, ClanDecNode):
-                    return symbol.datatype
+                    return 'unknown'
                 elif isinstance(symbol, VarDecNode):
-                    return symbol.datatype
+                    return 'string'
                 elif isinstance(symbol, CurseDecNode):
                     if symbol.datatype:
-                        return symbol.datatype
+                        return 'string'
                     else: return 'void'
                 else: return 'unknown'
             elif isinstance(node.arg1, StringNode):
