@@ -16,7 +16,8 @@ export const handleSemanticClick = async (
         if (errors) {
           setTerminalOutput(errors);
         } else {
-          setTerminalOutput(semantic_result + '\n\nAbstract Syntax Tree (For Debugging):\n' + tree_str);
+          // setTerminalOutput(semantic_result + '\n\nAbstract Syntax Tree (For Debugging):\n' + tree_str);
+          setTerminalOutput(semantic_result);
         }
       } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
