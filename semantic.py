@@ -814,6 +814,17 @@ class MyASTVisitor(ASTVisitor):
             print(f"IdNode '{node.name}' is a parameter of a curse declaration")
         if not self.symbol_table.get(node.name):
             self.unresolved_cases.append((node, parent))
+        else:
+            symbol = self.symbol_table.get(node.name)
+            true_parent = parent
+            while true_parent.parent and not isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode)):
+                true_parent = true_parent.parent
+
+            if isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode)):
+                if isinstance(symbol, CurseDecNode):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot call curse '{node.name}' without arguments"))
+                elif isinstance(symbol, ClanDecNode) and not isinstance(true_parent, CurseCallNode):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot access array '{node.name}' without specified index"))
         print(f"Exiting IdNode")
 
     def visit_VarDecNode(self, node, parent):
@@ -833,10 +844,13 @@ class MyASTVisitor(ASTVisitor):
         if value_type == 'null':
             pass
         else:
-            if var_type != value_type:
-                if isinstance(node.value, CurseCallNode):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 3.2: Expected '{var_type}' curse, got '{value_type}'"))
-                else: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 3.2: Expected '{var_type}', got '{value_type}'"))
+            if value_type == 'unknown':
+                pass
+            else:
+                if var_type != value_type:
+                    if isinstance(node.value, CurseCallNode):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 3.1: Expected '{var_type}' curse, got '{value_type}'"))
+                    else: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 3.2: Expected '{var_type}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting VarDecNode")
 
@@ -1131,7 +1145,8 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_CurseDecNode(self, node, parent):
         print(f"Visiting CurseDecNode with name: {node.name}")
-        if self.symbol_table.get(node.name) and parent is None:
+        print(f"Curse_Dec Parent: {type(parent)}")
+        if self.symbol_table.get(node.name) and not isinstance(parent.parent, (CurseDecNode, CurseDomainNode)):
             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' already declared"))
         else:
             self.symbol_table.set(node.name, node)  # Store the CurseDecNode object itself
@@ -1316,7 +1331,7 @@ class MyASTVisitor(ASTVisitor):
             if hasattr(arg1_symbol, 'name'):
                 arg1_symbol = self.symbol_table.get(arg1.name)
             if arg1_type != 'string' and not isinstance(arg1_symbol, ClanDecNode):
-                self.errors.append(SemanticError(node.arg1.pos_start, node.arg1.pos_end, f"Expected 'string', got '{arg1_type}'"))
+                self.errors.append(SemanticError(node.value.pos_start, node.value.pos_end, f"Expected 'string', got '{arg1_type}'"))
 
         if isinstance(arg2, IdNode) and not self.symbol_table.get(arg2.name):
             self.unresolved_cases.append((node, parent))
@@ -1836,6 +1851,15 @@ class MyASTVisitor(ASTVisitor):
                 symbol_type = self.symbol_table.get_type(node.name)
                 if symbol is None:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 6 '{node.name}'"))
+                true_parent = parent
+                while true_parent.parent and not isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode)):
+                    true_parent = true_parent.parent
+
+                if isinstance(true_parent, (VarAssignNode, VarDecNode, CurseCallNode, ClanAccessNode, ClanIndexAssignNode)):
+                    if isinstance(symbol, CurseDecNode):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot call curse '{node.name}' without arguments"))
+                    elif isinstance(symbol, ClanDecNode) and not isinstance(true_parent, CurseCallNode):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot access array '{node.name}' without specified index"))
 
             elif isinstance(node, BinOpNode):
                 binop_type = self.infer_type(node)
