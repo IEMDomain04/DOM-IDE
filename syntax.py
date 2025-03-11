@@ -118,7 +118,8 @@ CFG = {
     "<expression>": [
         ["(", "<expression>", "<more_logic>", ")", "<more_logic>"],
         ["<operand>","<more_logic>"],
-        ["<not_op>", "<expression>", "<more_logic>"]
+        ["<not_op>", "<expression>", "<more_logic>"],
+        ["-", "<expression>"],
     ],
 
     "<operand>": [
@@ -278,19 +279,19 @@ CFG = {
     "<iteration_tail>": [
         ["++"],
         ["--"],
-        ["<assign_op>", "<ite_val>"]
+        ["<assign_op>", "<expression>"]
     ],
 
-    "<ite_val>": [
-        ["id", "<val_tail>"],
-        ["int_literal"],
-        ["float_literal"]
-    ],
+    # "<ite_val>": [
+    #     ["id", "<val_tail>"],
+    #     ["int_literal"],
+    #     ["float_literal"]
+    # ],
 
-    "<val_tail>": [
-        ["<arith_op>", "<ite_val>"],
-        []
-    ],
+    # "<val_tail>": [
+    #     ["<arith_op>", "<ite_val>"],
+    #     []
+    # ],
 
     "<sustain-loop>": [
         ["sustain", "(", "<expression>", ")", "{", "<con_loop_body>", "}"]
@@ -374,8 +375,7 @@ CFG = {
 
     "<pre>": [
         ["++"],                                     ########### 
-        ["--"],                                     ########### 
-        ["-"]
+        ["--"]                                      ########### 
     ],
 
     "<post>": [
@@ -560,14 +560,13 @@ PREDICT_SET = {
         "cleave": ["<expression>", 1],
         "dismantle": ["<expression>", 1],
         "len": ["<expression>", 1],
-        "-": ["<expression>", 1],
-        "!": ["<expression>", 2]
+        "!": ["<expression>", 2],
+        "-": ["<expression>", 3]
     },
 
     "<operand>": { ############# verified
         "++": ["<operand>", 0],
         "--": ["<operand>", 0],
-        "-": ["<operand>", 0],
         "id": ["<operand>", 1],
         "string_literal": ["<operand>", 1],
         "float_literal": ["<operand>", 1],
@@ -969,7 +968,6 @@ PREDICT_SET = {
         "++": ["<iteration>", 0],
         "--": ["<iteration>", 0],
         "id": ["<iteration>", 1],
-        "-":  ["<iteration>", 0]
     },
 
     "<iteration_tail>": { ############# verified
@@ -983,21 +981,21 @@ PREDICT_SET = {
         "%=": ["<iteration_tail>", 2]
     },
 
-    "<ite_val>": { ############# verified
-        "id": ["<ite_val>", 0],
-        "int_literal": ["<ite_val>", 1],
-        "float_literal": ["<ite_val>", 2],
-    }, 
+    # "<ite_val>": { ############# verified
+    #     "id": ["<ite_val>", 0],
+    #     "int_literal": ["<ite_val>", 1],
+    #     "float_literal": ["<ite_val>", 2],
+    # }, 
 
-    "<val_tail>": { ############# verified
-        "+": ["<val_tail>", 0],
-        "-": ["<val_tail>", 0],
-        "*": ["<val_tail>", 0],
-        "**": ["<val_tail>", 0],
-        "/": ["<val_tail>", 0],
-        "%": ["<val_tail>", 0],
-        ")": ["<val_tail>", 1]
-    },
+    # "<val_tail>": { ############# verified
+    #     "+": ["<val_tail>", 0],
+    #     "-": ["<val_tail>", 0],
+    #     "*": ["<val_tail>", 0],
+    #     "**": ["<val_tail>", 0],
+    #     "/": ["<val_tail>", 0],
+    #     "%": ["<val_tail>", 0],
+    #     ")": ["<val_tail>", 1]
+    # },
 
     "<sustain-loop>": { ############# verified
         "sustain": ["<sustain-loop>", 0]
@@ -1106,8 +1104,7 @@ PREDICT_SET = {
 
     "<pre>": { ############# verified
         "++": ["<pre>", 0],
-        "--": ["<pre>", 1],
-        "-" : ["<pre>", 2]
+        "--": ["<pre>", 1]
     },
 
     "<post>": { ############# verified
