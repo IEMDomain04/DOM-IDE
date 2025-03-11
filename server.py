@@ -48,7 +48,7 @@ def run_semantic():
     
     ast, errors, tree_str = semantic(tokens)
     if errors:  
-        error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
+        error_messages = f'{errors.as_string()}'
         return jsonify({'semantic_result': "AST Building Failed", 'errors': error_messages, 'tree_str': tree_str})
     
     if ast:
@@ -72,7 +72,7 @@ def run_interpreter():
     if ast:
         output, errors = interpreter(ast)
     if errors:
-        error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
+        error_messages = f'{errors.as_string()}'
         return jsonify({'result': output, 'error': error_messages})
     if output:
         output_messages = "".join(output)
