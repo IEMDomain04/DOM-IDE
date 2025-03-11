@@ -4633,9 +4633,9 @@ def semantic_run(tokens):
         errors.extend(visitor.errors)
         if errors:
             errors.sort(key=lambda e: e.pos_start.ln)
-        return ast, errors[0] if errors else None, tree_str
+        return ast, errors, tree_str
     
     if errors:
         errors.sort(key=lambda e: e.pos_start.ln)
 
-    return ast, errors[0] if errors else None, tree_str
+    return ast, errors, tree_str

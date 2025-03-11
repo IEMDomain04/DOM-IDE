@@ -46,10 +46,10 @@ def run_semantic():
     if syntax_error:
         return jsonify({'semantic_result': "Error: Failure from Semantic Analyzer\nFile: <stdin>, Message: Check syntax analysis.", 'errors': None})
     
-    ast, error, tree_str = semantic(tokens)
-    if error:  
-        error_message = f"{error.as_string()}"
-        return jsonify({'semantic_result': "AST Building Failed", 'errors': error_message, 'tree_str': tree_str})
+    ast, errors, tree_str = semantic(tokens)
+    if errors:  
+        error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
+        return jsonify({'semantic_result': "AST Building Failed", 'errors': error_messages, 'tree_str': tree_str})
     
     if ast:
         return jsonify({'semantic_result': "Successful from Semantic Analyzer", 'errors': None, 'tree_str': tree_str})
