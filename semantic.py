@@ -1199,7 +1199,7 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_BodyNode(self, node, parent):
         print(f"Visiting BodyNode")
-        if not isinstance(parent, (CycleNode, SustainNode, PerformSustainNode)):
+        if not isinstance(parent, (CycleNode, CycleConditionNode, SustainNode, PerformSustainNode)):
             self.symbol_table.push()  # Enter new scope for body
         
             for child in list(node.children):
@@ -1689,18 +1689,19 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_CycleConditionNode(self, node, parent):
         print(f"Visiting CycleConditionNode")
+        self.visit_children(node)
         if isinstance(node.init, VarDecNode):
-            if not isinstance(node.init.value, NumNode):
+            init_type = node.init.datatype
+            if init_type != 'int':
                 self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
         elif isinstance(node.init, VarAssignNode):
             symbol_node = self.symbol_table.get(node.init.name)
             if not symbol_node:
                 self.unresolved_cases.append((node.init, node))
-                return
-
-            init_type = symbol_node.datatype
-            if init_type != 'int':
-                self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
+            else:
+                init_type = symbol_node.datatype
+                if init_type != 'int':
+                    self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
         else: 
             self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Invalid cycle initialization"))
 
@@ -1710,20 +1711,20 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(node.condition, IdNode):
             if not self.symbol_table.get(node.condition.name):
                 self.unresolved_cases.append((node.condition, node))
-                return
-            condition_type = self.symbol_table.get_type(node.condition.name)
-            if condition_type != 'bool':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
+            else:
+                condition_type = self.symbol_table.get_type(node.condition.name)
+                if condition_type != 'bool':
+                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
         elif isinstance(node.condition, CurseCallNode):
             curse_node = self.symbol_table.get(node.condition.name)
             if curse_node is None:
                 self.unresolved_cases.append((node.condition, node))
-                return
-            curse_return_type = curse_node.datatype
-            if curse_return_type is None:
-                curse_return_type = 'void'
-            if curse_return_type != 'bool':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
+            else:
+                curse_return_type = curse_node.datatype
+                if curse_return_type is None:
+                    curse_return_type = 'void'
+                if curse_return_type != 'bool':
+                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         elif isinstance(node.condition, RelOpNode):
             pass
         elif isinstance(node.condition, LogOpNode):
@@ -1735,7 +1736,20 @@ class MyASTVisitor(ASTVisitor):
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
 
-        self.visit_children(node)
+        if isinstance(node.iteration, (UnaryOpNode, BinOpNode)) and node.iteration.op in ['++', '--', '+=', '-=', '*=', '/=', '%=']:
+            pass
+        elif isinstance(node.iteration, (VarAssignNode)):
+            symbol_node = self.symbol_table.get(node.iteration.name)
+            print(f'Symbol Table: {self.symbol_table.scopes}\nIteration node name: {node.iteration.name}')
+            if not symbol_node:
+                self.unresolved_cases.append((node.iteration, node))
+            else:
+                iteration_type = symbol_node.datatype
+                if iteration_type != 'int':
+                    self.errors.append(SemanticError(node.iteration.pos_start, node.iteration.pos_end, "Cycle iteration must be an integer"))
+        else:
+            self.errors.append(SemanticError(node.iteration.pos_start, node.iteration.pos_end, "Invalid cycle iteration"))
+
         print(f"Exiting CycleConditionNode")
 
     def evaluate_node(self, node):
@@ -2748,8 +2762,8 @@ class Parser:
         if self.current_token.type in ['=', '+=', '-=', '*=', '/=', '%=']:
             op = self.current_token.type
             self.advance()
-            if self.current_token.type not in ['(', '++', '--', '!', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal']:
-                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of ['(', '++', '--', '!', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal']")
+            if self.current_token.type not in ['(', '++', '--', '-', '!', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal']:
+                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of ['(', '++', '--', '-', '!', 'id', 'cleave', 'len', 'dismantle', 'string_literal', 'int_literal', 'float_literal', 'bool_literal', 'null_literal']")
             
             if self.current_token.type == 'id' and self.peek().type == '(':
                 value, error = self.parseExpr()
@@ -2884,23 +2898,21 @@ class Parser:
             return ClanIndexAssignNode(name, index1, index2, new_val, pos_start, self.current_token.pos_end), None
         elif self.current_token.type == '(':
             self.advance()
-            args = []
+            arguments = []
             while self.current_token.type != ')':
-                if self.current_token.type == 'string_literal':
-                    args.append(StringNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end))
-                    self.advance()
-                elif self.current_token.type == 'id':
-                    value, error = self.parseIdCall()
-                    args.append(value)
-                else:
-                    new_arg, error = self.parseExpr()
-                    if error: return None, error
-                    args.append(new_arg)
+                argument, error = self.parseExpr()
+                if error: return None, error
+                arguments.append(argument)
                 if self.current_token.type == ',':
-                    self.advance()
-            self.advance()
-            pos_end = self.current_token.pos_end
-            return CurseCallNode(name, args, pos_start, pos_end), None
+                    while self.current_token.type == ',':
+                        self.advance()
+                        argument, error = self.parseExpr()
+                        if error: return None, error
+                        arguments.append(argument)
+            if self.current_token.type == ')':
+                pos_end = self.current_token.pos_end
+                self.advance()
+            return CurseCallNode(name, arguments, pos_start, pos_end), None
         elif self.current_token.type == ',': # parse for multi declaration, this one's value is 0
             self.advance()
             pos_end = self.current_token.pos_end
@@ -4414,29 +4426,35 @@ class Parser:
 
     def parseCycleCondition(self):
         pos_start = self.current_token.pos_start
-        cycle_errors = []
         if self.current_token.type not in ['int', 'float', 'string', 'bool', 'id']:
             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, "Expected: variable declaration or assignment")
         if self.current_token.type in ['int', 'float', 'string', 'bool']:
             init, errors = self.parseDeclaration()
-            if errors:
-                cycle_errors.append(errors)
+            if errors: return None, errors
         elif self.current_token.type == 'id':
             init, error = self.parseIdCall()
-        else:
-            raise ParseError(self.current_token.pos_start, self.current_token.pos_end, "Expected: variable declaration or assignment")
-        if self.current_token.type == ';':
-            self.advance()
-            condition, error = self.parseExpr()
             if error: return None, error
-            if self.current_token.type == ';':
-                self.advance()
-                iteration, error = self.parseExpr()
-                if error: return None, error
-                return CycleConditionNode(init, condition, iteration, pos_start, self.current_token.pos_end), None
         else:
-            print(f"Encountered: {self.current_token.type}") 
-            raise ParseError(self.current_token.pos_start, self.current_token.pos_end, "Expected: ';'")
+            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, "Expected: variable declaration or assignment")
+        if not self.current_token.type == ';':
+            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Expected ';', got {self.current_token.type}")
+        self.advance()
+        condition, error = self.parseExpr()
+        if error: return None, error
+        if not self.current_token.type == ';':
+            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Expected ';', got {self.current_token.type}")
+        self.advance()
+        if self.current_token.type not in ['id', '++', '--']:
+            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Expected identifier, got {self.current_token.type}")
+        
+        if self.current_token.type == 'id' and self.peek().type not in ['=', '+=', '-=', '*=', '/=', '%=']:
+            iteration, error = self.parseExpr()
+            if error: return None, error
+        else:
+            iteration, error = self.parseIdCall()
+            if error: return None, error
+        return CycleConditionNode(init, condition, iteration, pos_start, self.current_token.pos_end), None
+  
 
     def parseWoogieBody(self):
         body_start = self.current_token.pos_start
