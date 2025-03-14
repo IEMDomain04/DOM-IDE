@@ -808,6 +808,8 @@ class MyASTVisitor(ASTVisitor):
 
         if left_type == 'bool' or right_type == 'bool':
             self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on boolean values"))
+        elif left_type == 'null' or right_type == 'null':
+            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on Null values"))
         elif isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
             self.unresolved_cases.append((node, parent))
         elif isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
@@ -822,6 +824,21 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_LogOpNode(self, node, parent):
         print(f"Visiting LogOpNode with operator: {node.op}")
+        left_type = self.infer_type(node.left)
+        right_type = self.infer_type(node.right)
+
+        if left_type in ['int', 'float'] or right_type in ['int', 'float']:
+            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform logical operation on numeric values"))
+        elif left_type == 'null' or right_type == 'null':
+            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform logical operation on Null values"))
+        elif isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
+            self.unresolved_cases.append((node, parent))
+        elif isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
+            self.unresolved_cases.append((node, parent))
+        elif isinstance(node.left, CurseCallNode) and not self.symbol_table.get(node.left.name):
+            self.unresolved_cases.append((node, parent))
+        elif isinstance(node.right, CurseCallNode) and not self.symbol_table.get(node.right.name):
+            self.unresolved_cases.append((node, parent))
         self.visit_children(node)
         print(f"Exiting LogOpNode")
 
@@ -2102,6 +2119,8 @@ class MyASTVisitor(ASTVisitor):
 
                 if left_type == 'bool' or right_type == 'bool':
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on boolean values"))
+                if left_type == 'null' or right_type == 'null':
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on numeric values"))
                 if isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
                     self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undeclared variable 12: '{node.left.name}'"))
                 if isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
@@ -2110,6 +2129,23 @@ class MyASTVisitor(ASTVisitor):
                     self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undefined curse 5: '{node.left.name}'"))
                 if isinstance(node.right, CurseCallNode) and not self.symbol_table.get(node.right.name):
                     self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undefined curse 6: '{node.left.name}'"))
+
+            elif isinstance(node, LogOpNode):
+                left_type = self.infer_type(node.left)
+                right_type = self.infer_type(node.right)
+
+                if left_type in ['int', 'float'] or right_type in ['int', 'float']:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform logical operation on numeric values"))
+                if left_type == 'null' or right_type == 'null':
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform logical operation on Null values"))
+                if isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
+                    self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undeclared variable 26: '{node.left.name}'"))
+                if isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
+                    self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undeclared variable 27: '{node.left.name}'"))
+                if isinstance(node.left, CurseCallNode) and not self.symbol_table.get(node.left.name):
+                    self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undeclared variable 28: '{node.left.name}'"))
+                if isinstance(node.right, CurseCallNode) and not self.symbol_table.get(node.right.name):
+                    self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undeclared variable 29: '{node.left.name}'"))
 
             elif isinstance(node, VowNode):
                 if isinstance(node.condition, BinOpNode):
