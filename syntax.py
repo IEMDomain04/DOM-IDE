@@ -9,7 +9,6 @@ from semantic import semantic_run
 # CONSTANTS 
 ##############
 
-
 CFG = {
     "<program>": [              
         ["expansion", ";", "<program_tail>"] ########### 1 
@@ -136,7 +135,7 @@ CFG = {
     "<value>": [
         ["<literal>"],
         ["id", "<curse_or_clan>"],
-        ["<invoke>", "(","<arguments>",")"],
+        ["invoke", "(","<arguments>",")"],
         ["capture", "(", "id", ")"],
         ["cleave", "(", "<arguments>", ")"],
         ["dismantle", "(", "<arguments>", ")"],
@@ -248,7 +247,7 @@ CFG = {
     ],
 
     "<more_true_woogie>": [
-        ["woogie", "(", "<expression>", ")", ":", "<con_loop_body>", "<more_true_woogie>"],
+        ["woogie", "<expression>", ":", "<con_loop_body>", "<more_true_woogie>"],
         []
     ],
 
@@ -356,11 +355,11 @@ CFG = {
     ],
 
     "<not_op>": [
-        ["!"],                                      ###########
+        ["!", "<more_not_op>"],                                      ###########
     ],
 
     "<more_not_op>": [
-        ["!"],                                      ###########
+        ["!", "<more_not_op>"],                                      ###########
         []                                          ###########
     ],
 

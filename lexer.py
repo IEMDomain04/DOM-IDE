@@ -74,7 +74,7 @@ class Error:
 
     def as_string(self):
         result = f'{self.error_name}: {self.details}'
-        result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}\n'
+        result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}\n\n'
         result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
         return result
 
@@ -1370,7 +1370,7 @@ class Lexer:
                         continue
                     else:
                         states.append(160)
-                        tokens.append(Token(tok_type, '=', pos_start=pos_start, pos_end=self.pos.copy()))
+                        tokens.append(Token(tok_type, '=', pos_start=pos_start, pos_end=pos_start))
                         continue    
                 if tok_type == TT_EQ:
                     states.append(162)
@@ -1413,7 +1413,7 @@ class Lexer:
                         continue
                     else:  
                         states.append(164)
-                        tokens.append(Token(tok_type, '+', pos_start=pos_start, pos_end=self.pos.copy()))
+                        tokens.append(Token(tok_type, '+', pos_start=pos_start, pos_end=pos_start))
                         continue
                 elif tok_type == TT_INCR:
                     pos_end = self.pos.copy()
@@ -1475,7 +1475,7 @@ class Lexer:
                         continue
                     else:
                         states.append(170)
-                        tokens.append(Token(tok_type, '-', pos_start=pos_start, pos_end=pos_end))
+                        tokens.append(Token(tok_type, '-', pos_start=pos_start, pos_end=pos_start))
                         continue
 
                 if tok_type == TT_DECR:
@@ -1530,7 +1530,7 @@ class Lexer:
                         continue
                     else:
                         states.append(176)
-                        tokens.append(Token(tok_type, '*', pos_start=pos_start, pos_end=self.pos.copy()))
+                        tokens.append(Token(tok_type, '*', pos_start=pos_start, pos_end=pos_start))
                         continue
                 if tok_type == TT_POW:
                     if self.current_char != None and self.current_char not in delim_map['arith_delim']:
@@ -1578,7 +1578,7 @@ class Lexer:
                         continue
                     else:
                         states.append(182)
-                        tokens.append(Token(tok_type, '/', pos_start=pos_start, pos_end=self.pos.copy()))
+                        tokens.append(Token(tok_type, '/', pos_start=pos_start, pos_end=pos_start))
                         continue
                 if tok_type == TT_DIVEQ:
                     if self.current_char != None and self.current_char not in delim_map['assign_delim']:
@@ -1621,7 +1621,7 @@ class Lexer:
                         continue
                     else:
                         states.append(186)
-                        tokens.append(Token(tok_type, '%', pos_start=pos_start, pos_end=self.pos.copy()))
+                        tokens.append(Token(tok_type, '%', pos_start=pos_start, pos_end=pos_start))
                         continue
 
 
@@ -1648,7 +1648,7 @@ class Lexer:
                         continue
                     else:
                         states.append(190)
-                        tokens.append(Token(tok_type, '!', pos_start=pos_start, pos_end=self.pos.copy()))
+                        tokens.append(Token(tok_type, '!', pos_start=pos_start, pos_end=pos_start))
                         continue
                 if tok_type == TT_NE:
                     if self.current_char != None and self.current_char not in delim_map['assign_delim']:
@@ -1683,7 +1683,7 @@ class Lexer:
                             errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
                         continue
                     else: 
-                        tokens.append(Token(tok_type, '<', pos_start=pos_start, pos_end=self.pos.copy()))
+                        tokens.append(Token(tok_type, '<', pos_start=pos_start, pos_end=pos_start))
                         continue
                 if tok_type == TT_LTE:
                     states.append(196)
@@ -1723,7 +1723,7 @@ class Lexer:
                             errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after operator"))
                         continue
                     else:
-                        tokens.append(Token(tok_type, '>', pos_start=pos_start, pos_end=self.pos.copy()))
+                        tokens.append(Token(tok_type, '>', pos_start=pos_start, pos_end=pos_start))
                         continue
                 if tok_type == TT_GTE:
                     states.append(200)
@@ -1803,7 +1803,7 @@ class Lexer:
                     errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after parenthesis"))
                     continue
                 else:
-                    tokens.append(Token(TT_LPAREN, '(', pos_start=pos_start, pos_end=self.pos.copy()))
+                    tokens.append(Token(TT_LPAREN, '(', pos_start=pos_start, pos_end=pos_start))
                     continue
 
 
@@ -1817,7 +1817,7 @@ class Lexer:
                     errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after parenthesis"))
                     continue
                 else:
-                    tokens.append(Token(TT_RPAREN, ')', pos_start=pos_start, pos_end=self.pos.copy()))
+                    tokens.append(Token(TT_RPAREN, ')', pos_start=pos_start, pos_end=pos_start))
                     continue
 
             elif self.current_char == '[':          # left bracket
@@ -1853,7 +1853,7 @@ class Lexer:
                     continue
                 else:
                     states.append(212)
-                    tokens.append(Token(TT_LSQUARE, '[', pos_start=pos_start, pos_end=self.pos.copy()))
+                    tokens.append(Token(TT_LSQUARE, '[', pos_start=pos_start, pos_end=pos_start))
                     continue
 
 
@@ -1867,7 +1867,7 @@ class Lexer:
                     continue
                 else:
                     states.append(218)
-                    tokens.append(Token(TT_RSQUARE, ']', pos_start=pos_start, pos_end=self.pos.copy()))
+                    tokens.append(Token(TT_RSQUARE, ']', pos_start=pos_start, pos_end=pos_start))
                     continue
 
 
@@ -1881,7 +1881,7 @@ class Lexer:
                     continue
                 else:
                     states.append(220)
-                    tokens.append(Token(TT_LBRACE, '{', pos_start=pos_start, pos_end=self.pos.copy()))
+                    tokens.append(Token(TT_LBRACE, '{', pos_start=pos_start, pos_end=pos_start))
                     continue
 
 
@@ -1895,7 +1895,7 @@ class Lexer:
                     continue
                 else:
                     states.append(222)
-                    tokens.append(Token(TT_RBRACE, '}', pos_start=pos_start, pos_end=self.pos.copy()))
+                    tokens.append(Token(TT_RBRACE, '}', pos_start=pos_start, pos_end=pos_start))
                     continue
 
 
@@ -1909,7 +1909,7 @@ class Lexer:
                     continue
                 else:
                     states.append(224)
-                    tokens.append(Token(TT_COMMA, ',', pos_start=pos_start, pos_end=self.pos.copy()))
+                    tokens.append(Token(TT_COMMA, ',', pos_start=pos_start, pos_end=pos_start))
                     continue
 
 
@@ -1924,7 +1924,7 @@ class Lexer:
                     continue
                 else:
                     states.append(226)
-                    tokens.append(Token(TT_COL, ':', pos_start=pos_start, pos_end=self.pos.copy()))
+                    tokens.append(Token(TT_COL, ':', pos_start=pos_start, pos_end=pos_start))
                     continue
 
 
@@ -1938,7 +1938,7 @@ class Lexer:
                     continue
                 else:
                     states.append(228)
-                    tokens.append(Token(TT_SEMICOL, ';', pos_start=pos_start, pos_end=self.pos.copy()))
+                    tokens.append(Token(TT_SEMICOL, ';', pos_start=pos_start, pos_end=pos_start))
                     continue
     
 
