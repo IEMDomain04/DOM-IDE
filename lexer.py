@@ -30,10 +30,10 @@ keywords = [
 
 # FROM THE DELIMITERS 
 delim_map = {
-    'arith_delim':      set(ALPHA_NUMERIC + ' ' + '-' + '(' + '#'),
+    'arith_delim':      set(ALPHA_NUMERIC + ' ' + '-' + '(' + '#' ),
     'assign_delim':     set(ALPHA_NUMERIC + ' ' + '"' + '-' + '(' + '\n' + '\t' + '!' + '#' + "{"),
     'boogie_delim':     {'(', ' ', '\n', '\t', '{', '#'},
-    'bool_delim':       {')', ']', ',', ' ', ';', '#'},
+    'bool_delim':       {')', ']', ',', ' ', ';', '#', '&', '|', '}'},
     'clsbrace_delim':   set(ALPHA_NUMERIC + '}' + '\n' + '\t' + ' ' + ';' + ',' + '#'),
     'clsparen_delim':   {'+', '-', '*', '/', '%', ')', '{', '}', ',', ']', '\n', '\t', ' ', ';', ':', '&', '|' , '>' , '<' , '#'},
     'clssquare_delim':  {'+', '-', '*', '/', '%', ' !', '=', '<', '>', ')', ',', '[', ']', '\n', '\t', ';', ' ', '&', '|' , '#'},
