@@ -163,6 +163,7 @@ const CustomTheme = ({ isDarkMode }: { isDarkMode: boolean }) => {
                         { label: "else (els)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "else", documentation: "Defines the alternative condition.", range },
                         { label: "boogie (boog)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "boogie()", documentation: "Defines a specific condition.", range },
                         { label: "woogie (woo)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "woogie", documentation: "Defines an alternative condition.", range },
+                        { label: "default", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "default", documentation: "Defines the default selection in a boogie woogie", range},
 
                         // Looping Statements
                         { label: "cycle (cyc)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "cycle()", documentation: "Begins a loop cycle.", range },
