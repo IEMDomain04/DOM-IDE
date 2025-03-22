@@ -96,9 +96,13 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
   return (
     <div className='fixed top-0 w-full z-50 border-b-2 border-dark-background'>
       <div className={`flex justify-between px-10 py-3 ${isDarkMode ? 'bg-dark-foreground' : 'bg-light-foreground'}`}>
+
         <div className="flex gap-x-2 items-center">
+
           <Image src="/dom-icon.svg" width={20} height={20} alt="Dom icon" />
+
           <h1 className='text-xl font-jujutsu pr-5'>DOM COMPILER</h1>
+
           {functionButtons.map((functionButton, index) => (
             <div key={index} className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950"
               onClick={functionButton.onClick}>
