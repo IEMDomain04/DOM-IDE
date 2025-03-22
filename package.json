@@ -11,7 +11,7 @@
   "dependencies": {
     "@monaco-editor/react": "^4.7.0-rc.0",
     "@types/react-resizable": "^3.0.8",
-    "axios": "^1.7.9",
+    "axios": "^1.8.4",
     "next": "^15.1.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
