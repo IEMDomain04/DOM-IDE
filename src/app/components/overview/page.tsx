@@ -72,7 +72,7 @@ const Overview: React.FC = () => {
         </tbody>
       </table>
 
-      <h1 className="mt-10 text-center">"Enjoy Programming!" BSCS 3 - 1 Group 1</h1>
+      <h1 className="mt-10 text-center">&quot;Enjoy Programming!&quot; BSCS 3 - 1 Group 1</h1>
     </div>
   );
 };
