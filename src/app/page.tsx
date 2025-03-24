@@ -4,6 +4,7 @@ import React, { useState, useRef } from "react";
 import Image from "next/image";
 import Topnav from "./components/Topnav";
 import CodeEditor from "./components/CodeEditor";
+import { useRouter } from "next/navigation";
 import { handleTokenizerClick } from "./lexical/lexical";
 import { handleSyntaxClick } from "./syntax/syntax";
 import { handleSemanticClick } from "./semantic/semantic";
@@ -26,6 +27,7 @@ curse domain(){
   invoke("Hello, World!");
 }`);
   const codeEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const router = useRouter();
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -84,7 +86,7 @@ curse domain(){
 
   return (
     <section className={`flex w-screen h-screen ${isDarkMode ? 'dark' : ''}`} style={{ backgroundImage: `url(${isDarkMode ? '/bg-dark.png' : '/bg-light.png'})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat' }}>
-      <div className="flex flex-col w-full h-screen">
+      <div className="flex flex-col w-full h-screen overflow-y-hidden">
         <div
           ref={divRef}
           className="relative w-auto max-h-[40rem] min-h-[1rem] box-border flex-shrink-0 overflow-hidden responsive-container"
@@ -102,13 +104,13 @@ curse domain(){
 
           <CodeEditor value={code} onChange={setCode} onMount={handleEditorDidMount} isDarkMode={isDarkMode} />
           <div className="absolute bottom-0 left-0 w-full h-[5px] cursor-row-resize bg-dark-background" onMouseDown={handleMouseDown} />
-          
+
         </div>
 
-          <Terminal terminalOutput={terminalOutput} isDarkMode={isDarkMode} />
+        <Terminal terminalOutput={terminalOutput} isDarkMode={isDarkMode} />
 
       </div>
-      
+
       {outputData.length > 0 && (
         <div className="flex flex-col w-3/12 overflow-auto pt-12" style={{ maxHeight: '100vh', position: 'absolute', right: 0, zIndex: 10 }}>
           <table className={`min-w-full table-fixed ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
@@ -134,6 +136,14 @@ curse domain(){
           </button>
         </div>
       )}
+
+      {/* Floating Button */}
+      <button
+        onClick={() => router.push('/components/overview')}
+        className="fixed bottom-5 left-5 w-14 h-14 bg-gray-800 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-slate-800 hover:scale-110 active:bg-red-500 transition duration-300">
+        <h1 className="font-jujutsu">OVERVIEW</h1>
+      </button>
+
     </section>
   );
 }
