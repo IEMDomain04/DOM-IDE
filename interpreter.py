@@ -35,7 +35,6 @@ class CodeRunner(DOMInterpreter):
         self.errors = []
         self.unresolved_cases = []  # List to keep track of unresolved cases
 
-
     def visit_DatatypeNode(self, node, parent):
         print(f"Visiting DatatypeNode with type: {node.datatype}")
         self.visit_children(node)
@@ -86,20 +85,7 @@ class CodeRunner(DOMInterpreter):
 
     def visit_BinOpNode(self, node, parent):
         print(f"Visiting BinOpNode with operator: {node.op}")
-        ancestor = parent
-        while not isinstance(ancestor, InvokeNode):
-            if hasattr(ancestor, 'parent'):
-                ancestor = ancestor.parent
-            else: break
-
-        if isinstance(ancestor, InvokeNode):
-            self.output.append("(")
-            self.visit(node.left, node)
-            self.output.append(node.op)
-            self.visit(node.right, node)
-            self.output.append(")")
-        else:
-            self.visit_children(node)
+        self.visit_children(node)
         print(f"Exiting BinOpNode")
 
     def visit_RelOpNode(self, node, parent):
@@ -222,8 +208,6 @@ class CodeRunner(DOMInterpreter):
 
     def visit_InvokeNode(self, node, parent):
         print(f"Visiting InvokeNode")
-        if hasattr(node.value, 'value') and isinstance(node.value.value, str):
-            self.output.append(node.value.value)
         self.visit_children(node)
         print(f"Exiting InvokeNode")
 
@@ -447,8 +431,7 @@ class SymbolTable:
             print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
 
         
-def interpreter_run(ast):
-    symbol_table = SymbolTable()
+def interpreter_run(ast, symbol_table):
     runner = CodeRunner(symbol_table)
     runner.visit(ast)
     # runner.resolve_unresolved()
@@ -456,6 +439,5 @@ def interpreter_run(ast):
     print(f"Interpreter output: {runner.output}")
     if runner.errors:
         return None, runner.errors
-    
     
     return runner.output, None

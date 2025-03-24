@@ -137,12 +137,12 @@ curse domain(){
         </div>
       )}
 
-      {/* Floating Button */}
+      {/* Floating Button
       <button
         onClick={() => router.push('/components/overview')}
         className="fixed bottom-5 left-5 w-14 h-14 bg-gray-800 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-slate-800 hover:scale-110 active:bg-red-500 transition duration-300">
         <h1 className="font-jujutsu">OVERVIEW</h1>
-      </button>
+      </button> */}
 
     </section>
   );

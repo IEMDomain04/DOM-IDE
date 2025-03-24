@@ -1480,6 +1480,7 @@ class MyASTVisitor(ASTVisitor):
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 18: Expected '{true_parent.datatype}', got '{symbol_type}'"))
                 else:
                     return_type = self.infer_type(node.value)
+                    
                     if return_type != true_parent.datatype:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 19: Expected '{true_parent.datatype}', got '{return_type}'"))
         elif isinstance(true_parent, CurseDecNode) and true_parent.datatype == None:
@@ -4551,4 +4552,4 @@ def semantic_run(tokens):
     if errors:
         errors.sort(key=lambda e: e.pos_start.ln)
 
-    return ast, errors, tree_str
+    return ast, errors, tree_str, symbol_table

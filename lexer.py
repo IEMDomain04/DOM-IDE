@@ -30,35 +30,35 @@ keywords = [
 
 # FROM THE DELIMITERS 
 delim_map = {
-    'arith_delim':      set(ALPHA_NUMERIC + ' ' + '-' + '(' + '#' ),
+    'arith_delim':      set(ALPHA_NUMERIC + ' ' + '-' + '(' + '#' + '\n' + '\t' + '!'),
     'assign_delim':     set(ALPHA_NUMERIC + ' ' + '"' + '-' + '(' + '\n' + '\t' + '!' + '#' + "{"),
     'boogie_delim':     {'(', ' ', '\n', '\t', '{', '#'},
-    'bool_delim':       {')', ']', ',', ' ', ';', '#', '&', '|', '}'},
+    'bool_delim':       {')', ']', ',', ' ', ';', '#', '&', '|', '}', '\n', '\t', ' '},
     'clsbrace_delim':   set(ALPHA_NUMERIC + '}' + '\n' + '\t' + ' ' + ';' + ',' + '#'),
     'clsparen_delim':   {'+', '-', '*', '/', '%', ')', '{', '}', ',', ']', '\n', '\t', ' ', ';', ':', '&', '|' , '>' , '<' , '#'},
     'clssquare_delim':  {'+', '-', '*', '/', '%', ' !', '=', '<', '>', ')', ',', '[', ']', '\n', '\t', ';', ' ', '&', '|' , '#'},
     'codeblk_delim':    {'{', ' ', '\n', '\t', '#'},
     'col_delim':        set(ALPHA + '\n' + '\t' + ' ' + '#'),
     'comma_delim':      set(ALPHA_NUMERIC + '"' + '(' + '[' + '{' + '-' + ' ' + "\n" + "\t" + '#'),
-    'comp_delim':       set(ALPHA_NUMERIC + '"' + '(' + '-' + ' ' + '\t' + '!' + '#'),
-    'default_delim':    {' ', ':', '\t', '#'},
+    'comp_delim':       set(ALPHA_NUMERIC + '"' + '(' + '-' + ' ' + '\n' + '\t' + '!' + '#'),
+    'default_delim':    {' ', ':', '\t', '\n' '#'},
     'ex_delim':         {';', '#', '\n', '\t', ' '},
-    'ident_delim':      {'+', '-', '*', '/', '%', '!', '=', '<', '>', '(', ')', ',', '[', ']', ' ', '\t', ';', '&', '|', '}', '#'},
-    'incdec_delim':     set(ALPHA_NUMERIC + ')' + ' ' + '\t' + ';' + '#' + ']' + '-' + '+'),
-    'kword_delim':      {' ', '\t', '#'},
+    'ident_delim':      {'+', '-', '*', '/', '%', '!', '=', '<', '>', '(', ')', ',', '[', ']', ' ', '\t', '\n', ';', '&', '|', '}', '#'},
+    'incdec_delim':     set(ALPHA_NUMERIC + ')' + ' ' + '\n' + '\t' + ';' + '#' + ']' + '-' + '+'),
+    'kword_delim':      {' ', '\n', '\t', '#'},
     'lend_delim':       set(ALPHA_NUMERIC + '#' + '\n' + '\t' + ' ' + '}'),
-    'logic_delim':      set(ALPHA + ' ' + '(' + '#' + '!'),
-    'minus_delim':      set(ALPHA_NUMERIC + '-' + '(' + ' ' + '#'),
-    'num_delim':        set(ARITH_OP + '>' + '<' + '=' + ' ' + '\t' + ')' + ',' + ';' + ':' + ']' + '}' + '#'),
+    'logic_delim':      set(ALPHA + ' ' + '(' + '#' + '!' + '\n' + '\t'),
+    'minus_delim':      set(ALPHA_NUMERIC + '-' + '(' + ' ' + '\n' + '\t' + ' ' + '#' + '!'),
+    'num_delim':        set(ARITH_OP + '>' + '<' + '=' + ' ' + '\n' + '\t' + ')' + ',' + ';' + ':' + ']' + '}' + '#'),
     'opnbrace_delim':   set(ALPHA_NUMERIC + '\n' + '\t' + '"' + ' ' + '{' + '#' + '}'),
     'opnparen_delim':   set(ALPHA_NUMERIC + '"' + '-' + '+' + '(' + ')' + '\n' + '\t' + ' ' + '!' + '#'),
     'opnsquare_delim':  set(ALPHA_NUMERIC + '"' + '-' + '+' + '(' + '[' + ']' + ' ' + '\n' + '\t' + '#'),
-    'plus_delim':       set(ALPHA_NUMERIC + '"' + '-' + '(' + ',' + ' ' + '\t' + '#'),
-    'para_delim':       {'(', ' ', '\t' , '#'},
-    'recall_delim':     set(ALPHA + ' ' + ';' + '(' + '#'), 
+    'plus_delim':       set(ALPHA_NUMERIC + '"' + '-' + '(' + ',' + ' ' + '\t' + '\n' + '#' + '!'),
+    'para_delim':       {'(', ' ', '\n', '\t' , '#'},
+    'recall_delim':     set(ALPHA + ' ' + '\n' + '\t' + ';' + '(' + '#'), 
     'str_delim':        {'+', ')',  ']', '\n', '\t', ',', ';', ' ', ':', '}', '#'},
     'white_delim':      set(ASCII + ALL_OPERATOR + ' ' + '\n' + '\t' + '\0' + '#'),
-    'woogie_delim':     set(NUMERIC + '(' + ' ' + '\t' + '#'),
+    'woogie_delim':     set(NUMERIC + '(' + ' ' + '\n' + '\t' + '#'),
 }
 
 
@@ -1824,34 +1824,37 @@ class Lexer:
                 states.append(211)
                 pos_start = self.pos.copy()
                 self.advance()
-                while self.current_char in [' ', '\t']:
-                    self.advance()
                 if self.current_char == '.':
                     states.append(213)
                     self.advance()    
-                    if self.current_char == '.':
-                        states.append(214)
+                    if self.current_char != '.':
+                        pos_end = self.pos.copy()
+                        errors.append(LexicalError(pos_start, pos_end, f"Invalid clan declaration, failed to parse '[...]' token"))
                         self.advance()
-                        if self.current_char == '.':
-                            states.append(215)
-                            self.advance()  
-                            if self.current_char in [' ', '\t']:
-                                while self.current_char in [' ', '\t']:
-                                    self.advance()
-                            if self.current_char != ']':
-                                states.append(216)
-                                errors.append(LexicalError(pos_start, pos_end, f"Invalid clan declaration"))
-                                self.advance()
-                                continue
-                            elif self.current_char == ']':
-                                tokens.append(Token(TT_ELLIPSIS, '[...]', pos_start=pos_start, pos_end=self.pos.copy()))
-                                self.advance()
-                                continue
-                if self.current_char != None and self.current_char not in delim_map['opnsquare_delim']:
-                    pos_end = self.pos.copy()
-                    errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after brackets"))
+                        continue
+                    states.append(214)
+                    self.advance()
+                    if self.current_char != '.':
+                        pos_end = self.pos.copy()
+                        errors.append(LexicalError(pos_start, pos_end, f"Invalid clan declaration, failed to parse '[...]' token"))
+                        self.advance()
+                        continue
+                    states.append(215)
+                    self.advance()
+                    if self.current_char != ']':
+                        errors.append(LexicalError(pos_start, pos_end, f"Invalid clan declaration, failed to parse '[...]' token"))
+                        self.advance()
+                        continue
+                    states.append(216)
+                    tokens.append(Token(TT_ELLIPSIS, '[...]', pos_start=pos_start, pos_end=self.pos.copy()))
+                    self.advance()
                     continue
+    
                 else:
+                    if self.current_char != None and self.current_char not in delim_map['opnsquare_delim']:
+                        pos_end = self.pos.copy()
+                        errors.append(LexicalError(pos_start, pos_end, f"Invalid delimiter '{self.current_char}' after brackets"))
+                        continue
                     states.append(212)
                     tokens.append(Token(TT_LSQUARE, '[', pos_start=pos_start, pos_end=pos_start))
                     continue
