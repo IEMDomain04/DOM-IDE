@@ -42,7 +42,7 @@ class CodeRunner(DOMInterpreter):
 
     def visit_StringNode(self, node, parent):
         print(f"Visiting StringNode with value: {node.value}")
-        self.visit_children(node)
+        return node.value
         print(f"Exiting StringNode")
 
     def visit_BoolNode(self, node, parent):
@@ -208,7 +208,20 @@ class CodeRunner(DOMInterpreter):
 
     def visit_InvokeNode(self, node, parent):
         print(f"Visiting InvokeNode")
-        self.visit_children(node)
+        value = ''
+        if isinstance(node.value, list):
+            for list_item in node.value:
+                if isinstance(self.evaluate_node(list_item), str):
+                    value += self.evaluate_node(list_item)
+                else: value += str(self.evaluate_node(list_item))
+        else: value = self.evaluate_node(node.value)
+        if value is None:
+            value = node.value
+        print(f'\n\n{value}\n\n')
+        if hasattr(value, 'to_string'):
+            self.output.append(value.to_string())
+        else:
+            self.output.append(value)
         print(f"Exiting InvokeNode")
 
     def visit_CaptureNode(self, node, parent):
@@ -366,21 +379,54 @@ class CodeRunner(DOMInterpreter):
             return 'unknown'
         
     def evaluate_node(self, node):
-        try:
-            if isinstance(node, NumNode):
-                return node.value
-            elif isinstance(node, BinOpNode):
-                left_value = self.evaluate_node(node.left)
-                right_value = self.evaluate_node(node.right)
-                if left_value is not None and right_value is not None:
-                    try:
-                     return eval(f'{left_value} {node.op} {right_value}')
-                    except: return None
-            return None
-        except:
-            return None
+        if isinstance(node, NumNode):
+            return node.value
+        elif isinstance (node, StringNode):
+            print("Heyoo")
+            return node.value
+        elif isinstance(node, BoolNode):
+            return node.value
+        elif isinstance(node, NullNode):
+            return 'Null'
+        elif isinstance(node, BinOpNode):
+            left_value = self.evaluate_node(node.left)
+            right_value = self.evaluate_node(node.right)
+            if isinstance(left_value, str):
+                right_value = str(right_value)
+            if isinstance(right_value, str):
+                left_value = str(left_value)
+            if left_value is not None and right_value is not None:
+                if node.op == '+':
+                    return left_value + right_value
+                elif node.op == '-':
+                    return left_value - right_value
+                elif node.op == '*':
+                    return left_value * right_value
+                elif node.op == '/':
+                    return left_value / right_value
+                elif node.op == '%':
+                    return left_value % right_value
+                elif node.op == '==':
+                    return left_value == right_value
+                elif node.op == '!=':
+                    return left_value != right_value
+                elif node.op == '<':
+                    return left_value < right_value
+                elif node.op == '>':
+                    return left_value > right_value
+                elif node.op == '<=':
+                    return left_value <= right_value
+                elif node.op == '>=':
+                    return left_value >= right_value
+                elif node.op == '&&':
+                    return left_value and right_value
+                elif node.op == '||':
+                    return left_value or right_value
+        elif isinstance(node, str):
+            return node
+        return None
         
- ###################
+###################
 # Symbol Table Class
 ###################
 

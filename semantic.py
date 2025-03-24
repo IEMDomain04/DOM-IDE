@@ -4541,13 +4541,13 @@ def semantic_run(tokens):
         ast.print_tree()
     else:
         print("No AST built")
-        return "No AST built", None, tree_str
+        return "No AST built", None, tree_str, None
     
     if visitor.errors:
         errors.extend(visitor.errors)
         if errors:
             errors.sort(key=lambda e: e.pos_start.ln)
-        return ast, errors, tree_str
+        return ast, errors, tree_str, None
     
     if errors:
         errors.sort(key=lambda e: e.pos_start.ln)

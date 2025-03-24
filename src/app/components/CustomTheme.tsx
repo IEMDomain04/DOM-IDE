@@ -65,7 +65,7 @@ const CustomTheme = ({ isDarkMode }: { isDarkMode: boolean }) => {
                     [/\\n/, "escape-sequence"], 
                     [/\\t/, "escape-sequence"], 
                     [/\\./, "string.escape"],
-                    [/"/, "string", "@pop"]
+                    [/"/, "string", "@pop"],
                 ]
             },
         });
