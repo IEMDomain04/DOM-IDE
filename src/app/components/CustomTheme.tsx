@@ -59,14 +59,17 @@ const CustomTheme = ({ isDarkMode }: { isDarkMode: boolean }) => {
                     [/"/, { token: "string", next: "@string" }],
                 ],
 
-                // String handling with \n and \t highlighting
+                // String handling with escape sequences highlighting
                 string: [
-                    [/[^\\"]+/, "string"],
-                    [/\\n/, "escape-sequence"], 
-                    [/\\t/, "escape-sequence"], 
-                    [/\\./, "string.escape"],
-                    [/"/, "string", "@pop"]
+                    [/[^\\"]+/, "string"], // Match any sequence of characters except backslash (\) or double quote (")
+                    [/\\a/, "escape-sequence"], // Match alert escape sequence (\a)
+                    [/\\n/, "escape-sequence"], // Match newline escape sequence (\n)
+                    [/\\t/, "escape-sequence"], // Match tab escape sequence (\t)
+                    [/\\\"/, "escape-sequence"], // Match escaped double quote (\")
+                    [/\\./, "string.escape"], // Match any other escaped character (e.g., \b, \r, etc.)
+                    [/"/, "string", "@pop"] // Match closing double quote (") and exit string mode
                 ]
+
             },
         });
 
@@ -163,7 +166,7 @@ const CustomTheme = ({ isDarkMode }: { isDarkMode: boolean }) => {
                         { label: "else (els)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "else", documentation: "Defines the alternative condition.", range },
                         { label: "boogie (boog)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "boogie()", documentation: "Defines a specific condition.", range },
                         { label: "woogie (woo)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "woogie", documentation: "Defines an alternative condition.", range },
-                        { label: "default", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "default", documentation: "Defines the default selection in a boogie woogie", range},
+                        { label: "default", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "default", documentation: "Defines the default selection in a boogie woogie", range },
 
                         // Looping Statements
                         { label: "cycle (cyc)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "cycle()", documentation: "Begins a loop cycle.", range },
@@ -178,8 +181,9 @@ const CustomTheme = ({ isDarkMode }: { isDarkMode: boolean }) => {
                         { label: "recall (rec)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "recall", documentation: "Returns a value from a function.", range },
 
                         // Clan Curses
-                        { label: "cleave (cle)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "cleave", documentation: "Executes a destruction operation.", range },
-                        { label: "dismantle (dsm)", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "dismantle", documentation: "Breaks down an entity.", range },
+                        { label: "cleave (cle)", kind: monaco.languages.CompletionItemKind.Function, insertText: "cleave", documentation: "Executes a destruction operation.", range },
+                        { label: "dismantle (dsm)", kind: monaco.languages.CompletionItemKind.Function, insertText: "dismantle", documentation: "Breaks down an entity.", range },
+                        { label: "len (len)", kind: monaco.languages.CompletionItemKind.Function, insertText: "len", documentation: "This will return the length of a string or array.", range },
                     ]
                 };
             },
