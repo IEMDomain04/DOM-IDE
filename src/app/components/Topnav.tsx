@@ -99,12 +99,14 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
 
         <div className="flex gap-x-2 items-center">
 
-          <Image src="/dom-icon.svg" width={20} height={20} alt="Dom icon" />
+          <div className='flex gap-3 max-sm:hidden'>
+            <Image src="/dom-icon.svg" width={20} height={20} alt="Dom icon" />
 
-          <h1 className='text-xl font-jujutsu pr-5'>DOM COMPILER</h1>
+            <h1 className='text-xl font-jujutsu pr-5'>DOM COMPILER</h1>
+          </div>
 
           {functionButtons.map((functionButton, index) => (
-            <div key={index} className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950"
+            <div key={index} className="max-sm:mr-0 flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950"
               onClick={functionButton.onClick}>
               <h1 className='text-xs'>{functionButton.name}</h1>
             </div>
@@ -117,7 +119,7 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
           </div>
         </div>
 
-        <div className="flex gap-x-5">
+        <div className="ml-10 flex gap-x-5 max-sm:gap-x-1">
           {compilerButtons.map((compilerButtons, index) => (
             <div key={index} className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950"
               onClick={compilerButtons.onClick}>
@@ -127,7 +129,7 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
           <Image
             className='px-1 py-1 rounded cursor-pointer hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950'
             src={isDarkMode ? "/lightmode-icon.svg" : "/darkmode-icon.svg"}
-            width={25} 
+            width={25}
             height={10}
             alt="light-dark icon"
             onClick={toggleDarkMode}
