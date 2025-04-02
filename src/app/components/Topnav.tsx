@@ -111,7 +111,7 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
 
 
           {/* Save and Open Buttons */}
-          <div className='flex justify-around gap-x-3 max-sm:gap-x-0 max-sm:-ml-6'>
+          <div className='flex justify-around gap-x-3 max-sm:gap-x-0 max-sm:-ml-9'>
             {functionButtons.map((functionButton, index) => (
 
               <div key={index} className="flex items-center w-auto px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950"

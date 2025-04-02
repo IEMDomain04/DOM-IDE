@@ -54,3 +54,8 @@ body {
   }
 }
 
+@media (max-width: 420px) { /* Adjust based on testing */
+  .responsive-container {
+    max-height: 28rem !important;
+  }
+}
