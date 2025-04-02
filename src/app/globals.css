@@ -50,7 +50,7 @@ body {
 
 @media (min-width: 1000px) { /* Adjust based on testing */
   .responsive-container {
-    max-height: 35rem !important;
+    max-height: 30rem !important;
   }
 }
 

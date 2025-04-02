@@ -99,33 +99,53 @@ export default function Topnav({ onRunClick, onTokenizerClick, onSyntaxClick, on
 
         <div className="flex gap-x-2 items-center">
 
+
+          {/* Icon and Title */}
           <div className='flex gap-3 max-sm:hidden'>
+
             <Image src="/dom-icon.svg" width={20} height={20} alt="Dom icon" />
 
             <h1 className='text-xl font-jujutsu pr-5'>DOM COMPILER</h1>
+
           </div>
 
-          {functionButtons.map((functionButton, index) => (
-            <div key={index} className="max-sm:mr-0 flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950"
-              onClick={functionButton.onClick}>
-              <h1 className='text-xs'>{functionButton.name}</h1>
-            </div>
-          ))}
 
-          <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950"
-            onClick={onRunClick}>
-            <Image src="/run-icon.svg" width={20} height={10} alt="Run img" />
-            <h1 className='text-xs'>Run</h1>
+          {/* Save and Open Buttons */}
+          <div className='flex justify-around gap-x-3 max-sm:gap-x-0 max-sm:-ml-6'>
+            {functionButtons.map((functionButton, index) => (
+
+              <div key={index} className="flex items-center w-auto px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950"
+                onClick={functionButton.onClick}>
+
+                <h1 className='text-xs max-sm:text-[8px]'>{functionButton.name}</h1>
+
+              </div>
+            ))}
+
+            {/* Run Button */}
+            <div className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950"
+              onClick={onRunClick}>
+
+              <Image src="/run-icon.svg" width={20} height={10} alt="Run img" />
+              <h1 className='text-xs max-sm:text-[8px]'>Run</h1>
+
+            </div>
           </div>
         </div>
 
-        <div className="ml-10 flex gap-x-5 max-sm:gap-x-1">
+        {/* Lexical, Syntax, Semantic and Light mode Dark mode */}
+        <div className="ml-10 flex gap-x-5 max-sm:gap-x-0">
+
           {compilerButtons.map((compilerButtons, index) => (
+
             <div key={index} className="flex items-center w-auto gap-x-2 px-3 py-1 rounded cursor-pointer duration-100 hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950"
               onClick={compilerButtons.onClick}>
-              <h1 className='text-xs'>{compilerButtons.name}</h1>
+
+              <h1 className='text-xs max-sm:text-[8px]'>{compilerButtons.name}</h1>
             </div>
           ))}
+
+          {/* Light mode and Dark mode icon */}
           <Image
             className='px-1 py-1 rounded cursor-pointer hover:bg-purple-500/50 hover:scale-110 active:bg-violet-950'
             src={isDarkMode ? "/lightmode-icon.svg" : "/darkmode-icon.svg"}

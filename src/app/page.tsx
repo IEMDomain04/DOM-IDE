@@ -112,7 +112,7 @@ curse domain(){
       </div>
 
       {outputData.length > 0 && (
-        <div className="flex flex-col w-3/12 overflow-auto pt-12" style={{ maxHeight: '100vh', position: 'absolute', right: 0, zIndex: 10 }}>
+        <div className="flex flex-col w-3/12 overflow-auto pt-12 max-sm:w-10/12" style={{ maxHeight: '100vh', position: 'absolute', right: 0, zIndex: 10 }}>
           <table className={`min-w-full table-fixed ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
             <thead className={`${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`} style={{ position: 'sticky', top: 0, zIndex: 1 }}>
               <tr>
