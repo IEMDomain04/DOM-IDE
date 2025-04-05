@@ -72,7 +72,10 @@ def run_interpreter():
     if ast:
         output, errors = interpreter(ast, symbol_table)
     if errors:
-        error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
+        if isinstance(errors, list):
+            error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
+        else:
+            error_messages = [f"Error: {errors.as_string()}\n"]
         return jsonify({'result': output, 'error': error_messages})
     if output:
         output_messages = "".join(output)

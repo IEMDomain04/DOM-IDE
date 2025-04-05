@@ -219,7 +219,7 @@ class BoolNode(ASTNode):
         self.value = value
 
     def __repr__(self):
-        return f"BoolNode_Object: {self.value}"
+        return f"{self.value}"
 
 class NullNode(ASTNode):
     def __init__(self, value, pos_start=None, pos_end=None):
@@ -227,7 +227,7 @@ class NullNode(ASTNode):
         self.value = value
     
     def __repr__(self):
-        return f"NullNode_Object"
+        return f"{self.value}"
         
 class RestrictNode(ASTNode): # for restrict keyword
     def __init__(self, pos_start=None, pos_end=None):

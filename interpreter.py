@@ -62,12 +62,6 @@ def string_with_arrows(text, pos_start, pos_end):
 
     return result.replace('\t', ' ')
 
-class RTResult:
-    def __init__(self):
-        self.value = None
-        self.error = None
-        self.display = []
-
 class DOMInterpreter: 
     def visit(self, node, parent=None):
         method_name = f'visit_{type(node).__name__}'
@@ -116,32 +110,10 @@ class CodeRunner(DOMInterpreter):
 
     def visit_NumNode(self, node, parent):
         print(f"Visiting NumNode with value: {node.value}")
-        ancestor = parent
-        while not isinstance(ancestor, InvokeNode):
-            if hasattr(ancestor, 'parent'):
-                ancestor = ancestor.parent
-            else: break
-
-        if isinstance(ancestor, InvokeNode) and not isinstance(parent, ExponentNode):
-            self.output.append(str(node.value))
-
         return node.value
         print(f"Exiting NumNode")
 
     def visit_ExponentNode(self, node, parent):
-        print(f"Visiting ExponentNode")
-        ancestor = parent
-        while not isinstance(ancestor, InvokeNode):
-            if hasattr(ancestor, 'parent'):
-                ancestor = ancestor.parent
-            else: break
-        if isinstance(ancestor, InvokeNode):
-            self.output.append("(")
-            self.output.append(str(node.left.value))
-            self.output.append("**")
-            self.output.append(str(node.right.value))
-            self.output.append(")")
-        self.visit_children(node)
         print(f"Exiting ExponentNode")
 
     def visit_BinOpNode(self, node, parent):
@@ -151,41 +123,15 @@ class CodeRunner(DOMInterpreter):
 
     def visit_RelOpNode(self, node, parent):
         print(f"Visiting RelOpNode with operator: {node.op}")
-        ancestor = parent
-        while not isinstance(ancestor, InvokeNode):
-            if hasattr(ancestor, 'parent'):
-                ancestor = ancestor.parent
-            else: break
-        if isinstance(ancestor, InvokeNode):
-            self.output.append("(")
-            self.visit(node.left, node)
-            self.output.append(node.op)
-            self.visit(node.right, node)
-            self.output.append(")")
-        else:
-            self.visit_children(node)
         print(f"Exiting RelOpNode")
 
     def visit_LogOpNode(self, node, parent):
         print(f"Visiting LogOpNode with operator: {node.op}")
-        ancestor = parent
-        while not isinstance(ancestor, InvokeNode):
-            if hasattr(ancestor, 'parent'):
-                ancestor = ancestor.parent
-            else: break
-        if isinstance(ancestor, InvokeNode):
-            self.output.append("(")
-            self.visit(node.left, node)
-            self.output.append(node.op)
-            self.visit(node.right, node)
-            self.output.append(")")
-        else: self.visit_children(node)
         print(f"Exiting LogOpNode")
 
     def visit_UnaryOpNode(self, node, parent):
         print(f"Visiting UnaryOpNode with operator: {node.op.op}")
         if node.pre is True:
-            print("HHEYHEYHEY")
             self.output.append(node.op.op)
             self.visit(node.expr, node)
         if node.post is True:
@@ -196,7 +142,6 @@ class CodeRunner(DOMInterpreter):
     def visit_IdNode(self, node, parent):
         print(f"Visiting IdNode with name: {node.name}")
         return self.symbol_table.get(node.name).value
-        print(f"Exiting IdNode")
 
     def visit_VarDecNode(self, node, parent):
         print(f"Visiting VarDecNode with type: {node.datatype}")
@@ -205,7 +150,18 @@ class CodeRunner(DOMInterpreter):
 
     def visit_VarAssignNode(self, node, parent):
         print(f"Visiting VarAssignNode with name: {node.name}")
-        self.visit_children(node)
+        value, error = self.evaluate_node(node.value)
+        if error:
+            self.error = error
+            return
+        # Retrieve the variable declaration node from the symbol table
+        var_dec_node = self.symbol_table.get(node.name)
+        if var_dec_node is None:
+            self.error = SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' is not declared")
+            return
+        # Update the value in the variable declaration node
+        var_dec_node.value = value
+        print(f"Updated value '{value}' for variable '{node.name}' in symbol table")
         print(f"Exiting VarAssignNode")
 
     def visit_ClanDecNode(self, node, parent):
@@ -281,13 +237,19 @@ class CodeRunner(DOMInterpreter):
                     value += temp
                 else: 
                     value += str(temp)
-        else: value = self.evaluate_node(node.value)
-        if value is None:
-            value = node.value
+        else: 
+            value, error = self.evaluate_node(node.value)
+            if value is None:
+                value = node.value
+            if error:
+                self.error = error
+                return
+
         if hasattr(value, 'to_string'):
             self.output.append(value.to_string())
         else:
             self.output.append(value)
+            
         print(f"Exiting InvokeNode")
 
     def visit_CaptureNode(self, node, parent):
@@ -453,7 +415,15 @@ class CodeRunner(DOMInterpreter):
             return node.value, None
         elif isinstance(node, NullNode):
             return 'Null', None
-        elif isinstance(node, BinOpNode):
+        
+        elif isinstance(node, IdNode):
+            value = self.symbol_table.get(node.name)
+            if value is None:
+                return None, SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' is not declared")
+            return value.value, None
+        
+
+        elif isinstance(node, (BinOpNode, RelOpNode, LogOpNode)):
             left_value, error = self.evaluate_node(node.left)
             if error:
                 return None, error
@@ -495,7 +465,7 @@ class CodeRunner(DOMInterpreter):
             except ZeroDivisionError:
                 return None, RTError(node.pos_start, node.pos_end, f'Division by Zero')
             except: 
-                self.value = None
+                return None, RTError(node.pos_start, node.pos_end, f'Invalid operation: {node.op}')
         elif isinstance(node, str):
             return node, None
         return None, None
