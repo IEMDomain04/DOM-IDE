@@ -141,10 +141,32 @@ class CodeRunner(DOMInterpreter):
 
     def visit_IdNode(self, node, parent):
         print(f"Visiting IdNode with name: {node.name}")
-        return self.symbol_table.get(node.name).value
+        # Check if the variable is declared in the symbol table
+        symbol = self.symbol_table.get(node.name);
+        if self.symbol_table.get(node.name) is None:
+            self.error = SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' is not declared")
+            return None
+        if isinstance(symbol, VarDecNode):
+            # If the variable is declared, return its value
+            print(f"IdNode '{node.name}' found in symbol table")
+            return symbol.value
+        return None
 
     def visit_VarDecNode(self, node, parent):
         print(f"Visiting VarDecNode with type: {node.datatype}")
+        # true parent
+        true_parent = parent
+        while true_parent and not isinstance(true_parent, (CurseDomainNode)):
+            true_parent = true_parent.parent
+
+        if true_parent is None or not isinstance(true_parent, CurseDomainNode):
+            pass
+        else:
+            if not self.symbol_table.get_local(node.name):
+                self.symbol_table.set(node.name, node)  # Store the VarDecNode object itself
+            else: 
+                self.error = SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' already declared")
+
         self.visit_children(node)
         print(f"Exiting VarDecNode")
 
@@ -417,12 +439,17 @@ class CodeRunner(DOMInterpreter):
             return 'Null', None
         
         elif isinstance(node, IdNode):
-            value = self.symbol_table.get(node.name)
-            if value is None:
+            symbol = self.symbol_table.get(node.name)
+            if symbol is None:
                 return None, SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' is not declared")
-            return value.value, None
+            if isinstance(symbol, VarDecNode):
+                value, error = self.evaluate_node(symbol.value)
+                if error:
+                    return None, error
+            return value, None
 
         elif isinstance(node, (BinOpNode, RelOpNode, LogOpNode)):
+            print("HEYHEYYOUOU")
             left_value, error = self.evaluate_node(node.left)
             if error:
                 return None, error
