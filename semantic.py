@@ -116,6 +116,26 @@ class ASTNode:
             if idx < len(self.parent.children) - 1:
                 return self.parent.children[idx + 1]
         return None
+
+    def evaluate_node(self):
+        try:
+            if isinstance(self, NumNode):
+                return self.value
+            elif isinstance(self, BinOpNode):
+                left_value = self.evaluate_node(self.left)
+                right_value = self.evaluate_node(self.right)
+                if left_value is not None and right_value is not None:
+                    try:
+                     return eval(f'{left_value} {self.op} {right_value}')
+                    except: return None
+            elif isinstance(self, UnaryOpNode):
+                if self.pre and self.op.op == '-':
+                    return -self.evaluate_node(self.expr)
+                return None
+            return None
+        except:
+            return None
+
     
 class NumNode(ASTNode): # for numbers
     def __init__(self, value, pos_start=None, pos_end=None):
@@ -1246,7 +1266,7 @@ class MyASTVisitor(ASTVisitor):
         if self.symbol_table.get("domain"):
             self.errors.append(SemanticError(node.pos_start, node.pos_end, "Multiple 'domain' declarations are not allowed"))
         else:
-            self.symbol_table.set("domain", "CurseDomain")
+            self.symbol_table.set("domain", node)
         self.symbol_table.push()  # Enter new scope for domain body
         self.visit_children(node)
         self.symbol_table.pop()  # Exit domain scope

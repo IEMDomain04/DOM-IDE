@@ -8,6 +8,66 @@ from semantic import (
     DefaultCaseNode, SustainNode, PerformSustainNode, CycleNode, CycleConditionNode
 )
 
+##############
+# ERRORS
+############## 
+class Error:
+    def __init__(self, pos_start, pos_end, error_name, details):
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        self.error_name = error_name
+        self.details = details
+
+    def as_string(self):
+        result = f'{self.error_name}: {self.details}'
+        result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}\n'
+        result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
+        return result
+    
+class SemanticError(Error):
+    def __init__(self, pos_start, pos_end, details=''):
+        super().__init__(pos_start, pos_end, 'Semantic Error', details)
+
+class RTError(Error):
+    def __init__(self, pos_start, pos_end, details=''):
+        super().__init__(pos_start, pos_end, 'Runtime Error', details)
+
+def string_with_arrows(text, pos_start, pos_end):
+    result = ''
+
+    # Calculate indices
+    idx_start = max(text.rfind('\n', 0, pos_start.idx), 0)
+    idx_end = text.find('\n', idx_start + 1)
+    if idx_end < 0: idx_end = len(text)
+
+    # Generate each line
+    line_count = pos_end.ln - pos_start.ln + 1
+    for i in range(line_count):
+        # Calculate line columns
+        line = text[idx_start:idx_end]
+        col_start = pos_start.col if i == 0 else 0
+        col_end = pos_end.col if i == line_count - 1 else len(line) - 1
+
+        # Append to result
+        result += line + '\n'
+        if pos_start.idx == pos_end.idx and pos_start.ln == pos_end.ln and pos_start.col == pos_end.col:
+            result += ' ' * col_start + '^'
+        else:
+            result += ' ' * col_start + '^' * (col_end - col_start)
+
+        # Re-calculate indices
+        idx_start = idx_end
+        idx_end = text.find('\n', idx_start + 1)
+        if idx_end < 0: idx_end = len(text)
+
+    return result.replace('\t', ' ')
+
+class RTResult:
+    def __init__(self):
+        self.value = None
+        self.error = None
+        self.display = []
+
 class DOMInterpreter: 
     def visit(self, node, parent=None):
         method_name = f'visit_{type(node).__name__}'
@@ -32,7 +92,7 @@ class CodeRunner(DOMInterpreter):
     def __init__(self, symbol_table):
         self.symbol_table = symbol_table
         self.output = []
-        self.errors = []
+        self.error = None
         self.unresolved_cases = []  # List to keep track of unresolved cases
 
     def visit_DatatypeNode(self, node, parent):
@@ -43,7 +103,6 @@ class CodeRunner(DOMInterpreter):
     def visit_StringNode(self, node, parent):
         print(f"Visiting StringNode with value: {node.value}")
         return node.value
-        print(f"Exiting StringNode")
 
     def visit_BoolNode(self, node, parent):
         print(f"Visiting BoolNode with value: {node.value}")
@@ -53,7 +112,7 @@ class CodeRunner(DOMInterpreter):
     def visit_NullNode(self, node, parent):
         print(f"Visiting NullNode")
         self.visit_children(node)
-        print(f"Exiting NullNode")
+        return None
 
     def visit_NumNode(self, node, parent):
         print(f"Visiting NumNode with value: {node.value}")
@@ -65,6 +124,8 @@ class CodeRunner(DOMInterpreter):
 
         if isinstance(ancestor, InvokeNode) and not isinstance(parent, ExponentNode):
             self.output.append(str(node.value))
+
+        return node.value
         print(f"Exiting NumNode")
 
     def visit_ExponentNode(self, node, parent):
@@ -134,6 +195,7 @@ class CodeRunner(DOMInterpreter):
 
     def visit_IdNode(self, node, parent):
         print(f"Visiting IdNode with name: {node.name}")
+        return self.symbol_table.get(node.name).value
         print(f"Exiting IdNode")
 
     def visit_VarDecNode(self, node, parent):
@@ -211,13 +273,17 @@ class CodeRunner(DOMInterpreter):
         value = ''
         if isinstance(node.value, list):
             for list_item in node.value:
-                if isinstance(self.evaluate_node(list_item), str):
-                    value += self.evaluate_node(list_item)
-                else: value += str(self.evaluate_node(list_item))
+                temp, error = self.evaluate_node(list_item)
+                if error:
+                        self.error = error
+                        break
+                if isinstance(temp, str):
+                    value += temp
+                else: 
+                    value += str(temp)
         else: value = self.evaluate_node(node.value)
         if value is None:
             value = node.value
-        print(f'\n\n{value}\n\n')
         if hasattr(value, 'to_string'):
             self.output.append(value.to_string())
         else:
@@ -295,7 +361,7 @@ class CodeRunner(DOMInterpreter):
         print(f"Exiting DefaultCaseNode")
 
     def visit_SustainNode(self, node, parent):
-        print(f"Visiting SustainNode")
+        print(f"Visiting SustainNode") 
         self.visit_children(node)
         print(f"Exiting SustainNode")
 
@@ -380,51 +446,59 @@ class CodeRunner(DOMInterpreter):
         
     def evaluate_node(self, node):
         if isinstance(node, NumNode):
-            return node.value
+            return node.value, None
         elif isinstance (node, StringNode):
-            print("Heyoo")
-            return node.value
+            return node.value, None
         elif isinstance(node, BoolNode):
-            return node.value
+            return node.value, None
         elif isinstance(node, NullNode):
-            return 'Null'
+            return 'Null', None
         elif isinstance(node, BinOpNode):
-            left_value = self.evaluate_node(node.left)
-            right_value = self.evaluate_node(node.right)
+            left_value, error = self.evaluate_node(node.left)
+            if error:
+                return None, error
+            right_value, error = self.evaluate_node(node.right)
+            if error:
+                return None, error
             if isinstance(left_value, str):
                 right_value = str(right_value)
             if isinstance(right_value, str):
                 left_value = str(left_value)
-            if left_value is not None and right_value is not None:
-                if node.op == '+':
-                    return left_value + right_value
-                elif node.op == '-':
-                    return left_value - right_value
-                elif node.op == '*':
-                    return left_value * right_value
-                elif node.op == '/':
-                    return left_value / right_value
-                elif node.op == '%':
-                    return left_value % right_value
-                elif node.op == '==':
-                    return left_value == right_value
-                elif node.op == '!=':
-                    return left_value != right_value
-                elif node.op == '<':
-                    return left_value < right_value
-                elif node.op == '>':
-                    return left_value > right_value
-                elif node.op == '<=':
-                    return left_value <= right_value
-                elif node.op == '>=':
-                    return left_value >= right_value
-                elif node.op == '&&':
-                    return left_value and right_value
-                elif node.op == '||':
-                    return left_value or right_value
+            try:
+                if left_value is not None and right_value is not None:
+                    if node.op == '+':
+                        return left_value + right_value, None
+                    elif node.op == '-':
+                        return left_value - right_value, None
+                    elif node.op == '*':
+                        return left_value * right_value, None
+                    elif node.op == '/':
+                        return left_value / right_value, None
+                    elif node.op == '%':
+                        return left_value % right_value, None
+                    elif node.op == '==':
+                        return left_value == right_value, None
+                    elif node.op == '!=':
+                        return left_value != right_value, None
+                    elif node.op == '<':
+                        return left_value < right_value, None
+                    elif node.op == '>':
+                        return left_value > right_value, None
+                    elif node.op == '<=':
+                        return left_value <= right_value, None
+                    elif node.op == '>=':
+                        return left_value >= right_value, None
+                    elif node.op == '&&':
+                        return left_value and right_value, None
+                    elif node.op == '||':
+                        return left_value or right_value, None
+            except ZeroDivisionError:
+                return None, RTError(node.pos_start, node.pos_end, f'Division by Zero')
+            except: 
+                self.value = None
         elif isinstance(node, str):
-            return node
-        return None
+            return node, None
+        return None, None
         
 ###################
 # Symbol Table Class
@@ -483,7 +557,7 @@ def interpreter_run(ast, symbol_table):
     # runner.resolve_unresolved()
     
     print(f"Interpreter output: {runner.output}")
-    if runner.errors:
-        return None, runner.errors
+    if runner.error:
+        return None, runner.error
     
     return runner.output, None
