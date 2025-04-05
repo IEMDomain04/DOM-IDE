@@ -27,7 +27,7 @@ curse domain(){
   invoke("Hello, World!");
 }`);
   const codeEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
-  const router = useRouter();
+  // const router = useRouter();
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);

@@ -421,7 +421,6 @@ class CodeRunner(DOMInterpreter):
             if value is None:
                 return None, SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' is not declared")
             return value.value, None
-        
 
         elif isinstance(node, (BinOpNode, RelOpNode, LogOpNode)):
             left_value, error = self.evaluate_node(node.left)
@@ -430,10 +429,12 @@ class CodeRunner(DOMInterpreter):
             right_value, error = self.evaluate_node(node.right)
             if error:
                 return None, error
-            if isinstance(left_value, str):
-                right_value = str(right_value)
-            if isinstance(right_value, str):
-                left_value = str(left_value)
+            
+            if isinstance(left_value, NumNode):
+                left_value = left_value.value
+            if isinstance(right_value, NumNode):
+                right_value = right_value.value
+            
             try:
                 if left_value is not None and right_value is not None:
                     if node.op == '+':
@@ -505,7 +506,7 @@ class SymbolTable:
     def get_type(self, name):
         # Search from innermost to outermost scope
         for scope in reversed(self.scopes):
-            if name in scope:
+            if name in scope: 
                 print(f"Found name type '{name}' in scope {scope}!")
                 return scope[name].datatype if hasattr(scope[name], 'datatype') else scope[name]
         print(f"'{name}' not found in any scope, get_type returns None")
