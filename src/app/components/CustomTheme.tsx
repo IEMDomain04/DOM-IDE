@@ -62,7 +62,6 @@ const CustomTheme = ({ isDarkMode }: { isDarkMode: boolean }) => {
                 // String handling with escape sequences highlighting
                 string: [
                     [/[^\\"]+/, "string"], // Match any sequence of characters except backslash (\) or double quote (")
-                    [/\\a/, "escape-sequence"], // Match alert escape sequence (\a)
                     [/\\n/, "escape-sequence"], // Match newline escape sequence (\n)
                     [/\\t/, "escape-sequence"], // Match tab escape sequence (\t)
                     [/\\\"/, "escape-sequence"], // Match escaped double quote (\")

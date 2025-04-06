@@ -8,6 +8,60 @@ from semantic import (
     DefaultCaseNode, SustainNode, PerformSustainNode, CycleNode, CycleConditionNode
 )
 
+##############
+# ERRORS
+############## 
+class Error:
+    def __init__(self, pos_start, pos_end, error_name, details):
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        self.error_name = error_name
+        self.details = details
+
+    def as_string(self):
+        result = f'{self.error_name}: {self.details}'
+        result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}\n'
+        result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
+        return result
+    
+class SemanticError(Error):
+    def __init__(self, pos_start, pos_end, details=''):
+        super().__init__(pos_start, pos_end, 'Semantic Error', details)
+
+class RTError(Error):
+    def __init__(self, pos_start, pos_end, details=''):
+        super().__init__(pos_start, pos_end, 'Runtime Error', details)
+
+def string_with_arrows(text, pos_start, pos_end):
+    result = ''
+
+    # Calculate indices
+    idx_start = max(text.rfind('\n', 0, pos_start.idx), 0)
+    idx_end = text.find('\n', idx_start + 1)
+    if idx_end < 0: idx_end = len(text)
+
+    # Generate each line
+    line_count = pos_end.ln - pos_start.ln + 1
+    for i in range(line_count):
+        # Calculate line columns
+        line = text[idx_start:idx_end]
+        col_start = pos_start.col if i == 0 else 0
+        col_end = pos_end.col if i == line_count - 1 else len(line) - 1
+
+        # Append to result
+        result += line + '\n'
+        if pos_start.idx == pos_end.idx and pos_start.ln == pos_end.ln and pos_start.col == pos_end.col:
+            result += ' ' * col_start + '^'
+        else:
+            result += ' ' * col_start + '^' * (col_end - col_start)
+
+        # Re-calculate indices
+        idx_start = idx_end
+        idx_end = text.find('\n', idx_start + 1)
+        if idx_end < 0: idx_end = len(text)
+
+    return result.replace('\t', ' ')
+
 class DOMInterpreter: 
     def visit(self, node, parent=None):
         method_name = f'visit_{type(node).__name__}'
@@ -32,9 +86,8 @@ class CodeRunner(DOMInterpreter):
     def __init__(self, symbol_table):
         self.symbol_table = symbol_table
         self.output = []
-        self.errors = []
+        self.error = None
         self.unresolved_cases = []  # List to keep track of unresolved cases
-
 
     def visit_DatatypeNode(self, node, parent):
         print(f"Visiting DatatypeNode with type: {node.datatype}")
@@ -43,8 +96,7 @@ class CodeRunner(DOMInterpreter):
 
     def visit_StringNode(self, node, parent):
         print(f"Visiting StringNode with value: {node.value}")
-        self.visit_children(node)
-        print(f"Exiting StringNode")
+        return node.value
 
     def visit_BoolNode(self, node, parent):
         print(f"Visiting BoolNode with value: {node.value}")
@@ -54,91 +106,32 @@ class CodeRunner(DOMInterpreter):
     def visit_NullNode(self, node, parent):
         print(f"Visiting NullNode")
         self.visit_children(node)
-        print(f"Exiting NullNode")
+        return None
 
     def visit_NumNode(self, node, parent):
         print(f"Visiting NumNode with value: {node.value}")
-        ancestor = parent
-        while not isinstance(ancestor, InvokeNode):
-            if hasattr(ancestor, 'parent'):
-                ancestor = ancestor.parent
-            else: break
-
-        if isinstance(ancestor, InvokeNode) and not isinstance(parent, ExponentNode):
-            self.output.append(str(node.value))
+        return node.value
         print(f"Exiting NumNode")
 
     def visit_ExponentNode(self, node, parent):
-        print(f"Visiting ExponentNode")
-        ancestor = parent
-        while not isinstance(ancestor, InvokeNode):
-            if hasattr(ancestor, 'parent'):
-                ancestor = ancestor.parent
-            else: break
-        if isinstance(ancestor, InvokeNode):
-            self.output.append("(")
-            self.output.append(str(node.left.value))
-            self.output.append("**")
-            self.output.append(str(node.right.value))
-            self.output.append(")")
-        self.visit_children(node)
         print(f"Exiting ExponentNode")
 
     def visit_BinOpNode(self, node, parent):
         print(f"Visiting BinOpNode with operator: {node.op}")
-        ancestor = parent
-        while not isinstance(ancestor, InvokeNode):
-            if hasattr(ancestor, 'parent'):
-                ancestor = ancestor.parent
-            else: break
-
-        if isinstance(ancestor, InvokeNode):
-            self.output.append("(")
-            self.visit(node.left, node)
-            self.output.append(node.op)
-            self.visit(node.right, node)
-            self.output.append(")")
-        else:
-            self.visit_children(node)
+        self.visit_children(node)
         print(f"Exiting BinOpNode")
 
     def visit_RelOpNode(self, node, parent):
         print(f"Visiting RelOpNode with operator: {node.op}")
-        ancestor = parent
-        while not isinstance(ancestor, InvokeNode):
-            if hasattr(ancestor, 'parent'):
-                ancestor = ancestor.parent
-            else: break
-        if isinstance(ancestor, InvokeNode):
-            self.output.append("(")
-            self.visit(node.left, node)
-            self.output.append(node.op)
-            self.visit(node.right, node)
-            self.output.append(")")
-        else:
-            self.visit_children(node)
         print(f"Exiting RelOpNode")
 
     def visit_LogOpNode(self, node, parent):
         print(f"Visiting LogOpNode with operator: {node.op}")
-        ancestor = parent
-        while not isinstance(ancestor, InvokeNode):
-            if hasattr(ancestor, 'parent'):
-                ancestor = ancestor.parent
-            else: break
-        if isinstance(ancestor, InvokeNode):
-            self.output.append("(")
-            self.visit(node.left, node)
-            self.output.append(node.op)
-            self.visit(node.right, node)
-            self.output.append(")")
-        else: self.visit_children(node)
         print(f"Exiting LogOpNode")
 
     def visit_UnaryOpNode(self, node, parent):
         print(f"Visiting UnaryOpNode with operator: {node.op.op}")
         if node.pre is True:
-            print("HHEYHEYHEY")
             self.output.append(node.op.op)
             self.visit(node.expr, node)
         if node.post is True:
@@ -148,16 +141,49 @@ class CodeRunner(DOMInterpreter):
 
     def visit_IdNode(self, node, parent):
         print(f"Visiting IdNode with name: {node.name}")
-        print(f"Exiting IdNode")
+        # Check if the variable is declared in the symbol table
+        symbol = self.symbol_table.get(node.name);
+        if self.symbol_table.get(node.name) is None:
+            self.error = SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' is not declared")
+            return None
+        if isinstance(symbol, VarDecNode):
+            # If the variable is declared, return its value
+            print(f"IdNode '{node.name}' found in symbol table")
+            return symbol.value
+        return None
 
     def visit_VarDecNode(self, node, parent):
         print(f"Visiting VarDecNode with type: {node.datatype}")
+        # true parent
+        true_parent = parent
+        while true_parent and not isinstance(true_parent, (CurseDomainNode)):
+            true_parent = true_parent.parent
+
+        if true_parent is None or not isinstance(true_parent, CurseDomainNode):
+            pass
+        else:
+            if not self.symbol_table.get_local(node.name):
+                self.symbol_table.set(node.name, node)  # Store the VarDecNode object itself
+            else: 
+                self.error = SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' already declared")
+
         self.visit_children(node)
         print(f"Exiting VarDecNode")
 
     def visit_VarAssignNode(self, node, parent):
         print(f"Visiting VarAssignNode with name: {node.name}")
-        self.visit_children(node)
+        value, error = self.evaluate_node(node.value)
+        if error:
+            self.error = error
+            return
+        # Retrieve the variable declaration node from the symbol table
+        var_dec_node = self.symbol_table.get(node.name)
+        if var_dec_node is None:
+            self.error = SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' is not declared")
+            return
+        # Update the value in the variable declaration node
+        var_dec_node.value = value
+        print(f"Updated value '{value}' for variable '{node.name}' in symbol table")
         print(f"Exiting VarAssignNode")
 
     def visit_ClanDecNode(self, node, parent):
@@ -222,9 +248,30 @@ class CodeRunner(DOMInterpreter):
 
     def visit_InvokeNode(self, node, parent):
         print(f"Visiting InvokeNode")
-        if hasattr(node.value, 'value') and isinstance(node.value.value, str):
-            self.output.append(node.value.value)
-        self.visit_children(node)
+        value = ''
+        if isinstance(node.value, list):
+            for list_item in node.value:
+                temp, error = self.evaluate_node(list_item)
+                if error:
+                        self.error = error
+                        break
+                if isinstance(temp, str):
+                    value += temp
+                else: 
+                    value += str(temp)
+        else: 
+            value, error = self.evaluate_node(node.value)
+            if value is None:
+                value = node.value
+            if error:
+                self.error = error
+                return
+
+        if hasattr(value, 'to_string'):
+            self.output.append(value.to_string())
+        else:
+            self.output.append(value)
+            
         print(f"Exiting InvokeNode")
 
     def visit_CaptureNode(self, node, parent):
@@ -298,7 +345,7 @@ class CodeRunner(DOMInterpreter):
         print(f"Exiting DefaultCaseNode")
 
     def visit_SustainNode(self, node, parent):
-        print(f"Visiting SustainNode")
+        print(f"Visiting SustainNode") 
         self.visit_children(node)
         print(f"Exiting SustainNode")
 
@@ -382,21 +429,76 @@ class CodeRunner(DOMInterpreter):
             return 'unknown'
         
     def evaluate_node(self, node):
-        try:
-            if isinstance(node, NumNode):
-                return node.value
-            elif isinstance(node, BinOpNode):
-                left_value = self.evaluate_node(node.left)
-                right_value = self.evaluate_node(node.right)
-                if left_value is not None and right_value is not None:
-                    try:
-                     return eval(f'{left_value} {node.op} {right_value}')
-                    except: return None
-            return None
-        except:
-            return None
+        if isinstance(node, NumNode):
+            return node.value, None
+        elif isinstance (node, StringNode):
+            return node.value, None
+        elif isinstance(node, BoolNode):
+            return node.value, None
+        elif isinstance(node, NullNode):
+            return 'Null', None
         
- ###################
+        elif isinstance(node, IdNode):
+            symbol = self.symbol_table.get(node.name)
+            if symbol is None:
+                return None, SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' is not declared")
+            if isinstance(symbol, VarDecNode):
+                value, error = self.evaluate_node(symbol.value)
+                if error:
+                    return None, error
+            return value, None
+
+        elif isinstance(node, (BinOpNode, RelOpNode, LogOpNode)):
+            print("HEYHEYYOUOU")
+            left_value, error = self.evaluate_node(node.left)
+            if error:
+                return None, error
+            right_value, error = self.evaluate_node(node.right)
+            if error:
+                return None, error
+            
+            if isinstance(left_value, NumNode):
+                left_value = left_value.value
+            if isinstance(right_value, NumNode):
+                right_value = right_value.value
+            
+            try:
+                if left_value is not None and right_value is not None:
+                    if node.op == '+':
+                        return left_value + right_value, None
+                    elif node.op == '-':
+                        return left_value - right_value, None
+                    elif node.op == '*':
+                        return left_value * right_value, None
+                    elif node.op == '/':
+                        return left_value / right_value, None
+                    elif node.op == '%':
+                        return left_value % right_value, None
+                    elif node.op == '==':
+                        return left_value == right_value, None
+                    elif node.op == '!=':
+                        return left_value != right_value, None
+                    elif node.op == '<':
+                        return left_value < right_value, None
+                    elif node.op == '>':
+                        return left_value > right_value, None
+                    elif node.op == '<=':
+                        return left_value <= right_value, None
+                    elif node.op == '>=':
+                        return left_value >= right_value, None
+                    elif node.op == '&&':
+                        return left_value and right_value, None
+                    elif node.op == '||':
+                        return left_value or right_value, None
+            except ZeroDivisionError:
+                return None, RTError(node.pos_start, node.pos_end, f'Division by Zero')
+            except: 
+                return None, RTError(node.pos_start, node.pos_end, f'Invalid operation: {node.op}')
+        elif isinstance(node, str):
+            return node, None
+        return None, None
+        
+###################
 # Symbol Table Class
 ###################
 
@@ -431,7 +533,7 @@ class SymbolTable:
     def get_type(self, name):
         # Search from innermost to outermost scope
         for scope in reversed(self.scopes):
-            if name in scope:
+            if name in scope: 
                 print(f"Found name type '{name}' in scope {scope}!")
                 return scope[name].datatype if hasattr(scope[name], 'datatype') else scope[name]
         print(f"'{name}' not found in any scope, get_type returns None")
@@ -447,15 +549,13 @@ class SymbolTable:
             print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
 
         
-def interpreter_run(ast):
-    symbol_table = SymbolTable()
+def interpreter_run(ast, symbol_table):
     runner = CodeRunner(symbol_table)
     runner.visit(ast)
     # runner.resolve_unresolved()
     
     print(f"Interpreter output: {runner.output}")
-    if runner.errors:
-        return None, runner.errors
-    
+    if runner.error:
+        return None, runner.error
     
     return runner.output, None
