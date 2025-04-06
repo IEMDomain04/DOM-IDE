@@ -364,8 +364,17 @@ class CodeRunner(DOMInterpreter):
         print(f"Exiting DefaultCaseNode")
 
     def visit_SustainNode(self, node, parent):
-        print(f"Visiting SustainNode") 
-        self.visit_children(node)
+        print(f"Visiting SustainNode")
+        while True:
+            condition_value, error = self.evaluate_node(node.condition)
+            if error:
+                self.error = error
+                break
+
+            if not condition_value:
+                break
+
+            self.visit(node.body, node)
         print(f"Exiting SustainNode")
 
     def visit_PerformSustainNode(self, node, parent):
