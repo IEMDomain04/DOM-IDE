@@ -162,10 +162,25 @@ class CodeRunner(DOMInterpreter):
         if true_parent is None or not isinstance(true_parent, CurseDomainNode):
             pass
         else:
-            if not self.symbol_table.get_local(node.name):
+            var_dec_node = self.symbol_table.get(node.name)
+            if not var_dec_node:
                 self.symbol_table.set(node.name, node)  # Store the VarDecNode object itself
+                var_dec_node = self.symbol_table.get(node.name)
             else: 
                 self.error = SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' already declared")
+            
+            value, error = self.evaluate_node(var_dec_node.value)
+            if error:
+                self.error = error
+                return
+
+            if var_dec_node.datatype == 'int' and isinstance(value, float):
+                value = int(value)  # Convert float to integer
+                print(f"Converted float value to integer for variable '{node.name}'")
+            # Update the value in the variable declaration node
+            var_dec_node.value = value
+            print(f'Value: {var_dec_node.value}')
+            print(f"Updated value '{value}' for variable '{node.name}' in symbol table")
 
         self.visit_children(node)
         print(f"Exiting VarDecNode")
@@ -181,6 +196,10 @@ class CodeRunner(DOMInterpreter):
         if var_dec_node is None:
             self.error = SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' is not declared")
             return
+        # Check if the variable is of integer type
+        if var_dec_node.datatype == 'int' and isinstance(value, float):
+            value = int(value)  # Convert float to integer
+            print(f"Converted float value to integer for variable '{node.name}'")
         # Update the value in the variable declaration node
         var_dec_node.value = value
         print(f"Updated value '{value}' for variable '{node.name}' in symbol table")
@@ -494,7 +513,7 @@ class CodeRunner(DOMInterpreter):
                 return None, RTError(node.pos_start, node.pos_end, f'Division by Zero')
             except: 
                 return None, RTError(node.pos_start, node.pos_end, f'Invalid operation: {node.op}')
-        elif isinstance(node, str):
+        elif isinstance(node, (str, int, float)):
             return node, None
         return None, None
         

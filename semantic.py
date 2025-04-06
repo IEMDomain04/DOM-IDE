@@ -713,7 +713,12 @@ class MyASTVisitor(ASTVisitor):
             if binop_type == 'unknown':
                 pass
             elif binop_type != binop_parent.datatype:
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 2: Expected '{binop_parent.datatype}', got '{binop_type}'"))
+                if binop_parent.datatype == 'int' and binop_type == 'float':
+                    pass
+                elif binop_parent.datatype == 'float' and binop_type == 'int':
+                    pass
+                else:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 2: Expected '{binop_parent.datatype}', got '{binop_type}'"))
         elif isinstance(binop_parent, (RecallNode)):
             parent_function = binop_parent.parent
             while not isinstance(parent_function, CurseDecNode):
@@ -929,6 +934,10 @@ class MyASTVisitor(ASTVisitor):
                 if var_type != value_type:
                     if isinstance(node.value, CurseCallNode):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 4: Expected '{var_type}' curse, got '{value_type}'"))
+                    elif var_type == 'float' and value_type == 'int':
+                        pass
+                    elif var_type == 'int' and value_type == 'float':
+                        pass
                     else: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 5: Expected '{var_type}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting VarDecNode")
