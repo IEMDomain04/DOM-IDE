@@ -62,6 +62,9 @@ def string_with_arrows(text, pos_start, pos_end):
 
     return result.replace('\t', ' ')
 
+class ContinueIteration(Exception):
+    pass
+
 class DOMInterpreter: 
     def visit(self, node, parent=None):
         method_name = f'visit_{type(node).__name__}'
@@ -135,6 +138,23 @@ class CodeRunner(DOMInterpreter):
         if error:
             self.error = error
             return
+
+        # Update the symbol table if the operation modifies the value
+        if node.op.op in ['++', '--']:
+            if isinstance(node.expr, IdNode):
+                symbol = self.symbol_table.get(node.expr.name)
+                if symbol is None:
+                    self.error = SemanticError(node.pos_start, node.pos_end, f"Variable '{node.expr.name}' is not declared")
+                    return
+                if isinstance(symbol, VarDecNode):
+                    updated_value = value + 1 if node.op.op == '++' else value - 1
+                    value_node = NumNode(updated_value, None, None)
+                    updated_symbol = VarDecNode(
+                        symbol.restrict, symbol.name, symbol.datatype, value_node, symbol.pos_start, symbol.pos_end
+                    )
+                    self.symbol_table.set(node.expr.name, updated_symbol)
+                    print(f"Updated value '{updated_value}' for variable '{node.expr.name}' in symbol table")
+
         return value, None
 
     def visit_IdNode(self, node, parent):
@@ -361,13 +381,12 @@ class CodeRunner(DOMInterpreter):
 
     def visit_DismissNode(self, node, parent):
         print(f"Visiting DismissNode")
-        self.visit_children(node)
-        print(f"Exiting DismissNode")
+        raise StopIteration  # Use StopIteration to simulate a break in the loop
 
     def visit_HopNode(self, node, parent):
         print(f"Visiting HopNode")
-        self.visit_children(node)
-        print(f"Exiting HopNode")
+        raise ContinueIteration  # Use a custom exception to simulate a continue in the loop
+
 
     def visit_VowNode(self, node, parent):
         print(f"Visiting VowNode")
@@ -427,31 +446,41 @@ class CodeRunner(DOMInterpreter):
     def visit_SustainNode(self, node, parent):
         print(f"Visiting SustainNode")
         while True:
-            condition_value, error = self.evaluate_node(node.condition)
-            if error:
-                self.error = error
-                break
+            try: 
+                condition_value, error = self.evaluate_node(node.condition)
+                if error:
+                    self.error = error
+                    break
 
-            if not condition_value:
-                break
+                if not condition_value:
+                    break
 
-            self.visit(node.body, node)
+                self.visit(node.body, node)
+            except ContinueIteration:
+                continue
+            except StopIteration:
+                break
         print(f"Exiting SustainNode")
 
     def visit_PerformSustainNode(self, node, parent):
         print(f"Visiting PerformSustainNode")
         while True:
-            # Execute the body of the loop
-            self.visit(node.body, node)
-            
-            # Evaluate the condition
-            condition_value, error = self.evaluate_node(node.condition)
-            if error:
-                self.error = error
-                break
-            
-            # If the condition is false, exit the loop
-            if not condition_value:
+            try: 
+                # Execute the body of the loop
+                self.visit(node.body, node)
+                
+                # Evaluate the condition
+                condition_value, error = self.evaluate_node(node.condition)
+                if error:
+                    self.error = error
+                    break
+                
+                # If the condition is false, exit the loop
+                if not condition_value:
+                    break
+            except ContinueIteration:
+                continue
+            except StopIteration:
                 break
 
         print(f"Exiting PerformSustainNode")
@@ -464,15 +493,20 @@ class CodeRunner(DOMInterpreter):
         self.visit(node.cycle_condition, node)
         # Execute the body of the loop while the condition is true
         while True:
-            condition_value, error = self.evaluate_node(node.cycle_condition.condition)
-            if error:
-                self.error = error
+            try:
+                condition_value, error = self.evaluate_node(node.cycle_condition.condition)
+                if error:
+                    self.error = error
+                    break
+                if not condition_value:
+                    break
+                self.visit(node.body, node)
+                # Execute the iteration part of the CycleConditionNode
+                self.visit(node.cycle_condition.iteration, node)
+            except ContinueIteration:
+                continue
+            except StopIteration:
                 break
-            if not condition_value:
-                break
-            self.visit(node.body, node)
-            # Execute the iteration part of the CycleConditionNode
-            self.visit(node.cycle_condition.iteration, node)
         self.symbol_table.pop()
         print(f'New Symbol Stack: {self.symbol_table.scopes}')
         print(f"Exiting CycleNode")

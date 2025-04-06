@@ -2580,15 +2580,17 @@ class SymbolTable:
 
 
     def set(self, name, value):
-        # Set in the current (innermost) scope
-        if self.scopes:
-            self.scopes[-1][name] = value
-            print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
-        else: 
-            self.scopes.append({})
-            print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
-
-###################
+        # Set in the closest scope where the name exists, or the current (innermost) scope if not found
+        for scope in reversed(self.scopes):
+            if name in scope:
+                scope[name] = value
+                print(f"Id '{name}' updated in scope {scope}...\nUpdate Success... New Symbol Stack: {self.scopes}")
+                return
+        # If the name does not exist in any scope, add it to the innermost scope
+        if not self.scopes:
+            self.scopes.append({})  # Ensure at least one scope exists
+        self.scopes[-1][name] = value
+        print(f"Id '{name}' added to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
 # Parser Class
 ###################
 class Parser:
