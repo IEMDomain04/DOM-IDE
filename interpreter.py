@@ -371,7 +371,27 @@ class CodeRunner(DOMInterpreter):
 
     def visit_VowNode(self, node, parent):
         print(f"Visiting VowNode")
-        self.visit_children(node)
+        condition_value, error = self.evaluate_node(node.condition)
+        if error:
+            self.error = error
+            return
+
+        if condition_value:
+            self.visit(node.body, node)
+        else:
+            for else_vow in node.else_vows:
+                else_condition_value, error = self.evaluate_node(else_vow.condition)
+                if error:
+                    self.error = error
+                    return
+
+                if else_condition_value:
+                    self.visit(else_vow.body, node)
+                    break
+            else:
+                if node.else_body:
+                    self.visit(node.else_body, node)
+
         print(f"Exiting VowNode")
 
     def visit_ElseVow(self, node, parent):
@@ -545,6 +565,11 @@ class CodeRunner(DOMInterpreter):
                 value, error = self.evaluate_node(symbol.value)
                 if error:
                     return None, error
+            elif isinstance(symbol, ClanDecNode):
+                value = symbol.initial_values
+                if isinstance(value, ClanLiteralNode):
+                    value = value.values
+
             return value, None
 
         elif isinstance(node, (BinOpNode, RelOpNode, LogOpNode)):
@@ -764,7 +789,7 @@ class SymbolTable:
 def interpreter_run(ast, symbol_table):
     runner = CodeRunner(symbol_table)
     runner.visit(ast)
-    
+
     print(f"Interpreter output: {runner.output}")
     if runner.error:
         return None, runner.error

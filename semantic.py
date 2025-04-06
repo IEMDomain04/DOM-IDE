@@ -205,6 +205,9 @@ class UnaryOperator(ASTNode): # unary operator
         super().__init__(f"Unary Operator: {op.type}", pos_start, pos_end)
         self.op = op.type
 
+    def __repr__(self):
+        return f"{self.op}"
+
 class ExponentNode(ASTNode): # exponentiation
     def __init__(self, left, right, pos_start=None, pos_end=None):
         super().__init__("Exponentiation", pos_start, pos_end)
@@ -317,7 +320,7 @@ class ClanLiteralNode(ASTNode): # for clan literals
         else: self.add_child(values)
 
     def __repr__(self):
-        return f"ClanLiteralNode({', '.join(repr(value) for value in self.values)})"
+        return f"{{{', '.join(repr(value) for value in self.values)}}}"
     
 class ClanAccessNode(ASTNode): # for array access
     def __init__(self, name, index1, index2, pos_start=None, pos_end=None):
