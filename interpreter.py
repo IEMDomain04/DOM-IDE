@@ -166,8 +166,6 @@ class CodeRunner(DOMInterpreter):
             if not var_dec_node:
                 self.symbol_table.set(node.name, node)  # Store the VarDecNode object itself
                 var_dec_node = self.symbol_table.get(node.name)
-            else: 
-                self.error = SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' already declared")
             
             value, error = self.evaluate_node(var_dec_node.value)
             if error:
@@ -379,7 +377,20 @@ class CodeRunner(DOMInterpreter):
 
     def visit_PerformSustainNode(self, node, parent):
         print(f"Visiting PerformSustainNode")
-        self.visit_children(node)
+        while True:
+            # Execute the body of the loop
+            self.visit(node.body, node)
+            
+            # Evaluate the condition
+            condition_value, error = self.evaluate_node(node.condition)
+            if error:
+                self.error = error
+                break
+            
+            # If the condition is false, exit the loop
+            if not condition_value:
+                break
+
         print(f"Exiting PerformSustainNode")
 
     def visit_CycleNode(self, node, parent):
