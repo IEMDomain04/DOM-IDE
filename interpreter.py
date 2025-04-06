@@ -131,13 +131,11 @@ class CodeRunner(DOMInterpreter):
 
     def visit_UnaryOpNode(self, node, parent):
         print(f"Visiting UnaryOpNode with operator: {node.op.op}")
-        if node.pre is True:
-            self.output.append(node.op.op)
-            self.visit(node.expr, node)
-        if node.post is True:
-            self.visit(node.expr, node)
-            self.output.append(node.op.op)
-        print(f"Exiting UnaryOpNode")
+        value, error = self.evaluate_node(node.expr)
+        if error:
+            self.error = error
+            return
+        return value, None
 
     def visit_IdNode(self, node, parent):
         print(f"Visiting IdNode with name: {node.name}")
@@ -591,6 +589,63 @@ class CodeRunner(DOMInterpreter):
                 return None, RTError(node.pos_start, node.pos_end, f'Division by Zero')
             except: 
                 return None, RTError(node.pos_start, node.pos_end, f'Invalid operation: {node.op}')
+        
+        elif isinstance(node, UnaryOpNode):
+            if node.op.op == '-' and node.pre is True:
+                value, error = self.evaluate_node(node.expr)
+                if error:
+                    return None, error
+                if isinstance(value, NumNode):
+                    value = value.value * -1
+                elif isinstance(value, (float, int)):
+                    value = value * -1
+                return value, None
+            if node.op.op == '!' and node.pre is True:
+                value, error = self.evaluate_node(node.expr)
+                if error:
+                    return None, error
+                if isinstance(value, BoolNode):
+                    value = not value.value
+                elif isinstance(value, bool):
+                    value = not value
+                return value, None
+            if node.op.op == '++' and node.pre is False:
+                value, error = self.evaluate_node(node.expr)
+                if error:
+                    return None, error
+                if isinstance(value, NumNode):
+                    value = value.value + 1
+                elif isinstance(value, (float, int)):
+                    value = value + 1
+                return value, None
+            if node.op.op == '--' and node.pre is False:
+                value, error = self.evaluate_node(node.expr)
+                if error:
+                    return None, error
+                if isinstance(value, NumNode):
+                    value = value.value - 1
+                elif isinstance(value, (float, int)):
+                    value = value - 1
+                return value, None
+            if node.op.op == '++' and node.pre is True:
+                value, error = self.evaluate_node(node.expr)
+                if error:
+                    return None, error
+                if isinstance(value, NumNode):
+                    value = value.value + 1
+                elif isinstance(value, (float, int)):
+                    value = value + 1
+                return value, None
+            if node.op.op == '--' and node.pre is True:
+                value, error = self.evaluate_node(node.expr)
+                if error:
+                    return None, error
+                if isinstance(value, NumNode):
+                    value = value.value - 1
+                elif isinstance(value, (float, int)):
+                    value = value - 1
+                return value, None
+        
         elif isinstance(node, (str, int, float)):
             return node, None
         return None, None
