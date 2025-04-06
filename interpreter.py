@@ -175,8 +175,20 @@ class CodeRunner(DOMInterpreter):
             if var_dec_node.datatype == 'int' and isinstance(value, float):
                 value = int(value)  # Convert float to integer
                 print(f"Converted float value to integer for variable '{node.name}'")
+
+            value_node = None
+            if isinstance(value, (int, float)):
+                value_node = NumNode(value, None, None)
+            elif isinstance(value, str):
+                value_node = StringNode(value, None, None)
+            elif isinstance(value, bool):
+                value_node = BoolNode(value, None, None)
+            elif value is None:
+                value_node = NullNode(None, None, None)
+
             # Update the value in the variable declaration node
-            var_dec_node.value = value
+            var_dec_node_copy = VarDecNode(False, var_dec_node.name, var_dec_node.datatype, value_node, var_dec_node.pos_start, var_dec_node.pos_end)
+            self.symbol_table.set(node.name, var_dec_node_copy)  # Update the symbol table with the new value
             print(f'Value: {var_dec_node.value}')
             print(f"Updated value '{value}' for variable '{node.name}' in symbol table")
 
@@ -198,8 +210,20 @@ class CodeRunner(DOMInterpreter):
         if var_dec_node.datatype == 'int' and isinstance(value, float):
             value = int(value)  # Convert float to integer
             print(f"Converted float value to integer for variable '{node.name}'")
+
+        value_node = None
+        if isinstance(value, (int, float)):
+            value_node = NumNode(value, None, None)
+        elif isinstance(value, str):
+            value_node = StringNode(value, None, None)
+        elif isinstance(value, bool):
+            value_node = BoolNode(value, None, None)
+        elif value is None:
+            value_node = NullNode(None, None, None)
+
         # Update the value in the variable declaration node
-        var_dec_node.value = value
+        var_dec_node_copy = VarDecNode(False, var_dec_node.name, var_dec_node.datatype, value_node, var_dec_node.pos_start, var_dec_node.pos_end)
+        self.symbol_table.set(node.name, var_dec_node_copy)  # Update the symbol table with the new value
         print(f"Updated value '{value}' for variable '{node.name}' in symbol table")
         print(f"Exiting VarAssignNode")
 
@@ -250,7 +274,21 @@ class CodeRunner(DOMInterpreter):
 
     def visit_BodyNode(self, node, parent):
         print(f"Visiting BodyNode")
-        self.visit_children(node)
+        print(f"BodyNode Parent: {type(parent)}")
+        if not isinstance(parent, (CycleNode, CycleConditionNode, SustainNode, PerformSustainNode)):
+            self.symbol_table.push()  # Enter new scope for body
+        
+            for child in list(node.children):
+                if isinstance(child, CurseDecNode):
+                    if self.symbol_table.get(child.name):
+                        self.errors.append(SemanticError(child.pos_start, child.pos_end, f"Curse '{child.name}' already declared in this scope"))
+                    else:
+                        self.symbol_table.set(child.name, child)
+
+            self.visit_children(node)
+            self.symbol_table.pop()  # Exit body scope
+        else:
+            self.visit_children(node)
         print(f"Exiting BodyNode")
 
     def visit_CurseCallNode(self, node, parent):
@@ -286,8 +324,12 @@ class CodeRunner(DOMInterpreter):
 
         if hasattr(value, 'to_string'):
             self.output.append(value.to_string())
+            print(f'Invocation: {value.to_string()}')
         else:
             self.output.append(value)
+            print(f'Invocation: {value}')
+        
+       
             
         print(f"Exiting InvokeNode")
 
@@ -395,12 +437,29 @@ class CodeRunner(DOMInterpreter):
 
     def visit_CycleNode(self, node, parent):
         print(f"Visiting CycleNode")
-        self.visit_children(node)
+        self.symbol_table.push()  # Enter new scope for cycle body
+        print(f'Symbol Stack: {self.symbol_table.scopes}')
+        # Visit the CycleConditionNode first
+        self.visit(node.cycle_condition, node)
+        # Execute the body of the loop while the condition is true
+        while True:
+            condition_value, error = self.evaluate_node(node.cycle_condition.condition)
+            if error:
+                self.error = error
+                break
+            if not condition_value:
+                break
+            self.visit(node.body, node)
+            # Execute the iteration part of the CycleConditionNode
+            self.visit(node.cycle_condition.iteration, node)
+        self.symbol_table.pop()
+        print(f'New Symbol Stack: {self.symbol_table.scopes}')
         print(f"Exiting CycleNode")
 
     def visit_CycleConditionNode(self, node, parent):
         print(f"Visiting CycleConditionNode")
-        self.visit_children(node)
+        # Execute the initialization part of the CycleConditionNode
+        self.visit(node.init, node)
         print(f"Exiting CycleConditionNode")
 
     def resolve_unresolved(self):
@@ -488,7 +547,6 @@ class CodeRunner(DOMInterpreter):
             return value, None
 
         elif isinstance(node, (BinOpNode, RelOpNode, LogOpNode)):
-            print("HEYHEYYOUOU")
             left_value, error = self.evaluate_node(node.left)
             if error:
                 return None, error
@@ -557,7 +615,7 @@ class SymbolTable:
         # Search from innermost to outermost scope
         for scope in reversed(self.scopes):
             if name in scope:
-                print(f"Found name '{name}' in scope {scope}!")
+                print(f"Found name '{name}' in symbol table!")
                 return scope[name]  # Return the actual object stored
         return None
     

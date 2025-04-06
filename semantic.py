@@ -1276,9 +1276,7 @@ class MyASTVisitor(ASTVisitor):
             self.errors.append(SemanticError(node.pos_start, node.pos_end, "Multiple 'domain' declarations are not allowed"))
         else:
             self.symbol_table.set("domain", node)
-        self.symbol_table.push()  # Enter new scope for domain body
         self.visit_children(node)
-        self.symbol_table.pop()  # Exit domain scope
         print(f"Exiting CurseDomainNode")
 
     def visit_ParamNode(self, node, parent):
@@ -2721,7 +2719,11 @@ class Parser:
             return DismantleNode(argument1, argument2, tok.pos_start, dismantle_end), None
         elif tok.type == 'bool_literal':
             self.advance()
-            return BoolNode(tok.value, tok.pos_start, tok.pos_end), None
+            if tok.value == 'true':
+                value = True
+            if tok.value == 'false':
+                value = False
+            return BoolNode(value, tok.pos_start, tok.pos_end), None
         elif tok.type == 'null_literal':
             self.advance()
             return NullNode(tok.value, tok.pos_start, tok.pos_end), None
