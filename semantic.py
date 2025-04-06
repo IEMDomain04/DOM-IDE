@@ -205,6 +205,9 @@ class UnaryOperator(ASTNode): # unary operator
         super().__init__(f"Unary Operator: {op.type}", pos_start, pos_end)
         self.op = op.type
 
+    def __repr__(self):
+        return f"{self.op}"
+
 class ExponentNode(ASTNode): # exponentiation
     def __init__(self, left, right, pos_start=None, pos_end=None):
         super().__init__("Exponentiation", pos_start, pos_end)
@@ -317,7 +320,7 @@ class ClanLiteralNode(ASTNode): # for clan literals
         else: self.add_child(values)
 
     def __repr__(self):
-        return f"ClanLiteralNode({', '.join(repr(value) for value in self.values)})"
+        return f"{{{', '.join(repr(value) for value in self.values)}}}"
     
 class ClanAccessNode(ASTNode): # for array access
     def __init__(self, name, index1, index2, pos_start=None, pos_end=None):
@@ -713,7 +716,12 @@ class MyASTVisitor(ASTVisitor):
             if binop_type == 'unknown':
                 pass
             elif binop_type != binop_parent.datatype:
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 2: Expected '{binop_parent.datatype}', got '{binop_type}'"))
+                if binop_parent.datatype == 'int' and binop_type == 'float':
+                    pass
+                elif binop_parent.datatype == 'float' and binop_type == 'int':
+                    pass
+                else:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 2: Expected '{binop_parent.datatype}', got '{binop_type}'"))
         elif isinstance(binop_parent, (RecallNode)):
             parent_function = binop_parent.parent
             while not isinstance(parent_function, CurseDecNode):
@@ -929,6 +937,10 @@ class MyASTVisitor(ASTVisitor):
                 if var_type != value_type:
                     if isinstance(node.value, CurseCallNode):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 4: Expected '{var_type}' curse, got '{value_type}'"))
+                    elif var_type == 'float' and value_type == 'int':
+                        pass
+                    elif var_type == 'int' and value_type == 'float':
+                        pass
                     else: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 5: Expected '{var_type}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting VarDecNode")
@@ -1267,9 +1279,7 @@ class MyASTVisitor(ASTVisitor):
             self.errors.append(SemanticError(node.pos_start, node.pos_end, "Multiple 'domain' declarations are not allowed"))
         else:
             self.symbol_table.set("domain", node)
-        self.symbol_table.push()  # Enter new scope for domain body
         self.visit_children(node)
-        self.symbol_table.pop()  # Exit domain scope
         print(f"Exiting CurseDomainNode")
 
     def visit_ParamNode(self, node, parent):
@@ -2570,15 +2580,17 @@ class SymbolTable:
 
 
     def set(self, name, value):
-        # Set in the current (innermost) scope
-        if self.scopes:
-            self.scopes[-1][name] = value
-            print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
-        else: 
-            self.scopes.append({})
-            print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
-
-###################
+        # Set in the closest scope where the name exists, or the current (innermost) scope if not found
+        for scope in reversed(self.scopes):
+            if name in scope:
+                scope[name] = value
+                print(f"Id '{name}' updated in scope {scope}...\nUpdate Success... New Symbol Stack: {self.scopes}")
+                return
+        # If the name does not exist in any scope, add it to the innermost scope
+        if not self.scopes:
+            self.scopes.append({})  # Ensure at least one scope exists
+        self.scopes[-1][name] = value
+        print(f"Id '{name}' added to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
 # Parser Class
 ###################
 class Parser:
@@ -2712,7 +2724,11 @@ class Parser:
             return DismantleNode(argument1, argument2, tok.pos_start, dismantle_end), None
         elif tok.type == 'bool_literal':
             self.advance()
-            return BoolNode(tok.value, tok.pos_start, tok.pos_end), None
+            if tok.value == 'true':
+                value = True
+            if tok.value == 'false':
+                value = False
+            return BoolNode(value, tok.pos_start, tok.pos_end), None
         elif tok.type == 'null_literal':
             self.advance()
             return NullNode(tok.value, tok.pos_start, tok.pos_end), None

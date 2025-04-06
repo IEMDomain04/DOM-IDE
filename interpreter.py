@@ -62,6 +62,9 @@ def string_with_arrows(text, pos_start, pos_end):
 
     return result.replace('\t', ' ')
 
+class ContinueIteration(Exception):
+    pass
+
 class DOMInterpreter: 
     def visit(self, node, parent=None):
         method_name = f'visit_{type(node).__name__}'
@@ -131,13 +134,28 @@ class CodeRunner(DOMInterpreter):
 
     def visit_UnaryOpNode(self, node, parent):
         print(f"Visiting UnaryOpNode with operator: {node.op.op}")
-        if node.pre is True:
-            self.output.append(node.op.op)
-            self.visit(node.expr, node)
-        if node.post is True:
-            self.visit(node.expr, node)
-            self.output.append(node.op.op)
-        print(f"Exiting UnaryOpNode")
+        value, error = self.evaluate_node(node.expr)
+        if error:
+            self.error = error
+            return
+
+        # Update the symbol table if the operation modifies the value
+        if node.op.op in ['++', '--']:
+            if isinstance(node.expr, IdNode):
+                symbol = self.symbol_table.get(node.expr.name)
+                if symbol is None:
+                    self.error = SemanticError(node.pos_start, node.pos_end, f"Variable '{node.expr.name}' is not declared")
+                    return
+                if isinstance(symbol, VarDecNode):
+                    updated_value = value + 1 if node.op.op == '++' else value - 1
+                    value_node = NumNode(updated_value, None, None)
+                    updated_symbol = VarDecNode(
+                        symbol.restrict, symbol.name, symbol.datatype, value_node, symbol.pos_start, symbol.pos_end
+                    )
+                    self.symbol_table.set(node.expr.name, updated_symbol)
+                    print(f"Updated value '{updated_value}' for variable '{node.expr.name}' in symbol table")
+
+        return value, None
 
     def visit_IdNode(self, node, parent):
         print(f"Visiting IdNode with name: {node.name}")
@@ -162,10 +180,35 @@ class CodeRunner(DOMInterpreter):
         if true_parent is None or not isinstance(true_parent, CurseDomainNode):
             pass
         else:
-            if not self.symbol_table.get_local(node.name):
+            var_dec_node = self.symbol_table.get(node.name)
+            if not var_dec_node:
                 self.symbol_table.set(node.name, node)  # Store the VarDecNode object itself
-            else: 
-                self.error = SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' already declared")
+                var_dec_node = self.symbol_table.get(node.name)
+            
+            value, error = self.evaluate_node(var_dec_node.value)
+            if error:
+                self.error = error
+                return
+
+            if var_dec_node.datatype == 'int' and isinstance(value, float):
+                value = int(value)  # Convert float to integer
+                print(f"Converted float value to integer for variable '{node.name}'")
+
+            value_node = None
+            if isinstance(value, (int, float)):
+                value_node = NumNode(value, None, None)
+            elif isinstance(value, str):
+                value_node = StringNode(value, None, None)
+            elif isinstance(value, bool):
+                value_node = BoolNode(value, None, None)
+            elif value is None:
+                value_node = NullNode(None, None, None)
+
+            # Update the value in the variable declaration node
+            var_dec_node_copy = VarDecNode(False, var_dec_node.name, var_dec_node.datatype, value_node, var_dec_node.pos_start, var_dec_node.pos_end)
+            self.symbol_table.set(node.name, var_dec_node_copy)  # Update the symbol table with the new value
+            print(f'Value: {var_dec_node.value}')
+            print(f"Updated value '{value}' for variable '{node.name}' in symbol table")
 
         self.visit_children(node)
         print(f"Exiting VarDecNode")
@@ -181,8 +224,24 @@ class CodeRunner(DOMInterpreter):
         if var_dec_node is None:
             self.error = SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' is not declared")
             return
+        # Check if the variable is of integer type
+        if var_dec_node.datatype == 'int' and isinstance(value, float):
+            value = int(value)  # Convert float to integer
+            print(f"Converted float value to integer for variable '{node.name}'")
+
+        value_node = None
+        if isinstance(value, (int, float)):
+            value_node = NumNode(value, None, None)
+        elif isinstance(value, str):
+            value_node = StringNode(value, None, None)
+        elif isinstance(value, bool):
+            value_node = BoolNode(value, None, None)
+        elif value is None:
+            value_node = NullNode(None, None, None)
+
         # Update the value in the variable declaration node
-        var_dec_node.value = value
+        var_dec_node_copy = VarDecNode(False, var_dec_node.name, var_dec_node.datatype, value_node, var_dec_node.pos_start, var_dec_node.pos_end)
+        self.symbol_table.set(node.name, var_dec_node_copy)  # Update the symbol table with the new value
         print(f"Updated value '{value}' for variable '{node.name}' in symbol table")
         print(f"Exiting VarAssignNode")
 
@@ -213,8 +272,11 @@ class CodeRunner(DOMInterpreter):
 
     def visit_ClanIndexAssignNode(self, node, parent):
         print(f"Visiting ClanIndexAssignNode with name: {node.name}")
-        self.visit_children(node)
-        print(f"Exiting ClanIndexAssignNode")
+        value, error = self.evaluate_node(node)
+        if error:
+            self.error = error
+            return
+        return value, None
 
     def visit_CurseDecNode(self, node, parent):
         print(f"Visiting CurseDecNode with name: {node.name}")
@@ -233,7 +295,21 @@ class CodeRunner(DOMInterpreter):
 
     def visit_BodyNode(self, node, parent):
         print(f"Visiting BodyNode")
-        self.visit_children(node)
+        print(f"BodyNode Parent: {type(parent)}")
+        if not isinstance(parent, (CycleNode, CycleConditionNode, SustainNode, PerformSustainNode)):
+            self.symbol_table.push()  # Enter new scope for body
+        
+            for child in list(node.children):
+                if isinstance(child, CurseDecNode):
+                    if self.symbol_table.get(child.name):
+                        self.errors.append(SemanticError(child.pos_start, child.pos_end, f"Curse '{child.name}' already declared in this scope"))
+                    else:
+                        self.symbol_table.set(child.name, child)
+
+            self.visit_children(node)
+            self.symbol_table.pop()  # Exit body scope
+        else:
+            self.visit_children(node)
         print(f"Exiting BodyNode")
 
     def visit_CurseCallNode(self, node, parent):
@@ -269,8 +345,12 @@ class CodeRunner(DOMInterpreter):
 
         if hasattr(value, 'to_string'):
             self.output.append(value.to_string())
+            print(f'Invocation: {value.to_string()}')
         else:
             self.output.append(value)
+            print(f'Invocation: {value}')
+        
+       
             
         print(f"Exiting InvokeNode")
 
@@ -301,17 +381,36 @@ class CodeRunner(DOMInterpreter):
 
     def visit_DismissNode(self, node, parent):
         print(f"Visiting DismissNode")
-        self.visit_children(node)
-        print(f"Exiting DismissNode")
+        raise StopIteration  # Use StopIteration to simulate a break in the loop
 
     def visit_HopNode(self, node, parent):
         print(f"Visiting HopNode")
-        self.visit_children(node)
-        print(f"Exiting HopNode")
+        raise ContinueIteration  # Use a custom exception to simulate a continue in the loop
+
 
     def visit_VowNode(self, node, parent):
         print(f"Visiting VowNode")
-        self.visit_children(node)
+        condition_value, error = self.evaluate_node(node.condition)
+        if error:
+            self.error = error
+            return
+
+        if condition_value:
+            self.visit(node.body, node)
+        else:
+            for else_vow in node.else_vows:
+                else_condition_value, error = self.evaluate_node(else_vow.condition)
+                if error:
+                    self.error = error
+                    return
+
+                if else_condition_value:
+                    self.visit(else_vow.body, node)
+                    break
+            else:
+                if node.else_body:
+                    self.visit(node.else_body, node)
+
         print(f"Exiting VowNode")
 
     def visit_ElseVow(self, node, parent):
@@ -345,23 +444,77 @@ class CodeRunner(DOMInterpreter):
         print(f"Exiting DefaultCaseNode")
 
     def visit_SustainNode(self, node, parent):
-        print(f"Visiting SustainNode") 
-        self.visit_children(node)
+        print(f"Visiting SustainNode")
+        while True:
+            try: 
+                condition_value, error = self.evaluate_node(node.condition)
+                if error:
+                    self.error = error
+                    break
+
+                if not condition_value:
+                    break
+
+                self.visit(node.body, node)
+            except ContinueIteration:
+                continue
+            except StopIteration:
+                break
         print(f"Exiting SustainNode")
 
     def visit_PerformSustainNode(self, node, parent):
         print(f"Visiting PerformSustainNode")
-        self.visit_children(node)
+        while True:
+            try: 
+                # Execute the body of the loop
+                self.visit(node.body, node)
+                
+                # Evaluate the condition
+                condition_value, error = self.evaluate_node(node.condition)
+                if error:
+                    self.error = error
+                    break
+                
+                # If the condition is false, exit the loop
+                if not condition_value:
+                    break
+            except ContinueIteration:
+                continue
+            except StopIteration:
+                break
+
         print(f"Exiting PerformSustainNode")
 
     def visit_CycleNode(self, node, parent):
         print(f"Visiting CycleNode")
-        self.visit_children(node)
+        self.symbol_table.push()  # Enter new scope for cycle body
+        print(f'Symbol Stack: {self.symbol_table.scopes}')
+        # Visit the CycleConditionNode first
+        self.visit(node.cycle_condition, node)
+        # Execute the body of the loop while the condition is true
+        while True:
+            try:
+                condition_value, error = self.evaluate_node(node.cycle_condition.condition)
+                if error:
+                    self.error = error
+                    break
+                if not condition_value:
+                    break
+                self.visit(node.body, node)
+                # Execute the iteration part of the CycleConditionNode
+                self.visit(node.cycle_condition.iteration, node)
+            except ContinueIteration:
+                continue
+            except StopIteration:
+                break
+        self.symbol_table.pop()
+        print(f'New Symbol Stack: {self.symbol_table.scopes}')
         print(f"Exiting CycleNode")
 
     def visit_CycleConditionNode(self, node, parent):
         print(f"Visiting CycleConditionNode")
-        self.visit_children(node)
+        # Execute the initialization part of the CycleConditionNode
+        self.visit(node.init, node)
         print(f"Exiting CycleConditionNode")
 
     def resolve_unresolved(self):
@@ -446,10 +599,14 @@ class CodeRunner(DOMInterpreter):
                 value, error = self.evaluate_node(symbol.value)
                 if error:
                     return None, error
+            elif isinstance(symbol, ClanDecNode):
+                value = symbol.initial_values
+                if isinstance(value, ClanLiteralNode):
+                    value = value.values
+
             return value, None
 
         elif isinstance(node, (BinOpNode, RelOpNode, LogOpNode)):
-            print("HEYHEYYOUOU")
             left_value, error = self.evaluate_node(node.left)
             if error:
                 return None, error
@@ -494,7 +651,121 @@ class CodeRunner(DOMInterpreter):
                 return None, RTError(node.pos_start, node.pos_end, f'Division by Zero')
             except: 
                 return None, RTError(node.pos_start, node.pos_end, f'Invalid operation: {node.op}')
-        elif isinstance(node, str):
+        
+        elif isinstance(node, UnaryOpNode):
+            if node.op.op == '-' and node.pre is True:
+                value, error = self.evaluate_node(node.expr)
+                if error:
+                    return None, error
+                if isinstance(value, NumNode):
+                    value = value.value * -1
+                elif isinstance(value, (float, int)):
+                    value = value * -1
+                return value, None
+            if node.op.op == '!' and node.pre is True:
+                value, error = self.evaluate_node(node.expr)
+                if error:
+                    return None, error
+                if isinstance(value, BoolNode):
+                    value = not value.value
+                elif isinstance(value, bool):
+                    value = not value
+                return value, None
+            if node.op.op == '++' and node.pre is False:
+                value, error = self.evaluate_node(node.expr)
+                if error:
+                    return None, error
+                if isinstance(value, NumNode):
+                    value = value.value + 1
+                elif isinstance(value, (float, int)):
+                    value = value + 1
+                return value, None
+            if node.op.op == '--' and node.pre is False:
+                value, error = self.evaluate_node(node.expr)
+                if error:
+                    return None, error
+                if isinstance(value, NumNode):
+                    value = value.value - 1
+                elif isinstance(value, (float, int)):
+                    value = value - 1
+                return value, None
+            if node.op.op == '++' and node.pre is True:
+                value, error = self.evaluate_node(node.expr)
+                if error:
+                    return None, error
+                if isinstance(value, NumNode):
+                    value = value.value + 1
+                elif isinstance(value, (float, int)):
+                    value = value + 1
+                return value, None
+            if node.op.op == '--' and node.pre is True:
+                value, error = self.evaluate_node(node.expr)
+                if error:
+                    return None, error
+                if isinstance(value, NumNode):
+                    value = value.value - 1
+                elif isinstance(value, (float, int)):
+                    value = value - 1
+                value, None
+                
+        elif isinstance(node, ClanAccessNode):
+            clan = self.symbol_table.get(node.name)
+            if clan is None:
+                return None, SemanticError(node.pos_start, node.pos_end, f"Clan '{node.name}' is not declared")
+            
+            if not isinstance(clan, ClanDecNode):
+                return None, SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a clan")
+            
+            index1, error = self.evaluate_node(node.index1)
+            if error:
+                return None, error
+            size1, error = self.evaluate_node(clan.size1)
+            if error:
+                return None, error
+            
+            if not isinstance(index1, int) or index1 < 0 or (clan.size1 and index1 >= size1):
+                return None, SemanticError(node.pos_start, node.pos_end, f"Index 1 out of bounds for clan '{node.name}'")
+            
+            if node.index2:
+                index2, error = self.evaluate_node(node.index2)
+                if error:
+                    return None, error
+                size2, error = self.evaluate_node(clan.size2)
+                if error:
+                    return None, error
+                
+                if not isinstance(index2, int) or index2 < 0 or (clan.size2 and index2 >= size2):
+                    return None, SemanticError(node.pos_start, node.pos_end, f"Index 2 out of bounds for clan '{node.name}'")
+                
+                try:
+                    value  = clan.initial_values[index1].values[index2]
+                    if isinstance(value, StringNode):
+                        value = value.value
+                    elif isinstance(value, NumNode):
+                        value = value.value
+                    elif isinstance(value, BoolNode):
+                        value = value.value
+                    else: 
+                        value = value
+                    return value, None
+                except IndexError:
+                    return None, SemanticError(node.pos_start, node.pos_end, f"Invalid access at [{index1}][{index2}] for clan '{node.name}'")
+            else:
+                try:
+                    value = clan.initial_values.values[index1]
+                    if isinstance(value, StringNode):
+                        value = value.value
+                    elif isinstance(value, NumNode):
+                        value = value.value
+                    elif isinstance(value, BoolNode):
+                        value = value.value
+                    else: 
+                        value = value
+                    return value, None
+                except IndexError:
+                    return None, SemanticError(node.pos_start, node.pos_end, f"Invalid access at [{index1}] for clan '{node.name}'")
+
+        elif isinstance(node, (str, int, float)):
             return node, None
         return None, None
         
@@ -518,7 +789,7 @@ class SymbolTable:
         # Search from innermost to outermost scope
         for scope in reversed(self.scopes):
             if name in scope:
-                print(f"Found name '{name}' in scope {scope}!")
+                print(f"Found name '{name}' in symbol table!")
                 return scope[name]  # Return the actual object stored
         return None
     
@@ -552,8 +823,7 @@ class SymbolTable:
 def interpreter_run(ast, symbol_table):
     runner = CodeRunner(symbol_table)
     runner.visit(ast)
-    # runner.resolve_unresolved()
-    
+
     print(f"Interpreter output: {runner.output}")
     if runner.error:
         return None, runner.error
