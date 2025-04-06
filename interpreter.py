@@ -252,8 +252,11 @@ class CodeRunner(DOMInterpreter):
 
     def visit_ClanIndexAssignNode(self, node, parent):
         print(f"Visiting ClanIndexAssignNode with name: {node.name}")
-        self.visit_children(node)
-        print(f"Exiting ClanIndexAssignNode")
+        value, error = self.evaluate_node(node)
+        if error:
+            self.error = error
+            return
+        return value, None
 
     def visit_CurseDecNode(self, node, parent):
         print(f"Visiting CurseDecNode with name: {node.name}")
@@ -644,8 +647,65 @@ class CodeRunner(DOMInterpreter):
                     value = value.value - 1
                 elif isinstance(value, (float, int)):
                     value = value - 1
-                return value, None
-        
+                value, None
+                
+        elif isinstance(node, ClanAccessNode):
+            clan = self.symbol_table.get(node.name)
+            if clan is None:
+                return None, SemanticError(node.pos_start, node.pos_end, f"Clan '{node.name}' is not declared")
+            
+            if not isinstance(clan, ClanDecNode):
+                return None, SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a clan")
+            
+            index1, error = self.evaluate_node(node.index1)
+            if error:
+                return None, error
+            size1, error = self.evaluate_node(clan.size1)
+            if error:
+                return None, error
+            
+            if not isinstance(index1, int) or index1 < 0 or (clan.size1 and index1 >= size1):
+                return None, SemanticError(node.pos_start, node.pos_end, f"Index 1 out of bounds for clan '{node.name}'")
+            
+            if node.index2:
+                index2, error = self.evaluate_node(node.index2)
+                if error:
+                    return None, error
+                size2, error = self.evaluate_node(clan.size2)
+                if error:
+                    return None, error
+                
+                if not isinstance(index2, int) or index2 < 0 or (clan.size2 and index2 >= size2):
+                    return None, SemanticError(node.pos_start, node.pos_end, f"Index 2 out of bounds for clan '{node.name}'")
+                
+                try:
+                    value  = clan.initial_values[index1].values[index2]
+                    if isinstance(value, StringNode):
+                        value = value.value
+                    elif isinstance(value, NumNode):
+                        value = value.value
+                    elif isinstance(value, BoolNode):
+                        value = value.value
+                    else: 
+                        value = value
+                    return value, None
+                except IndexError:
+                    return None, SemanticError(node.pos_start, node.pos_end, f"Invalid access at [{index1}][{index2}] for clan '{node.name}'")
+            else:
+                try:
+                    value = clan.initial_values.values[index1]
+                    if isinstance(value, StringNode):
+                        value = value.value
+                    elif isinstance(value, NumNode):
+                        value = value.value
+                    elif isinstance(value, BoolNode):
+                        value = value.value
+                    else: 
+                        value = value
+                    return value, None
+                except IndexError:
+                    return None, SemanticError(node.pos_start, node.pos_end, f"Invalid access at [{index1}] for clan '{node.name}'")
+
         elif isinstance(node, (str, int, float)):
             return node, None
         return None, None
@@ -704,7 +764,6 @@ class SymbolTable:
 def interpreter_run(ast, symbol_table):
     runner = CodeRunner(symbol_table)
     runner.visit(ast)
-    # runner.resolve_unresolved()
     
     print(f"Interpreter output: {runner.output}")
     if runner.error:
