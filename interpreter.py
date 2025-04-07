@@ -5,7 +5,7 @@ from semantic import (
     CurseDecNode, CurseDomainNode, ParamNode, BodyNode, CurseCallNode, 
     InvokeNode, CaptureNode, CleaveNode, DismantleNode, LenNode, RecallNode, DismissNode, 
     HopNode, VowNode, ElseVow, ElseNode, BoogieNode, WoogieTrueNode, WoogieNode, 
-    DefaultCaseNode, SustainNode, PerformSustainNode, CycleNode, CycleConditionNode
+    DefaultCaseNode, SustainNode, PerformSustainNode, CycleNode, CycleConditionNode, SymbolTable,
 )
 
 ##############
@@ -425,22 +425,67 @@ class CodeRunner(DOMInterpreter):
 
     def visit_BoogieNode(self, node, parent):
         print(f"Visiting BoogieNode")
-        self.visit_children(node)
+        expression_value, error = self.evaluate_node(node.expression) if node.expression else (None, None)
+        if error:
+            self.error = error
+            return
+
+        for case in node.cases:
+            if isinstance(case, WoogieNode):
+                case_condition_value, error = self.evaluate_node(case.condition)
+                if error:
+                    self.error = error
+                    return
+
+                if expression_value == case_condition_value:
+                    try:
+                        self.visit(case.body, node)
+                    except StopIteration:
+                        break
+            elif isinstance(case, WoogieTrueNode):
+                case_condition_value, error = self.evaluate_node(case.condition)
+                if error:
+                    self.error = error
+                    return
+
+                if case_condition_value:
+                    try: 
+                        self.visit(case.body, node)
+                    except StopIteration:
+                        break
+            elif isinstance(case, DefaultCaseNode):
+                self.visit(case.body, node)
+                break
+
         print(f"Exiting BoogieNode")
 
     def visit_WoogieTrueNode(self, node, parent):
         print(f"Visiting WoogieTrueNode")
-        self.visit_children(node)
+        condition_value, error = self.evaluate_node(node.condition)
+        if error:
+            self.error = error
+            return
+
+        if condition_value:
+            self.visit(node.body, node)
+
         print(f"Exiting WoogieTrueNode")
 
     def visit_WoogieNode(self, node, parent):
         print(f"Visiting WoogieNode")
-        self.visit_children(node)
+        condition_value, error = self.evaluate_node(node.condition)
+        if error:
+            self.error = error
+            return
+
+        if condition_value:
+            self.visit(node.body, node)
+
         print(f"Exiting WoogieNode")
 
     def visit_DefaultCaseNode(self, node, parent):
         print(f"Visiting DefaultCaseNode")
-        self.visit_children(node)
+        self.visit(node.body, node)
         print(f"Exiting DefaultCaseNode")
 
     def visit_SustainNode(self, node, parent):
@@ -768,57 +813,6 @@ class CodeRunner(DOMInterpreter):
         elif isinstance(node, (str, int, float)):
             return node, None
         return None, None
-        
-###################
-# Symbol Table Class
-###################
-
-class SymbolTable:
-    def __init__(self):
-        self.scopes = [{}]  # Start with a global scope
-
-    def push(self):
-        print(f"Push Success... New Symbol Stack: {self.scopes}")
-        self.scopes.append({})  # Enter a new scope
-
-    def pop(self):
-        print(f"Pop Success... New Symbol Stack: {self.scopes}")
-        self.scopes.pop()  # Exit the current scope
-
-    def get(self, name):
-        # Search from innermost to outermost scope
-        for scope in reversed(self.scopes):
-            if name in scope:
-                print(f"Found name '{name}' in symbol table!")
-                return scope[name]  # Return the actual object stored
-        return None
-    
-    def get_local(self, name):
-        # Search only in the innermost scope
-        if name in self.scopes[-1]:
-            return self.scopes[-1][name]
-        else: 
-            print(f"Id '{name}' not found in the local scope")
-            return None
-    
-    def get_type(self, name):
-        # Search from innermost to outermost scope
-        for scope in reversed(self.scopes):
-            if name in scope: 
-                print(f"Found name type '{name}' in scope {scope}!")
-                return scope[name].datatype if hasattr(scope[name], 'datatype') else scope[name]
-        print(f"'{name}' not found in any scope, get_type returns None")
-        return None
-
-    def set(self, name, value):
-        # Set in the current (innermost) scope
-        if self.scopes:
-            self.scopes[-1][name] = value
-            print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
-        else: 
-            self.scopes.append({})
-            print(f"Id '{name}' not found in global scope, \nAdding {name} to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
-
         
 def interpreter_run(ast, symbol_table):
     runner = CodeRunner(symbol_table)
