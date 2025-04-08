@@ -247,7 +247,86 @@ class CodeRunner(DOMInterpreter):
 
     def visit_ClanDecNode(self, node, parent):
         print(f"Visiting ClanDecNode with name: {node.name}")
-        self.visit_children(node)
+        true_parent = parent
+        while true_parent and not isinstance(true_parent, (CurseDomainNode)):
+            true_parent = true_parent.parent
+
+        if true_parent is None or not isinstance(true_parent, CurseDomainNode):
+            pass
+        else:
+            if self.symbol_table.get(node.name):
+                self.error = SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' already declared")
+            else:
+                self.symbol_table.set(node.name, node)
+
+        # default values
+        # Handle single-dimensional array
+        if node.size1 and not node.size2:
+            size1_value, error = self.evaluate_node(node.size1)
+            if error:
+                self.error = error
+                return
+            if size1_value is not None:
+                if not isinstance(node.initial_values, ClanLiteralNode):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot initialize multi-dimensional array with single-dimensional size"))
+                elif size1_value <=0:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Array size must be greater than 0"))
+                elif len(node.initial_values.values) > size1_value:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Array out of index 1: size1 is {size1_value}, but got {len(node.initial_values.values)} initial values"))
+                else:
+                    # Fill missing values
+                    while len(node.initial_values.values) < size1_value:
+                        if node.datatype == 'int':
+                            node.initial_values.values.append(NumNode(0))
+                        elif node.datatype == 'float':
+                            node.initial_values.values.append(NumNode(0.0))
+                        elif node.datatype == 'string':
+                            node.initial_values.values.append(StringNode(""))
+                        elif node.datatype == 'bool':
+                            node.initial_values.values.append(BoolNode(False))
+
+        # Handle multi-dimensional array
+        if node.size1 and node.size2:
+            size1_value, error = self.evaluate_node(node.size1)
+            if error:
+                self.error = error
+                return
+            size2_value, error = self.evaluate_node(node.size2)
+            if error:
+                self.error = error
+                return
+            if size1_value is not None and size2_value is not None:
+                if len(node.initial_values) > size1_value:
+                    self.error = SemanticError(node.pos_start, node.pos_end, f"Array out of index 1: size1 is {size1_value}, but got {len(node.initial_values)} initial values")
+                if len(node.initial_values) < size1_value:
+                    while len(node.initial_values) < size1_value:
+                        clan_literal = ClanLiteralNode([])
+                        if node.datatype == 'int':
+                            clan_literal.values.append(NumNode(0))
+                        elif node.datatype == 'float':
+                            clan_literal.values.append(NumNode(0.0))
+                        elif node.datatype == 'string':
+                            clan_literal.values.append(StringNode(""))
+                        elif node.datatype == 'bool':
+                            clan_literal.values.append(BoolNode(False))
+                        node.initial_values.append(clan_literal)
+
+                for inner_node in node.initial_values: #FIXME: what if the clan literal is not there? int num[2][2] = {{1,2,3}};
+                    if not isinstance(inner_node, ClanLiteralNode):
+                        self.error = SemanticError(node.pos_start, node.pos_end, "Expected ClanLiteralNode for multi-dimensional array")
+                    if len(inner_node.values) > size2_value:
+                        self.error = SemanticError(inner_node.pos_start, inner_node.pos_end, f"Array out of index 3: size2 is {size2_value}, but got {len(inner_node.values)} initial values")
+                    else:
+                        # Fill missing values
+                        while len(inner_node.values) < size2_value:
+                            if node.datatype == 'int':
+                                inner_node.values.append(NumNode(0, None, None))
+                            elif node.datatype == 'float':
+                                inner_node.values.append(NumNode(0.0, None, None))
+                            elif node.datatype == 'string':
+                                inner_node.values.append(StringNode("", None, None))
+                            elif node.datatype == 'bool':
+                                inner_node.values.append(BoolNode(False, None, None))
         print(f"Exiting ClanDecNode")
 
     def visit_ClanLiteralNode(self, node, parent):
@@ -272,11 +351,70 @@ class CodeRunner(DOMInterpreter):
 
     def visit_ClanIndexAssignNode(self, node, parent):
         print(f"Visiting ClanIndexAssignNode with name: {node.name}")
-        value, error = self.evaluate_node(node)
+        clan = self.symbol_table.get(node.name)
+        print(f"SYMBOL TABLE: {self.symbol_table.scopes}")
+        if clan is None:
+            self.error = SemanticError(node.pos_start, node.pos_end, f"Clan '{node.name}' is not declared")
+            return
+
+        if not isinstance(clan, ClanDecNode):
+            self.error = SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a clan")
+            return
+
+        index1, error = self.evaluate_node(node.index1)
         if error:
             self.error = error
             return
-        return value, None
+
+        size1, error = self.evaluate_node(clan.size1)
+        if error:
+            self.error = error
+            return
+
+        if not isinstance(index1, int) or index1 < 0 or (clan.size1 and index1 >= size1):
+            self.error = SemanticError(node.pos_start, node.pos_end, f"Index 1 out of bounds for clan '{node.name}'")
+            return
+
+        if node.index2:
+            index2, error = self.evaluate_node(node.index2)
+            if error:
+                self.error = error
+                return
+
+            size2, error = self.evaluate_node(clan.size2)
+            if error:
+                self.error = error
+                return
+
+            if not isinstance(index2, int) or index2 < 0 or (clan.size2 and index2 >= size2):
+                self.error = SemanticError(node.pos_start, node.pos_end, f"Index 2 out of bounds for clan '{node.name}'")
+                return
+
+            value, error = self.evaluate_node(node.value)
+            if error:
+                self.error = error
+                return
+
+            try:
+                clan.initial_values[index1].values[index2] = value
+                print(f"Updated clan '{node.name}' at [{index1}][{index2}] with value: {value}")
+            except IndexError:
+                self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid access at [{index1}][{index2}] for clan '{node.name}'")
+        else:
+            value, error = self.evaluate_node(node.value)
+            if error:
+                self.error = error
+                return
+            if clan.datatype == 'int' and isinstance(value, float):
+                value = int(value)
+            elif clan.datatype == 'float' and isinstance(value, int):
+                value = float(value)
+
+            try:
+                clan.initial_values.values[index1] = value
+                print(f"Updated clan '{node.name}' at [{index1}] with value: {value}")
+            except IndexError:
+                self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid access at [{index1}] for clan '{node.name}'")
 
     def visit_CurseDecNode(self, node, parent):
         print(f"Visiting CurseDecNode with name: {node.name}")
@@ -794,6 +932,7 @@ class CodeRunner(DOMInterpreter):
                         value = value
                     return value, None
                 except IndexError:
+                    print(f"VALUES: {clan.initial_values}")
                     return None, SemanticError(node.pos_start, node.pos_end, f"Invalid access at [{index1}][{index2}] for clan '{node.name}'")
             else:
                 try:
