@@ -516,23 +516,27 @@ class CodeRunner(DOMInterpreter):
             try:
                 self.visit(curse_dec_node.body, curse_dec_node)
             except ReturnException:
-                pass
-        else:
-            recall_val, error = self.visit(curse_dec_node.body, curse_dec_node)
-            if error:
-                self.error = error
                 return
-            
+        else:
+            recall_val = None
+            try:
+                recall_val, error = self.visit(curse_dec_node.body, curse_dec_node)
+                if error:
+                    self.error = error
+                    return
+            except ReturnException as e:
+                recall_val = e.value
+
             if recall_val is not None:
-                if isinstance(recall_val, NumNode):
-                    value = recall_val.value
-                elif isinstance(recall_val, StringNode):
-                    value = recall_val.value
-                elif isinstance(recall_val, BoolNode):
-                    value = recall_val.value
-                else:
-                    value = recall_val
-                return value
+                        if isinstance(recall_val, NumNode):
+                            value = recall_val.value
+                        elif isinstance(recall_val, StringNode):
+                            value = recall_val.value
+                        elif isinstance(recall_val, BoolNode):
+                            value = recall_val.value
+                        else:
+                            value = recall_val
+                        return value
 
         print(f"Exiting CurseCallNode")
 
@@ -619,8 +623,8 @@ class CodeRunner(DOMInterpreter):
         if condition_value:
             try:
                 self.visit(node.body, node)
-            except ReturnException:
-                return
+            except ReturnException as e:
+                raise ReturnException(e.value)
         else:
             for else_vow in node.else_vows:
                 else_condition_value, error = self.evaluate_node(else_vow.condition)
@@ -632,14 +636,14 @@ class CodeRunner(DOMInterpreter):
                     try:
                         self.visit(else_vow.body, node)
                         return
-                    except ReturnException:
-                        return
+                    except ReturnException as e:
+                        raise ReturnException(e.value)
             else:
                 if node.else_body:
                     try:
                         self.visit(node.else_body, node)
-                    except ReturnException:
-                        return
+                    except ReturnException as e:
+                        raise ReturnException(e.value)
 
         print(f"Exiting VowNode")
 
