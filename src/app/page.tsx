@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Topnav from "./components/Topnav";
 import CodeEditor from "./components/CodeEditor";
@@ -11,6 +11,7 @@ import { handleSemanticClick } from "./semantic/semantic";
 import { handleRunClick } from "./interpreter/interpreter";
 import Terminal from "./components/Terminal";
 import * as monaco from 'monaco-editor';
+import { io, Socket } from "socket.io-client";
 
 interface Token {
   lexeme: string;
@@ -27,7 +28,28 @@ curse domain(){
   invoke("Hello, World!");
 }`);
   const codeEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   // const router = useRouter();
+
+  useEffect(() => {
+    const socketInstance = io(
+      window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:5000'
+        : '' 
+    );
+
+    setSocket(socketInstance);
+
+    socketInstance.on("capture_input", (data: { var_name: string }) => {
+      const userInput = prompt(`Enter value for ${data.var_name}:`);
+      if (userInput !== null) {
+        socketInstance.emit("capture_input", { var_name: data.var_name, input: userInput });
+      }
+    });
+    return () => {
+      socketInstance.disconnect();
+    };
+  }, []);
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -42,10 +64,12 @@ curse domain(){
     codeEditorRef.current = editor;
   };
 
+
   const Interpreter = async () => {
-    setOutputData([]);
-    handleRunClick(code, setTerminalOutput);
+    setOutputData([]); 
+    await handleRunClick(code, setTerminalOutput); 
   };
+
 
   const SyntaxAnalyzer = async () => {
     handleSyntaxClick(code, setTerminalOutput);
