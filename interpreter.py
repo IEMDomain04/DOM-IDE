@@ -65,6 +65,10 @@ def string_with_arrows(text, pos_start, pos_end):
 class ContinueIteration(Exception):
     pass
 
+class ReturnException(Exception):
+    def __init__(self, value):
+        self.value = value
+
 class DOMInterpreter: 
     def visit(self, node, parent=None):
         method_name = f'visit_{type(node).__name__}'
@@ -114,7 +118,6 @@ class CodeRunner(DOMInterpreter):
     def visit_NumNode(self, node, parent):
         print(f"Visiting NumNode with value: {node.value}")
         return node.value
-        print(f"Exiting NumNode")
 
     def visit_ExponentNode(self, node, parent):
         print(f"Exiting ExponentNode")
@@ -174,10 +177,10 @@ class CodeRunner(DOMInterpreter):
         print(f"Visiting VarDecNode with type: {node.datatype}")
         # true parent
         true_parent = parent
-        while true_parent and not isinstance(true_parent, (CurseDomainNode)):
+        while true_parent and not isinstance(true_parent, (CurseDomainNode, CurseDecNode)):
             true_parent = true_parent.parent
 
-        if true_parent is None or not isinstance(true_parent, CurseDomainNode):
+        if true_parent is None or not isinstance(true_parent, (CurseDomainNode, CurseDecNode)):
             pass
         else:
             var_dec_node = self.symbol_table.get(node.name)
@@ -247,7 +250,86 @@ class CodeRunner(DOMInterpreter):
 
     def visit_ClanDecNode(self, node, parent):
         print(f"Visiting ClanDecNode with name: {node.name}")
-        self.visit_children(node)
+        true_parent = parent
+        while true_parent and not isinstance(true_parent, (CurseDomainNode, CurseDecNode)):
+            true_parent = true_parent.parent
+
+        if true_parent is None or not isinstance(true_parent, (CurseDomainNode, CurseDecNode)):
+            pass
+        else:
+            if self.symbol_table.get(node.name):
+                self.error = SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' already declared")
+            else:
+                self.symbol_table.set(node.name, node)
+
+        # default values
+        # Handle single-dimensional array
+        if node.size1 and not node.size2:
+            size1_value, error = self.evaluate_node(node.size1)
+            if error:
+                self.error = error
+                return
+            if size1_value is not None:
+                if not isinstance(node.initial_values, ClanLiteralNode):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot initialize multi-dimensional array with single-dimensional size"))
+                elif size1_value <=0:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Array size must be greater than 0"))
+                elif len(node.initial_values.values) > size1_value:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Array out of index 1: size1 is {size1_value}, but got {len(node.initial_values.values)} initial values"))
+                else:
+                    # Fill missing values
+                    while len(node.initial_values.values) < size1_value:
+                        if node.datatype == 'int':
+                            node.initial_values.values.append(NumNode(0))
+                        elif node.datatype == 'float':
+                            node.initial_values.values.append(NumNode(0.0))
+                        elif node.datatype == 'string':
+                            node.initial_values.values.append(StringNode(""))
+                        elif node.datatype == 'bool':
+                            node.initial_values.values.append(BoolNode(False))
+
+        # Handle multi-dimensional array
+        if node.size1 and node.size2:
+            size1_value, error = self.evaluate_node(node.size1)
+            if error:
+                self.error = error
+                return
+            size2_value, error = self.evaluate_node(node.size2)
+            if error:
+                self.error = error
+                return
+            if size1_value is not None and size2_value is not None:
+                if len(node.initial_values) > size1_value:
+                    self.error = SemanticError(node.pos_start, node.pos_end, f"Array out of index 1: size1 is {size1_value}, but got {len(node.initial_values)} initial values")
+                if len(node.initial_values) < size1_value:
+                    while len(node.initial_values) < size1_value:
+                        clan_literal = ClanLiteralNode([])
+                        if node.datatype == 'int':
+                            clan_literal.values.append(NumNode(0))
+                        elif node.datatype == 'float':
+                            clan_literal.values.append(NumNode(0.0))
+                        elif node.datatype == 'string':
+                            clan_literal.values.append(StringNode(""))
+                        elif node.datatype == 'bool':
+                            clan_literal.values.append(BoolNode(False))
+                        node.initial_values.append(clan_literal)
+
+                for inner_node in node.initial_values: #FIXME: what if the clan literal is not there? int num[2][2] = {{1,2,3}};
+                    if not isinstance(inner_node, ClanLiteralNode):
+                        self.error = SemanticError(node.pos_start, node.pos_end, "Expected ClanLiteralNode for multi-dimensional array")
+                    if len(inner_node.values) > size2_value:
+                        self.error = SemanticError(inner_node.pos_start, inner_node.pos_end, f"Array out of index 3: size2 is {size2_value}, but got {len(inner_node.values)} initial values")
+                    else:
+                        # Fill missing values
+                        while len(inner_node.values) < size2_value:
+                            if node.datatype == 'int':
+                                inner_node.values.append(NumNode(0, None, None))
+                            elif node.datatype == 'float':
+                                inner_node.values.append(NumNode(0.0, None, None))
+                            elif node.datatype == 'string':
+                                inner_node.values.append(StringNode("", None, None))
+                            elif node.datatype == 'bool':
+                                inner_node.values.append(BoolNode(False, None, None))
         print(f"Exiting ClanDecNode")
 
     def visit_ClanLiteralNode(self, node, parent):
@@ -272,15 +354,86 @@ class CodeRunner(DOMInterpreter):
 
     def visit_ClanIndexAssignNode(self, node, parent):
         print(f"Visiting ClanIndexAssignNode with name: {node.name}")
-        value, error = self.evaluate_node(node)
+        clan = self.symbol_table.get(node.name)
+        print(f"SYMBOL TABLE: {self.symbol_table.scopes}")
+        if clan is None:
+            self.error = SemanticError(node.pos_start, node.pos_end, f"Clan '{node.name}' is not declared")
+            return
+
+        if not isinstance(clan, ClanDecNode):
+            self.error = SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a clan")
+            return
+
+        index1, error = self.evaluate_node(node.index1)
         if error:
             self.error = error
             return
-        return value, None
+
+        size1, error = self.evaluate_node(clan.size1)
+        if error:
+            self.error = error
+            return
+
+        if not isinstance(index1, int) or index1 < 0 or (clan.size1 and index1 >= size1):
+            self.error = SemanticError(node.pos_start, node.pos_end, f"Index 1 out of bounds for clan '{node.name}'")
+            return
+
+        if node.index2:
+            index2, error = self.evaluate_node(node.index2)
+            if error:
+                self.error = error
+                return
+
+            size2, error = self.evaluate_node(clan.size2)
+            if error:
+                self.error = error
+                return
+
+            if not isinstance(index2, int) or index2 < 0 or (clan.size2 and index2 >= size2):
+                self.error = SemanticError(node.pos_start, node.pos_end, f"Index 2 out of bounds for clan '{node.name}'")
+                return
+
+            value, error = self.evaluate_node(node.value)
+            if error:
+                self.error = error
+                return
+
+            try:
+                clan.initial_values[index1].values[index2] = value
+                print(f"Updated clan '{node.name}' at [{index1}][{index2}] with value: {value}")
+            except IndexError:
+                self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid access at [{index1}][{index2}] for clan '{node.name}'")
+        else:
+            value, error = self.evaluate_node(node.value)
+            if error:
+                self.error = error
+                return
+            if clan.datatype == 'int' and isinstance(value, float):
+                value = int(value)
+            elif clan.datatype == 'float' and isinstance(value, int):
+                value = float(value)
+            elif clan.datatype != self.infer_type(value):
+                self.error = SemanticError(node.pos_start, node.pos_end, f"Type mismatch: expected {clan.datatype}, got {self.infer_type(value)}")
+
+            try:
+                clan.initial_values.values[index1] = value
+                print(f"Updated clan '{node.name}' at [{index1}] with value: {value}")
+            except IndexError:
+                self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid access at [{index1}] for clan '{node.name}'")
 
     def visit_CurseDecNode(self, node, parent):
         print(f"Visiting CurseDecNode with name: {node.name}")
-        self.visit_children(node)
+        true_parent = parent
+        while true_parent and not isinstance(true_parent, (CurseDomainNode, CurseDecNode)):
+            true_parent = true_parent.parent
+
+        if true_parent is None or not isinstance(true_parent, (CurseDomainNode, CurseDecNode)):
+            pass
+        else:
+            if self.symbol_table.get(node.name) and not isinstance(parent.parent, (CurseDecNode, CurseDomainNode)):
+                self.errors = SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' already declared")
+            else:
+                self.symbol_table.set(node.name, node)  # Store the CurseDecNode object itself
         print(f"Exiting CurseDecNode")
 
     def visit_CurseDomainNode(self, node, parent):
@@ -314,13 +467,75 @@ class CodeRunner(DOMInterpreter):
 
     def visit_CurseCallNode(self, node, parent):
         print(f"Visiting CurseCallNode with name: {node.name}")
-        self.visit_children(node)
+
+        # Retrieve the curse declaration from the symbol table
+        curse_dec_node = self.symbol_table.get(node.name)
+        if curse_dec_node is None:
+            self.error = SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' is not declared")
+            return
+
+        if not isinstance(curse_dec_node, CurseDecNode):
+            self.error = SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a curse")
+            return
+
+        # Check if the number of arguments matches the number of parameters
+        if len(node.arguments) != len(curse_dec_node.parameters):
+            self.error = SemanticError(
+                node.pos_start,
+                node.pos_end,
+                f"Argument count mismatch for curse '{node.name}': expected {len(curse_dec_node.parameters)}, got {len(node.arguments)}"
+            )
+            return
+
+        # Evaluate arguments and map them to parameters
+        self.symbol_table.push() # Enter new scope for curse call
+        for param, arg in zip(curse_dec_node.parameters, node.arguments):
+            arg_value, error = self.evaluate_node(arg)
+            if error:
+                self.error = error
+                return
+
+            # Type checking
+            if param.datatype == 'int' and isinstance(arg_value, float):
+                arg_value = int(arg_value) # Convert float to integer
+            elif param.datatype == 'float' and isinstance(arg_value, int):
+                arg_value = float(arg_value) # Convert integer to float
+            elif param.datatype != self.infer_type(arg_value):
+                self.error = SemanticError(
+                    node.pos_start,
+                    node.pos_end,
+                    f"Type mismatch for parameter '{param.name}': expected {param.datatype}, got {self.infer_type(arg_value)}"
+                )
+                return
+
+            # Add parameter to the local symbol table
+            self.symbol_table.set(param.name, VarDecNode(False, param.name, param.datatype, NumNode(arg_value, None, None), param.pos_start, param.pos_end))
+
+        # Execute the body of the curse
+        if curse_dec_node.datatype is None:
+            try:
+                self.visit(curse_dec_node.body, curse_dec_node)
+            except ReturnException:
+                pass
+        else:
+            recall_val, error = self.visit(curse_dec_node.body, curse_dec_node)
+            if error:
+                self.error = error
+                return
+            
+            if recall_val is not None:
+                if isinstance(recall_val, NumNode):
+                    value = recall_val.value
+                elif isinstance(recall_val, StringNode):
+                    value = recall_val.value
+                elif isinstance(recall_val, BoolNode):
+                    value = recall_val.value
+                else:
+                    value = recall_val
+                return value
+
         print(f"Exiting CurseCallNode")
 
-    def visit_StringConcatNode(self, node, parent):
-        print(f"Visiting StringConcatNode")
-        self.visit_children(node)
-        print(f"Exiting StringConcatNode")
 
     def visit_InvokeNode(self, node, parent):
         print(f"Visiting InvokeNode")
@@ -376,9 +591,15 @@ class CodeRunner(DOMInterpreter):
 
     def visit_RecallNode(self, node, parent):
         print(f"Visiting RecallNode")
-        self.visit_children(node)
-        print(f"Exiting RecallNode")
+        value = None
+        if node.value:
+            value, error = self.evaluate_node(node.value)
+            if error:
+                self.error = error
+                return None, error
+        raise ReturnException(value)  # Raise ReturnException to return a value from the curse
 
+    
     def visit_DismissNode(self, node, parent):
         print(f"Visiting DismissNode")
         raise StopIteration  # Use StopIteration to simulate a break in the loop
@@ -396,7 +617,10 @@ class CodeRunner(DOMInterpreter):
             return
 
         if condition_value:
-            self.visit(node.body, node)
+            try:
+                self.visit(node.body, node)
+            except ReturnException:
+                return
         else:
             for else_vow in node.else_vows:
                 else_condition_value, error = self.evaluate_node(else_vow.condition)
@@ -405,11 +629,17 @@ class CodeRunner(DOMInterpreter):
                     return
 
                 if else_condition_value:
-                    self.visit(else_vow.body, node)
-                    break
+                    try:
+                        self.visit(else_vow.body, node)
+                        return
+                    except ReturnException:
+                        return
             else:
                 if node.else_body:
-                    self.visit(node.else_body, node)
+                    try:
+                        self.visit(node.else_body, node)
+                    except ReturnException:
+                        return
 
         print(f"Exiting VowNode")
 
@@ -442,6 +672,8 @@ class CodeRunner(DOMInterpreter):
                         self.visit(case.body, node)
                     except StopIteration:
                         break
+                    except ReturnException:
+                        break
             elif isinstance(case, WoogieTrueNode):
                 case_condition_value, error = self.evaluate_node(case.condition)
                 if error:
@@ -453,9 +685,14 @@ class CodeRunner(DOMInterpreter):
                         self.visit(case.body, node)
                     except StopIteration:
                         break
+                    except ReturnException:
+                        break
             elif isinstance(case, DefaultCaseNode):
-                self.visit(case.body, node)
-                break
+                try:
+                    self.visit(case.body, node)
+                    break
+                except ReturnException:
+                    break
 
         print(f"Exiting BoogieNode")
 
@@ -505,6 +742,8 @@ class CodeRunner(DOMInterpreter):
                 continue
             except StopIteration:
                 break
+            except ReturnException:
+                break
         print(f"Exiting SustainNode")
 
     def visit_PerformSustainNode(self, node, parent):
@@ -526,6 +765,8 @@ class CodeRunner(DOMInterpreter):
             except ContinueIteration:
                 continue
             except StopIteration:
+                break
+            except ReturnException:
                 break
 
         print(f"Exiting PerformSustainNode")
@@ -551,6 +792,8 @@ class CodeRunner(DOMInterpreter):
             except ContinueIteration:
                 continue
             except StopIteration:
+                break
+            except ReturnException:
                 break
         self.symbol_table.pop()
         print(f'New Symbol Stack: {self.symbol_table.scopes}')
@@ -623,6 +866,14 @@ class CodeRunner(DOMInterpreter):
             if isinstance(curse_node, CurseDecNode):
                 return curse_node.datatype
             return 'unknown'
+        elif isinstance(node, str):
+            return 'string'
+        elif isinstance(node, bool):
+            return 'bool'
+        elif isinstance(node, int):
+            return 'int'
+        elif isinstance(node, float):
+            return 'float'
         else:
             return 'unknown'
         
@@ -794,6 +1045,7 @@ class CodeRunner(DOMInterpreter):
                         value = value
                     return value, None
                 except IndexError:
+                    print(f"VALUES: {clan.initial_values}")
                     return None, SemanticError(node.pos_start, node.pos_end, f"Invalid access at [{index1}][{index2}] for clan '{node.name}'")
             else:
                 try:
@@ -809,6 +1061,71 @@ class CodeRunner(DOMInterpreter):
                     return value, None
                 except IndexError:
                     return None, SemanticError(node.pos_start, node.pos_end, f"Invalid access at [{index1}] for clan '{node.name}'")
+
+        elif isinstance(node, CurseCallNode):
+            # Retrieve the curse declaration from the symbol table
+            curse_dec_node = self.symbol_table.get(node.name)
+            if curse_dec_node is None:
+                self.error = SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' is not declared")
+                return None, None
+
+            if not isinstance(curse_dec_node, CurseDecNode):
+                self.error = SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a curse")
+                return None, None
+
+            # Check if the number of arguments matches the number of parameters
+            if len(node.arguments) != len(curse_dec_node.parameters):
+                self.error = SemanticError(
+                    node.pos_start,
+                    node.pos_end,
+                    f"Argument count mismatch for curse '{node.name}': expected {len(curse_dec_node.parameters)}, got {len(node.arguments)}"
+                )
+                return None, None
+
+            # Evaluate arguments and map them to parameters
+            self.symbol_table.push() # Enter new scope for curse call
+            for param, arg in zip(curse_dec_node.parameters, node.arguments):
+                arg_value, error = self.evaluate_node(arg)
+                if error:
+                    self.error = error
+                    return None, None
+
+                # Type checking
+                if param.datatype == 'int' and isinstance(arg_value, float):
+                    arg_value = int(arg_value) # Convert float to integer
+                elif param.datatype == 'float' and isinstance(arg_value, int):
+                    arg_value = float(arg_value) # Convert integer to float
+                elif param.datatype != self.infer_type(arg_value):
+                    self.error = SemanticError(
+                        node.pos_start,
+                        node.pos_end,
+                        f"Type mismatch for parameter '{param.name}': expected {param.datatype}, got {self.infer_type(arg_value)}"
+                    )
+                    return None, None
+
+                # Add parameter to the local symbol table
+                self.symbol_table.set(param.name, VarDecNode(False, param.name, param.datatype, NumNode(arg_value, None, None), param.pos_start, param.pos_end))
+
+            # Execute the body of the curse
+            if curse_dec_node.datatype is None:
+                self.visit(curse_dec_node.body, curse_dec_node)
+            else:
+                try: 
+                    self.visit(curse_dec_node.body, curse_dec_node)
+                except ReturnException as e:
+                    recall_val = e.value
+                
+            if recall_val is not None:
+                if isinstance(recall_val, NumNode):
+                    value = recall_val.value
+                elif isinstance(recall_val, StringNode):
+                    value = recall_val.value
+                elif isinstance(recall_val, BoolNode):
+                    value = recall_val.value
+                else:
+                    value = recall_val
+                return value, None
+            else: return None, None
 
         elif isinstance(node, (str, int, float)):
             return node, None

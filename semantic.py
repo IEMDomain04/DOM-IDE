@@ -1912,12 +1912,6 @@ class MyASTVisitor(ASTVisitor):
                     if isinstance(curse_node, CurseDecNode):
                         if len(curse_node.parameters) != len(node.arguments):
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected {len(curse_node.parameters)} arguments, got {len(node.arguments)}"))
-                        else:
-                            for param, arg in zip(curse_node.parameters, node.arguments):
-                                param_type = param.datatype  # Use param.datatype directly
-                                arg_type = self.infer_type(arg)
-                                if param_type != arg_type:
-                                    self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch 22: Expected '{param_type}', got '{arg_type}'"))
                     else:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a curse"))
 
@@ -3290,8 +3284,14 @@ class Parser:
                         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ']'")
                     self.advance()
 
-                    if self.current_token.type not in ['=', '[']:
+                    if self.current_token.type not in ['=', '[', ';']:
                         return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '=' or '['")
+
+                    if self.current_token.type == ';':
+                        pos_end = self.current_token.pos_end
+                        self.advance() 
+                        clan_literal_node = ClanLiteralNode([])
+                        return ClanDecNode(None, datatype, name, size1, None, clan_literal_node, pos_start, pos_end), None
 
                     if self.current_token.type == '=': # Parse one dimensional clan declaration
                         initial_values = [] 
@@ -3370,11 +3370,20 @@ class Parser:
                             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ']'")
                         self.advance()
                         initial_values = []
-                        if self.current_token.type != '=':
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '='")
+                        if self.current_token.type not in ['=', ';']:
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '=' or ';'")
+                        if self.current_token.type == ';':
+                            pos_end = self.current_token.pos_end
+                            self.advance()
+                            return ClanDecNode(None, datatype, name, size1, size2, None, pos_start, pos_end), None
                         self.advance()
-                        if self.current_token.type != '{':
-                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
+                        if self.current_token.type not in ['{', ';']:
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '(' or ';'")
+                        if self.current_token.type == ';':
+                            pos_end = self.current_token.pos_end
+                            self.advance()
+                            return ClanDecNode(None, datatype, name, size1, size2, None, pos_start, pos_end), None
+
                         while self.current_token.type != '}':
                             self.advance()
                             if self.current_token.type != '{':
@@ -3403,32 +3412,34 @@ class Parser:
                             if self.current_token.type != '}':
                                 return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '}}'")
                             self.advance()
-                            if self.current_token.type == ',':
-                                while self.current_token.type == ',':
-                                    self.advance()
-                                    if self.current_token.type != '{':
-                                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
-                                    clan_lit_start = self.current_token.pos_start
-                                    self.advance()
-                                    while self.current_token.type != '}':
-                                        if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', 'len', 'cleave', 'dismantle', '(', '-', '++', '--']:
-                                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, 'len', 'cleave', 'dismantle', '(', '-', '++', '--']")
-                                        new_val, error = self.parseExpr()
-                                        if error: return None, error
-                                        new_clan_literal.append(new_val)
-                                        if self.current_token.type not in [',', '}']:
-                                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected 4: ',' or '}}'")
-                                        if self.current_token.type == ',':
-                                            while self.current_token.type == ',': 
-                                                self.advance()
-                                                if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', 'len', 'cleave', 'dismantle', '(', '-', '++', '--']:
-                                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, 'len', 'cleave', 'dismantle', '(', '-', '++', '--']")
-                                                new_val, error = self.parseExpr()
-                                                if error: return None, error
-                                                new_clan_literal.append(new_val)
-                                    clan_literal_node = ClanLiteralNode(new_clan_literal, clan_lit_start, self.current_token.pos_end)
-                                    initial_values.append(clan_literal_node)
-                                    self.advance()
+                            if self.current_token.type != ',':
+                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ','")
+                            while self.current_token.type == ',':
+                                self.advance()
+                                if self.current_token.type != '{':
+                                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '('")
+                                clan_lit_start = self.current_token.pos_start
+                                self.advance()
+                                while self.current_token.type != '}':
+                                    if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', 'len', 'cleave', 'dismantle', '(', '-', '++', '--']:
+                                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, 'len', 'cleave', 'dismantle', '(', '-', '++', '--']")
+                                    new_val, error = self.parseExpr()
+                                    if error: return None, error
+                                    new_clan_literal.append(new_val)
+                                    if self.current_token.type not in [',', '}']:
+                                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected 4: ',' or '}}'")
+                                    if self.current_token.type == ',':
+                                        while self.current_token.type == ',': 
+                                            self.advance()
+                                            if self.current_token.type not in ['int_literal', 'float_literal', 'string_literal', 'id', 'len', 'cleave', 'dismantle', '(', '-', '++', '--']:
+                                                return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected one of [int, float, string, identifier, 'len', 'cleave', 'dismantle', '(', '-', '++', '--']")
+                                            new_val, error = self.parseExpr()
+                                            if error: return None, error
+                                            new_clan_literal.append(new_val)
+                                clan_literal_node = ClanLiteralNode(new_clan_literal, clan_lit_start, self.current_token.pos_end)
+                                initial_values.append(clan_literal_node)
+                                new_clan_literal = []
+                                self.advance()
                         if self.current_token.type != '}':
                             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: '}}'")
                         pos_end = self.current_token.pos_end
