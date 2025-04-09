@@ -1912,12 +1912,6 @@ class MyASTVisitor(ASTVisitor):
                     if isinstance(curse_node, CurseDecNode):
                         if len(curse_node.parameters) != len(node.arguments):
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected {len(curse_node.parameters)} arguments, got {len(node.arguments)}"))
-                        else:
-                            for param, arg in zip(curse_node.parameters, node.arguments):
-                                param_type = param.datatype  # Use param.datatype directly
-                                arg_type = self.infer_type(arg)
-                                if param_type != arg_type:
-                                    self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch 22: Expected '{param_type}', got '{arg_type}'"))
                     else:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a curse"))
 
@@ -3295,7 +3289,7 @@ class Parser:
 
                     if self.current_token.type == ';':
                         pos_end = self.current_token.pos_end
-                        self.advance()
+                        self.advance() 
                         clan_literal_node = ClanLiteralNode([])
                         return ClanDecNode(None, datatype, name, size1, None, clan_literal_node, pos_start, pos_end), None
 
