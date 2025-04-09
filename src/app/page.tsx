@@ -29,6 +29,12 @@ curse domain(){
 }`);
   const codeEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
+
+  useEffect(() => {
+    if (socket) {
+      console.log("WebSocket connection established:", socket);
+    }
+  }, [socket]);
   // const router = useRouter();
 
   useEffect(() => {
