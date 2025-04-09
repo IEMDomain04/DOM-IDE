@@ -74,6 +74,7 @@ class ASTNode:
         self.pos_end = pos_end
 
     def add_child(self, child):
+        print(f'CHILD TYPE {type(child)}: {child}')
         child.parent = self
         self.children.append(child)
 
@@ -389,6 +390,8 @@ class ParamNode(ASTNode): # for function parameters
 class BodyNode(ASTNode): # for body of functions and vows and boogies and cycles and sustains and perform-sustains
     def __init__(self, pos_start=None, pos_end=None):
         super().__init__("Body", pos_start, pos_end)
+    def __repr__(self):
+        return f"BodyNode_Object"
 
 class CurseCallNode(ASTNode): # for curse calls
     def __init__(self, name, arguments, pos_start=None, pos_end=None):

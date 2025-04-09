@@ -4,9 +4,12 @@ from lexer import run as lexer
 from syntax import parse_run as syntax
 from semantic import semantic_run as semantic
 from interpreter import interpreter_run as interpreter
+from interpreter import CodeRunner
+from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+socketio = SocketIO(app, cors_allowed_origins="*")  # enable CORS for WS
 
 @app.route('/api/lexer', methods=['POST'])
 def run_lexer():
@@ -70,17 +73,29 @@ def run_interpreter():
         error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(semantic_errors)]
         return jsonify({'result': "Error: Failure from Interpreter", 'error': error_messages})
     if ast:
-        output, errors = interpreter(ast, symbol_table)
-    if errors:
-        if isinstance(errors, list):
-            error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
-        else:
-            error_messages = [f"Error: {errors.as_string()}\n"]
-        return jsonify({'result': output, 'error': error_messages})
-    if output:
-        output_messages = "".join(output)
-        return jsonify({'result': output_messages, 'error': None})
+        global runner
+        runner = CodeRunner(symbol_table, socketio=socketio) 
+        runner.visit(ast)  
+        output = runner.output
+        error = runner.error
+        if error:
+            error_message = [f"Error: {error.as_string()}\n"]
+            return jsonify({'result': output, 'error': error_message})
+        if output:
+            output_messages = "".join(output)
+            return jsonify({'result': output_messages, 'error': None})
+        return jsonify({'result': "No Output", 'error': None})
     return jsonify({'result': "No Output", 'error': None})
+        
+
+@socketio.on('capture_input')
+def handle_capture_input(data):
+    var_name = data.get('var_name')
+    user_input = data.get('input')
+
+    if var_name and user_input is not None:
+        runner.provide_input(var_name, user_input)
+        emit('input_received', {'var_name': var_name, 'input': user_input}) 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True)

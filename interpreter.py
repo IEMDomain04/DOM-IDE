@@ -1,3 +1,5 @@
+import threading
+
 from semantic import (
     NumNode, DatatypeNode, StringNode, BoolNode, NullNode, ExponentNode, BinOpNode, 
     RelOpNode, LogOpNode, UnaryOpNode, IdNode, VarDecNode, VarAssignNode, ClanDecNode, 
@@ -20,8 +22,11 @@ class Error:
 
     def as_string(self):
         result = f'{self.error_name}: {self.details}'
-        result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}\n'
-        result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
+        try:
+            result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}\n'
+            result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
+        except:
+            result = "oh no, there was an error in the error message"
         return result
     
 class SemanticError(Error):
@@ -90,23 +95,36 @@ class DOMInterpreter:
             self.visit(child, node)
 
 class CodeRunner(DOMInterpreter):
-    def __init__(self, symbol_table):
+    def __init__(self, symbol_table, socketio=None):
         self.symbol_table = symbol_table
         self.output = []
         self.error = None
         self.unresolved_cases = []  # List to keep track of unresolved cases
+        self.socketio = socketio
+        self.input_events = {}
+        self.input_values = {}
+        self.current_node = None  
+        self.current_parent = None  
+        self.processed_capture_nodes = set()  # Set to keep track of processed CaptureNodes
+
 
     def visit_DatatypeNode(self, node, parent):
         print(f"Visiting DatatypeNode with type: {node.datatype}")
+        self.current_node = node
+        self.current_parent = parent
         self.visit_children(node)
         print(f"Exiting DatatypeNode")
 
     def visit_StringNode(self, node, parent):
         print(f"Visiting StringNode with value: {node.value}")
+        self.current_node = node
+        self.current_parent = parent
         return node.value
 
     def visit_BoolNode(self, node, parent):
         print(f"Visiting BoolNode with value: {node.value}")
+        self.current_node = node
+        self.current_parent = parent
         self.visit_children(node)
         print(f"Exiting BoolNode")
 
@@ -117,6 +135,8 @@ class CodeRunner(DOMInterpreter):
 
     def visit_NumNode(self, node, parent):
         print(f"Visiting NumNode with value: {node.value}")
+        self.current_node = node
+        self.current_parent = parent
         return node.value
 
     def visit_ExponentNode(self, node, parent):
@@ -124,19 +144,27 @@ class CodeRunner(DOMInterpreter):
 
     def visit_BinOpNode(self, node, parent):
         print(f"Visiting BinOpNode with operator: {node.op}")
+        self.current_node = node
+        self.current_parent = parent
         self.visit_children(node)
         print(f"Exiting BinOpNode")
 
     def visit_RelOpNode(self, node, parent):
         print(f"Visiting RelOpNode with operator: {node.op}")
+        self.current_node = node
+        self.current_parent = parent
         print(f"Exiting RelOpNode")
 
     def visit_LogOpNode(self, node, parent):
         print(f"Visiting LogOpNode with operator: {node.op}")
+        self.current_node = node
+        self.current_parent = parent
         print(f"Exiting LogOpNode")
 
     def visit_UnaryOpNode(self, node, parent):
         print(f"Visiting UnaryOpNode with operator: {node.op.op}")
+        self.current_node = node
+        self.current_parent = parent
         value, error = self.evaluate_node(node.expr)
         if error:
             self.error = error
@@ -153,7 +181,7 @@ class CodeRunner(DOMInterpreter):
                     updated_value = value + 1 if node.op.op == '++' else value - 1
                     value_node = NumNode(updated_value, None, None)
                     updated_symbol = VarDecNode(
-                        symbol.restrict, symbol.name, symbol.datatype, value_node, symbol.pos_start, symbol.pos_end
+                        symbol.restrict, symbol.datatype, symbol.name, value_node, symbol.pos_start, symbol.pos_end
                     )
                     self.symbol_table.set(node.expr.name, updated_symbol)
                     print(f"Updated value '{updated_value}' for variable '{node.expr.name}' in symbol table")
@@ -162,6 +190,8 @@ class CodeRunner(DOMInterpreter):
 
     def visit_IdNode(self, node, parent):
         print(f"Visiting IdNode with name: {node.name}")
+        self.current_node = node
+        self.current_parent = parent
         # Check if the variable is declared in the symbol table
         symbol = self.symbol_table.get(node.name);
         if self.symbol_table.get(node.name) is None:
@@ -175,6 +205,8 @@ class CodeRunner(DOMInterpreter):
 
     def visit_VarDecNode(self, node, parent):
         print(f"Visiting VarDecNode with type: {node.datatype}")
+        self.current_node = node
+        self.current_parent = parent
         # true parent
         true_parent = parent
         while true_parent and not isinstance(true_parent, (CurseDomainNode, CurseDecNode)):
@@ -208,7 +240,7 @@ class CodeRunner(DOMInterpreter):
                 value_node = NullNode(None, None, None)
 
             # Update the value in the variable declaration node
-            var_dec_node_copy = VarDecNode(False, var_dec_node.name, var_dec_node.datatype, value_node, var_dec_node.pos_start, var_dec_node.pos_end)
+            var_dec_node_copy = VarDecNode(False, var_dec_node.datatype, var_dec_node.name, value_node, var_dec_node.pos_start, var_dec_node.pos_end)
             self.symbol_table.set(node.name, var_dec_node_copy)  # Update the symbol table with the new value
             print(f'Value: {var_dec_node.value}')
             print(f"Updated value '{value}' for variable '{node.name}' in symbol table")
@@ -218,6 +250,8 @@ class CodeRunner(DOMInterpreter):
 
     def visit_VarAssignNode(self, node, parent):
         print(f"Visiting VarAssignNode with name: {node.name}")
+        self.current_node = node
+        self.current_parent = parent
         value, error = self.evaluate_node(node.value)
         if error:
             self.error = error
@@ -243,13 +277,15 @@ class CodeRunner(DOMInterpreter):
             value_node = NullNode(None, None, None)
 
         # Update the value in the variable declaration node
-        var_dec_node_copy = VarDecNode(False, var_dec_node.name, var_dec_node.datatype, value_node, var_dec_node.pos_start, var_dec_node.pos_end)
+        var_dec_node_copy = VarDecNode(False, var_dec_node.datatype, var_dec_node.name, value_node, var_dec_node.pos_start, var_dec_node.pos_end)
         self.symbol_table.set(node.name, var_dec_node_copy)  # Update the symbol table with the new value
         print(f"Updated value '{value}' for variable '{node.name}' in symbol table")
         print(f"Exiting VarAssignNode")
 
     def visit_ClanDecNode(self, node, parent):
         print(f"Visiting ClanDecNode with name: {node.name}")
+        self.current_node = node
+        self.current_parent = parent
         true_parent = parent
         while true_parent and not isinstance(true_parent, (CurseDomainNode, CurseDecNode)):
             true_parent = true_parent.parent
@@ -334,28 +370,37 @@ class CodeRunner(DOMInterpreter):
 
     def visit_ClanLiteralNode(self, node, parent):
         print(f"Visiting ClanLiteralNode with values: {node.values}")
+        self.current_node = node
+        self.current_parent = parent
         self.visit_children(node)
         print(f"Exiting ClanLiteralNode")
 
     def visit_ClanIndexNode(self, node, parent):
         print(f"Visiting ClanIndexNode with index: {node.index}")
+        self.current_node = node
+        self.current_parent = parent
         self.visit_children(node)
         print(f"Exiting ClanIndexNode")
 
     def visit_ClanSizeNode(self, node, parent):
         print(f"Visiting ClanSizeNode with size: {node.size}")
+        self.current_node = node
+        self.current_parent = parent
         self.visit_children(node)
         print(f"Exiting ClanSizeNode")
 
     def visit_ClanAccessNode(self, node, parent):
         print(f"Visiting ClanAccessNode with name: {node.name}")
+        self.current_node = node
+        self.current_parent = parent
         self.visit_children(node)
         print(f"Exiting ClanAccessNode")
 
     def visit_ClanIndexAssignNode(self, node, parent):
         print(f"Visiting ClanIndexAssignNode with name: {node.name}")
+        self.current_node = node
+        self.current_parent = parent
         clan = self.symbol_table.get(node.name)
-        print(f"SYMBOL TABLE: {self.symbol_table.scopes}")
         if clan is None:
             self.error = SemanticError(node.pos_start, node.pos_end, f"Clan '{node.name}' is not declared")
             return
@@ -423,6 +468,8 @@ class CodeRunner(DOMInterpreter):
 
     def visit_CurseDecNode(self, node, parent):
         print(f"Visiting CurseDecNode with name: {node.name}")
+        self.current_node = node
+        self.current_parent = parent
         true_parent = parent
         while true_parent and not isinstance(true_parent, (CurseDomainNode, CurseDecNode)):
             true_parent = true_parent.parent
@@ -438,16 +485,22 @@ class CodeRunner(DOMInterpreter):
 
     def visit_CurseDomainNode(self, node, parent):
         print(f"Visiting CurseDomainNode")
+        self.current_node = node
+        self.current_parent = parent
         self.visit_children(node)
         print(f"Exiting CurseDomainNode")
 
     def visit_ParamNode(self, node, parent):
         print(f"Visiting ParamNode with name: {node.name}")
+        self.current_node = node
+        self.current_parent = parent
         self.visit_children(node)
         print(f"Exiting ParamNode")
 
     def visit_BodyNode(self, node, parent):
         print(f"Visiting BodyNode")
+        self.current_node = node
+        self.current_parent = parent
         print(f"BodyNode Parent: {type(parent)}")
         if not isinstance(parent, (CycleNode, CycleConditionNode, SustainNode, PerformSustainNode)):
             self.symbol_table.push()  # Enter new scope for body
@@ -467,7 +520,8 @@ class CodeRunner(DOMInterpreter):
 
     def visit_CurseCallNode(self, node, parent):
         print(f"Visiting CurseCallNode with name: {node.name}")
-
+        self.current_node = node
+        self.current_parent = parent
         # Retrieve the curse declaration from the symbol table
         curse_dec_node = self.symbol_table.get(node.name)
         if curse_dec_node is None:
@@ -509,7 +563,7 @@ class CodeRunner(DOMInterpreter):
                 return
 
             # Add parameter to the local symbol table
-            self.symbol_table.set(param.name, VarDecNode(False, param.name, param.datatype, NumNode(arg_value, None, None), param.pos_start, param.pos_end))
+            self.symbol_table.set(param.name, VarDecNode(False, param.datatype, param.name, NumNode(arg_value, None, None), param.pos_start, param.pos_end))
 
         # Execute the body of the curse
         if curse_dec_node.datatype is None:
@@ -543,6 +597,8 @@ class CodeRunner(DOMInterpreter):
 
     def visit_InvokeNode(self, node, parent):
         print(f"Visiting InvokeNode")
+        self.current_node = node
+        self.current_parent = parent
         value = ''
         if isinstance(node.value, list):
             for list_item in node.value:
@@ -568,33 +624,77 @@ class CodeRunner(DOMInterpreter):
         else:
             self.output.append(value)
             print(f'Invocation: {value}')
-        
-       
             
         print(f"Exiting InvokeNode")
 
     def visit_CaptureNode(self, node, parent):
         print(f"Visiting CaptureNode with name: {node.name}")
-        self.visit_children(node)
-        print(f"Exiting CaptureNode")
+        self.current_node = node
+        self.current_parent = parent
 
+        if node.name.name in self.processed_capture_nodes:
+            return  # skip if already processed
+        
+        var_symbol = self.symbol_table.get(node.name.name)
+        print(f"CaptureNode var_symbol: {var_symbol}")
+        var_name = var_symbol.name if isinstance(var_symbol, (VarDecNode, ClanDecNode)) else None
+        var_type = var_symbol.datatype if isinstance(var_symbol, (VarDecNode, ClanDecNode)) else None
+
+        if self.socketio:
+            self.socketio.emit('capture_input', {'var_name': var_name})
+
+        user_input = self.wait_for_input(var_name)
+
+        if user_input is not None:
+            try:
+                if var_type == 'int':
+                    user_input = NumNode(int(user_input))
+                elif var_type == 'float':
+                    user_input = NumNode(float(user_input))
+                elif var_type == 'string':
+                    user_input = StringNode(str(user_input))
+                elif var_type == 'bool':
+                    user_input = user_input.lower()
+                    if user_input == 'true':
+                        user_input = BoolNode(True)
+                    elif user_input == 'false':
+                        user_input = BoolNode(False)
+                    else:
+                        self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid input for variable '{var_name}': expected bool")
+                        return
+            except:
+                self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid input for variable '{var_name}': expected int")
+                return
+            
+            var_symbol_copy = VarDecNode(False, var_symbol.datatype, var_symbol.name, user_input, var_symbol.pos_start, var_symbol.pos_end)
+            self.symbol_table.set(var_name, var_symbol_copy) 
+            self.processed_capture_nodes.add(node.name.name)  # flag this node as processed
+            print(f'\n\nNEW PROCESSED CAPTURE NODES: {self.processed_capture_nodes}\n\n')
     def visit_CleaveNode(self, node, parent):
         print(f"Visiting CleaveNode with name: {node.name}")
+        self.current_node = node
+        self.current_parent = parent
         self.visit_children(node)
         print(f"Exiting CleaveNode")
 
     def visit_DismantleNode(self, node, parent):
         print(f"Visiting DismantleNode with name: {node.name}")
+        self.current_node = node
+        self.current_parent = parent
         self.visit_children(node)
         print(f"Exiting DismantleNode")
 
     def visit_LenNode(self, node, parent):
         print(f"Visiting LenNode with name: {node.name}")
+        self.current_node = node
+        self.current_parent = parent
         self.visit_children(node)
         print(f"Exiting LenNode")
 
     def visit_RecallNode(self, node, parent):
         print(f"Visiting RecallNode")
+        self.current_node = node
+        self.current_parent = parent
         value = None
         if node.value:
             value, error = self.evaluate_node(node.value)
@@ -606,15 +706,20 @@ class CodeRunner(DOMInterpreter):
     
     def visit_DismissNode(self, node, parent):
         print(f"Visiting DismissNode")
+        self.current_node = node
+        self.current_parent = parent
         raise StopIteration  # Use StopIteration to simulate a break in the loop
 
     def visit_HopNode(self, node, parent):
         print(f"Visiting HopNode")
+        self.current_node = node
+        self.current_parent = parent
         raise ContinueIteration  # Use a custom exception to simulate a continue in the loop
-
 
     def visit_VowNode(self, node, parent):
         print(f"Visiting VowNode")
+        self.current_node = node
+        self.current_parent = parent
         condition_value, error = self.evaluate_node(node.condition)
         if error:
             self.error = error
@@ -649,16 +754,22 @@ class CodeRunner(DOMInterpreter):
 
     def visit_ElseVow(self, node, parent):
         print(f"Visiting ElseVow")
+        self.current_node = node
+        self.current_parent = parent
         self.visit_children(node)
         print(f"Exiting ElseVow")
 
     def visit_ElseNode(self, node, parent):
         print(f"Visiting ElseNode")
+        self.current_node = node
+        self.current_parent = parent
         self.visit_children(node)
         print(f"Exiting ElseNode")
 
     def visit_BoogieNode(self, node, parent):
         print(f"Visiting BoogieNode")
+        self.current_node = node
+        self.current_parent = parent
         expression_value, error = self.evaluate_node(node.expression) if node.expression else (None, None)
         if error:
             self.error = error
@@ -702,6 +813,8 @@ class CodeRunner(DOMInterpreter):
 
     def visit_WoogieTrueNode(self, node, parent):
         print(f"Visiting WoogieTrueNode")
+        self.current_node = node
+        self.current_parent = parent
         condition_value, error = self.evaluate_node(node.condition)
         if error:
             self.error = error
@@ -714,6 +827,8 @@ class CodeRunner(DOMInterpreter):
 
     def visit_WoogieNode(self, node, parent):
         print(f"Visiting WoogieNode")
+        self.current_node = node
+        self.current_parent = parent
         condition_value, error = self.evaluate_node(node.condition)
         if error:
             self.error = error
@@ -726,11 +841,15 @@ class CodeRunner(DOMInterpreter):
 
     def visit_DefaultCaseNode(self, node, parent):
         print(f"Visiting DefaultCaseNode")
+        self.current_node = node
+        self.current_parent = parent
         self.visit(node.body, node)
         print(f"Exiting DefaultCaseNode")
 
     def visit_SustainNode(self, node, parent):
         print(f"Visiting SustainNode")
+        self.current_node = node
+        self.current_parent = parent
         while True:
             try: 
                 condition_value, error = self.evaluate_node(node.condition)
@@ -752,6 +871,8 @@ class CodeRunner(DOMInterpreter):
 
     def visit_PerformSustainNode(self, node, parent):
         print(f"Visiting PerformSustainNode")
+        self.current_node = node
+        self.current_parent = parent
         while True:
             try: 
                 # Execute the body of the loop
@@ -777,6 +898,8 @@ class CodeRunner(DOMInterpreter):
 
     def visit_CycleNode(self, node, parent):
         print(f"Visiting CycleNode")
+        self.current_node = node
+        self.current_parent = parent
         self.symbol_table.push()  # Enter new scope for cycle body
         print(f'Symbol Stack: {self.symbol_table.scopes}')
         # Visit the CycleConditionNode first
@@ -805,17 +928,29 @@ class CodeRunner(DOMInterpreter):
 
     def visit_CycleConditionNode(self, node, parent):
         print(f"Visiting CycleConditionNode")
+        self.current_node = node
+        self.current_parent = parent
         # Execute the initialization part of the CycleConditionNode
         self.visit(node.init, node)
         print(f"Exiting CycleConditionNode")
 
-    def resolve_unresolved(self):
-        print("Resolving unresolved references...")
-        print(f"Unresolved cases: {self.unresolved_cases}")
-        for node, parent in self.unresolved_cases:
-            pass
-        print(f"Unresolved cases after resolution: {self.unresolved_cases}\n")
+    def provide_input(self, var_name, value):
+        self.input_values[var_name] = value
+        if var_name in self.input_events:
+            self.input_events[var_name].set()
 
+    def wait_for_input(self, var_name):
+        event = threading.Event()
+        self.input_events[var_name] = event
+
+        event.wait()
+
+        value = self.input_values.pop(var_name, "")
+        self.input_events.pop(var_name, None)
+        return value
+
+    def resume_execution(self):
+        self.visit(self.current_node, self.current_parent)
     def infer_type(self, node):
         if isinstance(node, NumNode):
             return 'int' if isinstance(node.value, int) else 'float'
@@ -880,7 +1015,7 @@ class CodeRunner(DOMInterpreter):
             return 'float'
         else:
             return 'unknown'
-        
+
     def evaluate_node(self, node):
         if isinstance(node, NumNode):
             return node.value, None
@@ -1108,7 +1243,7 @@ class CodeRunner(DOMInterpreter):
                     return None, None
 
                 # Add parameter to the local symbol table
-                self.symbol_table.set(param.name, VarDecNode(False, param.name, param.datatype, NumNode(arg_value, None, None), param.pos_start, param.pos_end))
+                self.symbol_table.set(param.name, VarDecNode(False, param.datatype, param.name, NumNode(arg_value, None, None), param.pos_start, param.pos_end))
 
             # Execute the body of the curse
             if curse_dec_node.datatype is None:
@@ -1135,8 +1270,8 @@ class CodeRunner(DOMInterpreter):
             return node, None
         return None, None
         
-def interpreter_run(ast, symbol_table):
-    runner = CodeRunner(symbol_table)
+def interpreter_run(ast, symbol_table, socketio=None):
+    runner = CodeRunner(symbol_table, socketio=socketio)
     runner.visit(ast)
 
     print(f"Interpreter output: {runner.output}")
