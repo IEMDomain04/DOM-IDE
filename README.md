@@ -27,14 +27,10 @@ npm install
 
 <br>
 
-This will install Flask, the lightweight Python web framework used for the backend.
+This will install Flask, the lightweight Python web framework used for the backend + other python dependencies.
 
 ```bash
-pip install flask
-```
-
-```bash
-pip install flask-cors
+pip install -r requirements.txt
 ```
 
 <br>
