@@ -940,10 +940,10 @@ class MyASTVisitor(ASTVisitor):
                 if var_type != value_type:
                     if isinstance(node.value, CurseCallNode):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 4: Expected '{var_type}' curse, got '{value_type}'"))
-                    elif var_type == 'float' and value_type == 'int':
-                        pass
-                    elif var_type == 'int' and value_type == 'float':
-                        pass
+                    # elif var_type == 'float' and value_type == 'int':
+                    #     pass
+                    # elif var_type == 'int' and value_type == 'float':
+                    #     pass
                     else: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 5: Expected '{var_type}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting VarDecNode")
@@ -965,6 +965,8 @@ class MyASTVisitor(ASTVisitor):
                 var_type = self.symbol_table.get_type(node.name)
                 if value_type == 'null':
                     pass
+                elif value_type == 'unknown':
+                    self.unresolved_cases.append((node.value, node))
                 else:
                     if var_type != value_type:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 6: Expected '{var_type}', got '{value_type}'"))
