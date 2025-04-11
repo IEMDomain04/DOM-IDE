@@ -160,21 +160,21 @@ CFG = {
     ],
 
     "<body>": [               
-        ["<statement>", "<body>"],          ########### 0
+        ["<statement>"],                    ########### 0
         []                                  ########### 1
     ],
 
     "<statement>": [
-        ["<local>"],                ###########
-        ["id", "<id_call>", ";"],            ###########
-        ["invoke", "(", "<arguments>", ")", ";"], ###########
-        ["cleave", "(", "<arguments>", ")", ";"],    ###########
-        ["dismantle", "(", "<arguments>", ")", ";"], ###########
-        ["capture", "(", "id", ")", ";"],    ###########
-        ["len", "(", "<arguments>", ")", ";"],    ###########
-        ["<recall_stm>"],        ###########
-        ["<conditional_stm>"],            ###########
-        ["<looping_stm>"],                ###########
+        ["<local>", "<body>"],                                  ###########
+        ["id", "<id_call>", ";", "<body>"],                     ###########
+        ["invoke", "(", "<arguments>", ")", ";", "<body>"],     ###########
+        ["cleave", "(", "<arguments>", ")", ";", "<body>"],     ###########
+        ["dismantle", "(", "<arguments>", ")", ";", "<body>"],  ###########
+        ["capture", "(", "id", ")", ";", "<body>"],             ###########
+        ["len", "(", "<arguments>", ")", ";", "<body>"],        ###########
+        ["<recall_stm>", "<body>"],                             ###########
+        ["<conditional_stm>", "<body>"],                        ###########
+        ["<looping_stm>", "<body>"],                            ###########
         []
     ],
 
@@ -236,12 +236,12 @@ CFG = {
     ],
 
     "<boogie_tail>": [
-        ["(", "id", ")", "{", "woogie", "<literal>", ":", "<con_loop_body>", "<more_woogie>", "default", ":", "<con_loop_body>", "}"],
+        ["(", "id", ")", "{", "woogie", "<expression>", ":", "<con_loop_body>", "<more_woogie>", "default", ":", "<con_loop_body>", "}"],
         ["{", "woogie", "<expression>", ":", "<con_loop_body>", "<more_true_woogie>", "default", ":", "<con_loop_body>", "}"],
     ],
 
     "<more_woogie>": [
-        ["woogie", "<literal>", ":", "<con_loop_body>", "<more_woogie>"],
+        ["woogie", "<expression>", ":", "<con_loop_body>", "<more_woogie>"],
         []
     ],
 
@@ -279,17 +279,6 @@ CFG = {
         ["--"],
         ["<assign_op>", "<expression>"]
     ],
-
-    # "<ite_val>": [
-    #     ["id", "<val_tail>"],
-    #     ["int_literal"],
-    #     ["float_literal"]
-    # ],
-
-    # "<val_tail>": [
-    #     ["<arith_op>", "<ite_val>"],
-    #     []
-    # ],
 
     "<sustain-loop>": [
         ["sustain", "(", "<expression>", ")", "{", "<con_loop_body>", "}"]
@@ -737,16 +726,19 @@ PREDICT_SET = {
         "float": ["<body>", 0],
         "bool": ["<body>", 0],
         "curse": ["<body>", 0],
+        "restrict": ["<body>", 0],
         "id": ["<body>", 0],
         "invoke": ["<body>", 0],
+        "cleave": ["<body>", 0],
+        "dismantle": ["<body>", 0],
         "capture": ["<body>", 0],
+        "len": ["<body>", 0],
+        "recall": ["<body>", 0],
         "vow": ["<body>", 0],
         "boogie": ["<body>", 0],
         "cycle": ["<body>", 0],
         "sustain": ["<body>", 0],
         "perform": ["<body>", 0],
-        "recall": ["<body>", 0],
-        "restrict": ["<body>", 0],
         "}": ["<body>", 1],
         "λ": ["<body>", 1]
     },
@@ -978,22 +970,6 @@ PREDICT_SET = {
         "/=": ["<iteration_tail>", 2],
         "%=": ["<iteration_tail>", 2]
     },
-
-    # "<ite_val>": { ############# verified
-    #     "id": ["<ite_val>", 0],
-    #     "int_literal": ["<ite_val>", 1],
-    #     "float_literal": ["<ite_val>", 2],
-    # }, 
-
-    # "<val_tail>": { ############# verified
-    #     "+": ["<val_tail>", 0],
-    #     "-": ["<val_tail>", 0],
-    #     "*": ["<val_tail>", 0],
-    #     "**": ["<val_tail>", 0],
-    #     "/": ["<val_tail>", 0],
-    #     "%": ["<val_tail>", 0],
-    #     ")": ["<val_tail>", 1]
-    # },
 
     "<sustain-loop>": { ############# verified
         "sustain": ["<sustain-loop>", 0]

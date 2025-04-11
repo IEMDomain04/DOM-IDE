@@ -688,7 +688,39 @@ class CodeRunner(DOMInterpreter):
         print(f"Visiting LenNode with name: {node.name}")
         self.current_node = node
         self.current_parent = parent
-        self.visit_children(node)
+
+        # Retrieve the clan from the symbol table
+        symbol = self.symbol_table.get(node.name)
+        if symbol is None:
+            self.error = SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not declared")
+            return None
+
+        if not isinstance(symbol, (ClanDecNode, StringNode, str)):
+            self.error = SemanticError(node.pos_start, node.pos_end, f"Expected clan or string")
+            return None
+
+        # Determine the length based on the dimensions
+        if isinstance(symbol, ClanDecNode):
+            if symbol.size1:
+                size1, error = self.evaluate_node(symbol.size1)
+                if error:
+                    self.error = error
+                    return None
+                return size1
+            else:
+                clan_lit = symbol.initial_values
+                if not isinstance(clan_lit, ClanLiteralNode):
+                    self.error = SemanticError(node.pos_start, node.pos_end, f"Expected ClanLiteralNode for clan '{node.name}'")
+                    return None
+                if isinstance(clan_lit.values, list):
+                    return len(clan_lit.values)
+                else:
+                    return sum(1 for clan in clan_lit.values if isinstance(clan, ClanLiteralNode))
+                
+        elif isinstance(symbol, StringNode):
+            return len(StringNode.value)
+
+
         print(f"Exiting LenNode")
 
     def visit_RecallNode(self, node, parent):
@@ -1265,6 +1297,36 @@ class CodeRunner(DOMInterpreter):
                     value = recall_val
                 return value, None
             else: return None, None
+        
+        elif isinstance(node, LenNode):
+            print(f"Visiting LenNode with name: {node.name}")
+
+            # Retrieve the clan from the symbol table
+            symbol = self.symbol_table.get(node.name.name)
+            if symbol is None:
+                return None, SemanticError(node.pos_start, node.pos_end, f"'{node.name.name}' is not declared")
+
+            if not isinstance(symbol, (ClanDecNode, StringNode, str)):
+                return None, SemanticError(node.pos_start, node.pos_end, f"Expected clan or string")
+
+            # Determine the length based on the dimensions
+            if isinstance(symbol, ClanDecNode):
+                if symbol.size1:
+                    size1, error = self.evaluate_node(symbol.size1)
+                    if error:
+                        return None, error
+                    return size1, None
+                else:
+                    clan_lit = symbol.initial_values
+                    if not isinstance(clan_lit, ClanLiteralNode):
+                        return None, SemanticError(node.pos_start, node.pos_end, f"Expected ClanLiteralNode for clan '{node.name}'")
+                    if isinstance(clan_lit.values, list):
+                        return len(clan_lit.values), None
+                    else:
+                        return sum(1 for clan in clan_lit.values if isinstance(clan, ClanLiteralNode)), None
+                
+            elif isinstance(symbol, StringNode):
+                return len(StringNode.value), None
 
         elif isinstance(node, (str, int, float)):
             return node, None
