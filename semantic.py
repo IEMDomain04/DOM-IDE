@@ -118,25 +118,6 @@ class ASTNode:
                 return self.parent.children[idx + 1]
         return None
 
-    def evaluate_node(self):
-        try:
-            if isinstance(self, NumNode):
-                return self.value
-            elif isinstance(self, BinOpNode):
-                left_value = self.evaluate_node(self.left)
-                right_value = self.evaluate_node(self.right)
-                if left_value is not None and right_value is not None:
-                    try:
-                     return eval(f'{left_value} {self.op} {right_value}')
-                    except: return None
-            elif isinstance(self, UnaryOpNode):
-                if self.pre and self.op.op == '-':
-                    return -self.evaluate_node(self.expr)
-                return None
-            return None
-        except:
-            return None
-
     
 class NumNode(ASTNode): # for numbers
     def __init__(self, value, pos_start=None, pos_end=None):
@@ -414,7 +395,7 @@ class StringNode(ASTNode): # for strings
         self.value = value
 
     def __repr__(self):
-        return f'StringNode_Object'
+        return f'{self.value}'
 
 class InvokeNode(ASTNode): # for printing invoke("Hello, World!")
     def __init__(self, value=[], pos_start=None, pos_end=None):
@@ -1262,14 +1243,23 @@ class MyASTVisitor(ASTVisitor):
             self.symbol_table.set(node.name, node)  # Store the CurseDecNode object itself
         self.symbol_table.push()  # Enter new scope for function body
         self.visit_children(node)
+
+        def check_recall_recursively(node):
+            if isinstance(node, RecallNode):
+                return True
+            if hasattr(node, 'children'):
+                for child in node.children:
+                    if check_recall_recursively(child):
+                        return True
+            return False
         
         # Check for recall statement if datatype is not None or 'void'
         if node.datatype and node.datatype != 'void':
             recall_found = False
             children_copy = node.body.children[:]
+
             for child in children_copy:
-                print(f'Child Type: {type(child)}')
-                if isinstance(child, RecallNode):
+                if check_recall_recursively(child):
                     recall_found = True
                     break
             if not recall_found:
@@ -1693,12 +1683,8 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(node.condition, UnaryOpNode):
             if node.condition.op.op == '!':
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Woogie cannot be a boolean expression"))
-            pass
         else:
-            if isinstance(node.condition, (NumNode, StringNode)):
-                pass
-            else: 
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Woogie must be a valid value"))
+            pass
         self.visit_children(node)
         print(f"Exiting WoogieNode")
 
