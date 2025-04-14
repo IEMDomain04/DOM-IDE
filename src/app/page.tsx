@@ -35,27 +35,44 @@ curse domain(){
       console.log("WebSocket connection established:", socket);
     }
   }, [socket]);
-  // const router = useRouter();
+
+  const [inputPrompt, setInputPrompt] = useState<string | null>(null);
+  const pendingInputRef = useRef<{ var_name: string } | null>(null);
 
   useEffect(() => {
     const socketInstance = io(
       window.location.hostname === 'localhost'
         ? 'http://127.0.0.1:5000'
-        : '' 
+        : ''
     );
 
     setSocket(socketInstance);
 
     socketInstance.on("capture_input", (data: { var_name: string }) => {
-      const userInput = prompt(`Enter value for ${data.var_name}:`);
-      if (userInput !== null) {
-        socketInstance.emit("capture_input", { var_name: data.var_name, input: userInput });
-      }
+      setInputPrompt(`Enter value for ${data.var_name}:`);
+      pendingInputRef.current = data;
     });
+
     return () => {
       socketInstance.disconnect();
     };
   }, []);
+
+  const handleInputSubmit = (input: string) => {
+    if (socket && pendingInputRef.current) {
+      socket.emit("capture_input", {
+        var_name: pendingInputRef.current.var_name,
+        input: input
+      });
+
+      // Append to terminal output
+      setTerminalOutput(prev => prev + `\n> ${input}`);
+
+      setInputPrompt(null);
+      pendingInputRef.current = null;
+    }
+  };
+
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -72,11 +89,11 @@ curse domain(){
 
 
   const Interpreter = async () => {
-    setOutputData([]); 
-    await handleRunClick(code, setTerminalOutput); 
+    setOutputData([]);
+    setTerminalOutput(''); // Clears the terminal before running
+    await handleRunClick(code, setTerminalOutput);
   };
-
-
+  
   const SyntaxAnalyzer = async () => {
     handleSyntaxClick(code, setTerminalOutput);
   };
@@ -137,7 +154,13 @@ curse domain(){
 
         </div>
 
-        <Terminal terminalOutput={terminalOutput} isDarkMode={isDarkMode} />
+        <Terminal
+          terminalOutput={terminalOutput}
+          isDarkMode={isDarkMode}
+          onInputSubmit={handleInputSubmit}
+          inputPrompt={inputPrompt}
+        />
+
 
       </div>
 
