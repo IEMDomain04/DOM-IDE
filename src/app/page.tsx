@@ -142,7 +142,7 @@ curse domain(){
     >
       <div className="flex flex-col w-full h-full overflow-hidden bg-light-background/0 dark:bg-dark-foreground/30">
 
-        {/* 🧭 Topnav and Editor Panel */}
+        {/* Topnav and Editor Panel */}
         <div ref={divRef} className="relative w-full overflow-hidden flex-shrink-0" style={{ height: `${height}px` }}>
           <Topnav
             onRunClick={Interpreter}
@@ -157,7 +157,7 @@ curse domain(){
           <div className={`absolute bottom-0 left-0 w-full h-[6px] cursor-row-resize ${isDarkMode ? 'bg-dark-foreground' : 'bg-light-foreground'}`} onMouseDown={handleMouseDown} />
         </div>
 
-        {/* 🖥️ Terminal Panel */}
+        {/* Terminal Panel */}
         <div className="relative w-full" style={{ height: `calc(100vh - ${height}px)` }}>
           <div className={`absolute top-0 left-0 w-full h-[5px] cursor-row-resize ${isDarkMode ? 'bg-dark-foreground' : 'bg-light-foreground'} z-10`} onMouseDown={handleMouseDown} />
           <Terminal
@@ -169,7 +169,7 @@ curse domain(){
         </div>
       </div>
 
-      {/* 🧾 Token Table */}
+      {/* Token Table */}
       {outputData.length > 0 && (
         <div className="flex flex-col w-3/12 overflow-auto pt-12 max-sm:w-10/12" style={{ maxHeight: '100vh', position: 'absolute', right: 0, zIndex: 10 }}>
           <table className={`min-w-full table-fixed ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>

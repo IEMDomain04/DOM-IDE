@@ -28,7 +28,7 @@ const Terminal: React.FC<TerminalProps> = ({
   };
 
   return (
-    <main className="h-full text-sm font-mono text-white bg-transparent">
+    <main className={`h-full text-sm font-mono bg-transparent ${isDarkMode ? `text-white` : 'text-black'}`}>
       <div className="flex flex-col h-full px-4 py-2 overflow-hidden">
         <div className={`font-jujutsu font-semibold p-2 tracking-widest ${isDarkMode ? 'text-blue-400' : 'text-black'}`}>TERMINAL</div>
 
