@@ -43,11 +43,11 @@ const CustomTheme = ({ isDarkMode }: { isDarkMode: boolean }) => {
                     // Clan Curses
                     [/\b(cleave|dismantle)\b/, "curse"],
 
-                    // Comments (Everything after # is a comment)
-                    [/#.*/, "comment"],
+                    // Multi-Line Comment
+                    [/#\$/, "comment", "@multiLineComment"],
 
-                    // // Multi-Line Comment
-                    // [/#\$/, "comment", "@multiLineComment"],
+                    // Single-line comment
+                    [/#.*/, "comment"],
 
                     // Identifiers
                     [/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/, "identifier"],
@@ -59,14 +59,23 @@ const CustomTheme = ({ isDarkMode }: { isDarkMode: boolean }) => {
                     [/"/, { token: "string", next: "@string" }],
                 ],
 
+                
+                // Multi-line comment handling
+                multiLineComment: [
+                    [/[^$#]+/, "comment"],
+                    [/\$#/, "comment", "@pop"],
+                    [/[$#]/, "comment"]
+                ],
+
+
                 // String handling with escape sequences highlighting
                 string: [
-                    [/[^\\"]+/, "string"], // Match any sequence of characters except backslash (\) or double quote (")
-                    [/\\n/, "escape-sequence"], // Match newline escape sequence (\n)
-                    [/\\t/, "escape-sequence"], // Match tab escape sequence (\t)
-                    [/\\\"/, "escape-sequence"], // Match escaped double quote (\")
-                    [/\\./, "string.escape"], // Match any other escaped character (e.g., \b, \r, etc.)
-                    [/"/, "string", "@pop"] // Match closing double quote (") and exit string mode
+                    [/[^\\"]+/, "string"], 
+                    [/\\n/, "escape-sequence"], 
+                    [/\\t/, "escape-sequence"], 
+                    [/\\\"/, "escape-sequence"], 
+                    [/\\./, "string.escape"], 
+                    [/"/, "string", "@pop"] 
                 ]
 
             },
@@ -190,6 +199,11 @@ const CustomTheme = ({ isDarkMode }: { isDarkMode: boolean }) => {
 
         // Automatic pairs
         monaco.languages.setLanguageConfiguration("customLang", {
+            comments: {
+                lineComment: "#",
+                blockComment: ["#$", "$#"],
+            },
+
             autoClosingPairs: [
                 { open: "{", close: "}" },
                 { open: "(", close: ")" },
