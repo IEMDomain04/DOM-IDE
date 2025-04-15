@@ -28,31 +28,17 @@ const Terminal: React.FC<TerminalProps> = ({
   };
 
   return (
-    <main>
-      <div
-        className="w-full flex flex-col overflow-hidden text-wrap"
-        style={{ borderRight: '2px solid #131314' }}
-      >
-        <h1
-          className={`sticky top-0 py-3 px-16 z-10 ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground'}`}
-        >
-          Output and Errors
-        </h1>
+    <main className="h-full text-sm font-mono text-white bg-transparent">
+      <div className="flex flex-col h-full px-4 py-2 overflow-hidden">
+        <div className={`font-jujutsu font-semibold p-2 tracking-widest ${isDarkMode ? 'text-blue-400' : 'text-black'}`}>TERMINAL</div>
 
-        <div className="px-4 py-2 text-sm font-mono flex-1 overflow-y-auto">
-          <pre
-            className={`pb-10 ${isDarkMode ? 'text-white' : 'text-black'}`}
-            style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
-          >
-            {terminalOutput}
-          </pre>
-
-          {/* Input prompt line */}
+        <div className="flex-1 overflow-y-auto whitespace-pre-wrap">
+          <pre>{terminalOutput}</pre>
           {inputPrompt && (
             <div className="flex items-center gap-2 mt-2">
               <span className="text-green-400">{inputPrompt}</span>
               <input
-                className="bg-transparent text-white focus:outline-none px-2 py-1"
+                className="bg-transparent border-b border-gray-500 focus:outline-none px-2 py-1 w-1/2"
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
@@ -65,6 +51,7 @@ const Terminal: React.FC<TerminalProps> = ({
         </div>
       </div>
     </main>
+
   );
 };
 

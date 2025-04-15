@@ -93,7 +93,7 @@ curse domain(){
     setTerminalOutput(''); // Clears the terminal before running
     await handleRunClick(code, setTerminalOutput);
   };
-  
+
   const SyntaxAnalyzer = async () => {
     handleSyntaxClick(code, setTerminalOutput);
   };
@@ -106,7 +106,7 @@ curse domain(){
     handleTokenizerClick(code, setOutputData, setTerminalOutput);
   };
 
-  const [height, setHeight] = useState(700); // Initial height of the div
+  const [height, setHeight] = useState(400); // Initial height of the div
   const divRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<number | null>(null);
 
@@ -132,13 +132,18 @@ curse domain(){
   };
 
   return (
-    <section className={`flex w-screen h-screen ${isDarkMode ? 'dark' : ''}`} style={{ backgroundImage: `url(${isDarkMode ? '/bg-dark.png' : '/bg-light.png'})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat' }}>
-      <div className="flex flex-col w-full h-screen overflow-y-hidden">
-        <div
-          ref={divRef}
-          className="relative w-auto max-h-[40rem] min-h-[1rem] box-border flex-shrink-0 overflow-hidden responsive-container"
-          style={{ height: `${height}px` }}
-        >
+    <section
+      className={`flex w-screen h-screen font-mono ${isDarkMode ? 'dark' : ''}`}
+      style={{
+        backgroundImage: `url(${isDarkMode ? '/bg-dark.png' : '/bg-light.png'})`,
+        backgroundSize: 'cover',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      <div className="flex flex-col w-full h-full overflow-hidden bg-light-background/0 dark:bg-dark-foreground/30">
+
+        {/* 🧭 Topnav and Editor Panel */}
+        <div ref={divRef} className="relative w-full overflow-hidden flex-shrink-0" style={{ height: `${height}px` }}>
           <Topnav
             onRunClick={Interpreter}
             onTokenizerClick={Tokenizer}
@@ -148,22 +153,23 @@ curse domain(){
             isDarkMode={isDarkMode}
             codeEditorRef={codeEditorRef}
           />
-
           <CodeEditor value={code} onChange={setCode} onMount={handleEditorDidMount} isDarkMode={isDarkMode} />
-          <div className="absolute bottom-0 left-0 w-full h-[5px] cursor-row-resize bg-dark-background" onMouseDown={handleMouseDown} />
-
+          <div className={`absolute bottom-0 left-0 w-full h-[6px] cursor-row-resize ${isDarkMode ? 'bg-dark-foreground' : 'bg-light-foreground'}`} onMouseDown={handleMouseDown} />
         </div>
 
-        <Terminal
-          terminalOutput={terminalOutput}
-          isDarkMode={isDarkMode}
-          onInputSubmit={handleInputSubmit}
-          inputPrompt={inputPrompt}
-        />
-
-
+        {/* 🖥️ Terminal Panel */}
+        <div className="relative w-full" style={{ height: `calc(100vh - ${height}px)` }}>
+          <div className={`absolute top-0 left-0 w-full h-[5px] cursor-row-resize ${isDarkMode ? 'bg-dark-foreground' : 'bg-light-foreground'} z-10`} onMouseDown={handleMouseDown} />
+          <Terminal
+            terminalOutput={terminalOutput}
+            isDarkMode={isDarkMode}
+            onInputSubmit={handleInputSubmit}
+            inputPrompt={inputPrompt}
+          />
+        </div>
       </div>
 
+      {/* 🧾 Token Table */}
       {outputData.length > 0 && (
         <div className="flex flex-col w-3/12 overflow-auto pt-12 max-sm:w-10/12" style={{ maxHeight: '100vh', position: 'absolute', right: 0, zIndex: 10 }}>
           <table className={`min-w-full table-fixed ${isDarkMode ? 'bg-dark-foreground text-white' : 'bg-light-foreground text-white'}`}>
@@ -189,14 +195,8 @@ curse domain(){
           </button>
         </div>
       )}
-
-      {/* Floating Button
-      <button
-        onClick={() => router.push('/components/overview')}
-        className="fixed bottom-5 left-5 w-14 h-14 bg-gray-800 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-slate-800 hover:scale-110 active:bg-red-500 transition duration-300">
-        <h1 className="font-jujutsu">OVERVIEW</h1>
-      </button>  */}
-
     </section>
+
+
   );
 }
