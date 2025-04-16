@@ -99,7 +99,6 @@ class CodeRunner(DOMInterpreter):
         self.symbol_table = symbol_table
         self.output = []
         self.error = None
-        self.unresolved_cases = []  # List to keep track of unresolved cases
         self.socketio = socketio
         self.input_events = {}
         self.input_values = {}
@@ -212,11 +211,11 @@ class CodeRunner(DOMInterpreter):
         while true_parent and not isinstance(true_parent, (CurseDomainNode, CurseDecNode)):
             true_parent = true_parent.parent
 
-        if true_parent is None or not isinstance(true_parent, (CurseDomainNode, CurseDecNode)):
+        if true_parent is None:
             pass
         else:
             var_dec_node = self.symbol_table.get(node.name)
-            if not var_dec_node:
+            if not var_dec_node and parent is not None:
                 self.symbol_table.set(node.name, node)  # Store the VarDecNode object itself
                 var_dec_node = self.symbol_table.get(node.name)
             
@@ -522,15 +521,16 @@ class CodeRunner(DOMInterpreter):
         print(f"Visiting CurseCallNode with name: {node.name}")
         self.current_node = node
         self.current_parent = parent
+
         # Retrieve the curse declaration from the symbol table
         curse_dec_node = self.symbol_table.get(node.name)
         if curse_dec_node is None:
             self.error = SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' is not declared")
-            return
+            return None
 
         if not isinstance(curse_dec_node, CurseDecNode):
             self.error = SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a curse")
-            return
+            return None
 
         # Check if the number of arguments matches the number of parameters
         if len(node.arguments) != len(curse_dec_node.parameters):
@@ -539,61 +539,55 @@ class CodeRunner(DOMInterpreter):
                 node.pos_end,
                 f"Argument count mismatch for curse '{node.name}': expected {len(curse_dec_node.parameters)}, got {len(node.arguments)}"
             )
-            return
+            return None
 
         # Evaluate arguments and map them to parameters
-        self.symbol_table.push() # Enter new scope for curse call
+        self.symbol_table.push()  # Enter new scope for curse call
         for param, arg in zip(curse_dec_node.parameters, node.arguments):
             arg_value, error = self.evaluate_node(arg)
             if error:
                 self.error = error
-                return
+                self.symbol_table.pop()  # Exit scope on error
+                return None
 
             # Type checking
             if param.datatype == 'int' and isinstance(arg_value, float):
-                arg_value = int(arg_value) # Convert float to integer
+                arg_value = int(arg_value)  # Convert float to integer
             elif param.datatype == 'float' and isinstance(arg_value, int):
-                arg_value = float(arg_value) # Convert integer to float
+                arg_value = float(arg_value)  # Convert integer to float
             elif param.datatype != self.infer_type(arg_value):
                 self.error = SemanticError(
                     node.pos_start,
                     node.pos_end,
                     f"Type mismatch for parameter '{param.name}': expected {param.datatype}, got {self.infer_type(arg_value)}"
                 )
-                return
+                self.symbol_table.pop()  # Exit scope on error
+                return None
 
             # Add parameter to the local symbol table
             self.symbol_table.set(param.name, VarDecNode(False, param.datatype, param.name, NumNode(arg_value, None, None), param.pos_start, param.pos_end))
 
         # Execute the body of the curse
-        if curse_dec_node.datatype is None:
-            try:
-                self.visit(curse_dec_node.body, curse_dec_node)
-            except ReturnException:
-                return
-        else:
-            recall_val = None
-            try:
-                recall_val, error = self.visit(curse_dec_node.body, curse_dec_node)
-                if error:
-                    self.error = error
-                    return
-            except ReturnException as e:
-                recall_val = e.value
+        recall_val = None
+        try:
+            self.visit(curse_dec_node.body, curse_dec_node)
+        except ReturnException as e:
+            recall_val = e.value
 
-            if recall_val is not None:
-                        if isinstance(recall_val, NumNode):
-                            value = recall_val.value
-                        elif isinstance(recall_val, StringNode):
-                            value = recall_val.value
-                        elif isinstance(recall_val, BoolNode):
-                            value = recall_val.value
-                        else:
-                            value = recall_val
-                        return value
+        self.symbol_table.pop()  # Exit the scope after the curse call
 
-        print(f"Exiting CurseCallNode")
-
+        # Return the value from the recall statement
+        if recall_val is not None:
+            if isinstance(recall_val, NumNode):
+                return recall_val.value
+            elif isinstance(recall_val, StringNode):
+                return recall_val.value
+            elif isinstance(recall_val, BoolNode):
+                return recall_val.value
+            else:
+                if isinstance(recall_val, (int, float, str, bool)):
+                    return recall_val
+        return
 
     def visit_InvokeNode(self, node, parent):
         print(f"Visiting InvokeNode")
@@ -732,7 +726,8 @@ class CodeRunner(DOMInterpreter):
             value, error = self.evaluate_node(node.value)
             if error:
                 self.error = error
-                return None, error
+                return
+        print(f'\n\n\nRECALL VALUE: {value}\nRAISING ReturnException with Value: {value}\n\n\n') 
         raise ReturnException(value)  # Raise ReturnException to return a value from the curse
 
     
@@ -758,45 +753,33 @@ class CodeRunner(DOMInterpreter):
             return
 
         if condition_value:
-            try:
-                self.visit(node.body, node)
-            except ReturnException as e:
-                raise ReturnException(e.value)
+            print(f'Vow Condition True, executing body')
+            self.visit_children(node.body)
+            return
         else:
             for else_vow in node.else_vows:
                 else_condition_value, error = self.evaluate_node(else_vow.condition)
                 if error:
                     self.error = error
                     return
+                print(f'Else Vow Condition True: executing body')
 
                 if else_condition_value:
-                    try:
-                        self.visit(else_vow.body, node)
-                        return
-                    except ReturnException as e:
-                        raise ReturnException(e.value)
+                    self.visit(else_vow.body)
+                    return
             else:
                 if node.else_body:
-                    try:
-                        self.visit(node.else_body, node)
-                    except ReturnException as e:
-                        raise ReturnException(e.value)
+                    print(f'No condition was true, executing else body')
+                    self.visit(node.else_body.body)
+                    return
 
         print(f"Exiting VowNode")
 
     def visit_ElseVow(self, node, parent):
-        print(f"Visiting ElseVow")
-        self.current_node = node
-        self.current_parent = parent
-        self.visit_children(node)
-        print(f"Exiting ElseVow")
+        pass
 
     def visit_ElseNode(self, node, parent):
-        print(f"Visiting ElseNode")
-        self.current_node = node
-        self.current_parent = parent
-        self.visit_children(node)
-        print(f"Exiting ElseNode")
+        pass
 
     def visit_BoogieNode(self, node, parent):
         print(f"Visiting BoogieNode")
@@ -1275,28 +1258,31 @@ class CodeRunner(DOMInterpreter):
                     return None, None
 
                 # Add parameter to the local symbol table
-                self.symbol_table.set(param.name, VarDecNode(False, param.datatype, param.name, NumNode(arg_value, None, None), param.pos_start, param.pos_end))
+                self.symbol_table.set_local(param.name, VarDecNode(False, param.datatype, param.name, NumNode(arg_value, None, None), param.pos_start, param.pos_end))
 
             # Execute the body of the curse
             if curse_dec_node.datatype is None:
                 self.visit(curse_dec_node.body, curse_dec_node)
+                self.symbol_table.pop()
             else:
+                recall_val = None
                 try: 
                     self.visit(curse_dec_node.body, curse_dec_node)
                 except ReturnException as e:
                     recall_val = e.value
-                
-            if recall_val is not None:
-                if isinstance(recall_val, NumNode):
-                    value = recall_val.value
-                elif isinstance(recall_val, StringNode):
-                    value = recall_val.value
-                elif isinstance(recall_val, BoolNode):
-                    value = recall_val.value
-                else:
-                    value = recall_val
-                return value, None
-            else: return None, None
+                self.symbol_table.pop()
+                print(f'\n\n\nEVALUATE CURSECALL RECALL VALUE: {recall_val}\n\n\n')
+                if recall_val is not None:
+                    if isinstance(recall_val, NumNode):
+                        value = recall_val.value
+                    elif isinstance(recall_val, StringNode):
+                        value = recall_val.value
+                    elif isinstance(recall_val, BoolNode):
+                        value = recall_val.value
+                    else:
+                        value = recall_val
+                    return value, None
+                else: return None, RTError(node.pos_start, node.pos_end, f"Curse '{node.name}' did not return a value 456")
         
         elif isinstance(node, LenNode):
             print(f"Visiting LenNode with name: {node.name}")
@@ -1330,7 +1316,8 @@ class CodeRunner(DOMInterpreter):
 
         elif isinstance(node, (str, int, float)):
             return node, None
-        return None, None
+        else:
+            return None, SemanticError(node.pos_start, node.pos_end, f"Unknown node type: {type(node)}")
         
 def interpreter_run(ast, symbol_table, socketio=None):
     runner = CodeRunner(symbol_table, socketio=socketio)

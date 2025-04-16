@@ -76,12 +76,14 @@ def run_interpreter():
     syntax_result, syntax_error = syntax(tokens)
     if syntax_error:
         error_messages = f"{syntax_error.as_string()}"
-        error_pos = {'idx': syntax_error.idx, 'ln': syntax_error.ln, 'col': syntax_error.col}
+        error_pos = {'idx_start': syntax_error.pos_start.idx, 'ln_start': syntax_error.pos_start.ln, 'col_start': syntax_error.pos_start.col,
+                        'idx_end': syntax_error.pos_end.idx, 'ln_end': syntax_error.pos_end.ln, 'col_end': syntax_error.pos_end.col}
         return jsonify({'result': "Error: Failure from Interpreter\nFile: <stdin>, Message: Check syntax analysis.", 'error': error_messages, 'error_pos': error_pos})
     ast, semantic_errors, tree_str, symbol_table = semantic(tokens)
     if semantic_errors:  
         error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(semantic_errors)]
-        error_pos = [{'idx': error.idx, 'ln': error.ln, 'col': error.col} for error in semantic_errors]
+        error_pos = [{'idx_start': error.pos_start.idx, 'ln_start': error.pos_start.ln, 'col_start': error.pos_start.col,
+                        'idx_end': error.pos_end.idx, 'ln_end': error.pos_end.ln, 'col_end': error.pos_end.col} for error in semantic_errors]
         return jsonify({'result': "Error: Failure from Interpreter", 'error': error_messages, 'error_pos': error_pos})
     if ast:
         global runner

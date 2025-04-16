@@ -2576,6 +2576,10 @@ class SymbolTable:
             self.scopes.append({})  # Ensure at least one scope exists
         self.scopes[-1][name] = value
         print(f"Id '{name}' added to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
+
+    def set_local(self, name, value):
+        self.scopes[-1][name] = value
+        print(f"Id '{name}' added to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
 # Parser Class
 ###################
 class Parser:
