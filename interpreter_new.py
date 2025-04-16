@@ -1,4 +1,4 @@
-import threading, copy
+import threading
 
 from semantic import (
     NumNode, DatatypeNode, StringNode, BoolNode, NullNode, ExponentNode, BinOpNode, 
@@ -527,29 +527,74 @@ class CodeRunner(DOMInterpreter):
             self.error = SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' is not declared")
             return None
 
+        if not isinstance(curse_dec_node, CurseDecNode):
+            self.error = SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a curse")
+            return None
+
+        # Check if the number of arguments matches the number of parameters
+        if len(node.arguments) != len(curse_dec_node.parameters):
+            self.error = SemanticError(
+                node.pos_start,
+                node.pos_end,
+                f"Argument count mismatch for curse '{node.name}': expected {len(curse_dec_node.parameters)}, got {len(node.arguments)}"
+            )
+            return None
+
         # Evaluate arguments and map them to parameters
         self.symbol_table.push()  # Enter new scope for curse call
-        try:
-            for param, arg in zip(curse_dec_node.parameters, node.arguments):
-                arg_value, error = self.evaluate_node(arg)
-                if error:
-                    self.error = error
-                    return None
+        for param, arg in zip(curse_dec_node.parameters, node.arguments):
+            arg_value, error = self.evaluate_node(arg)
+            if error:
+                self.error = error
+                self.symbol_table.pop()  # Exit scope on error
+                return None
 
-                print(f"Parameter '{param.name}' set to: {arg_value}")
-                self.symbol_table.set(param.name, VarDecNode(False, param.datatype, param.name, NumNode(arg_value, None, None), param.pos_start, param.pos_end))
+            # Type checking
+            if param.datatype == 'int' and isinstance(arg_value, float):
+                arg_value = int(arg_value)  # Convert float to integer
+            elif param.datatype == 'float' and isinstance(arg_value, int):
+                arg_value = float(arg_value)  # Convert integer to float
+            elif param.datatype != self.infer_type(arg_value):
+                self.error = SemanticError(
+                    node.pos_start,
+                    node.pos_end,
+                    f"Type mismatch for parameter '{param.name}': expected {param.datatype}, got {self.infer_type(arg_value)}"
+                )
+                self.symbol_table.pop()  # Exit scope on error
+                return None
 
-            # Execute the body of the curse
+            # Add parameter to the local symbol table
+            self.symbol_table.set(param.name, VarDecNode(False, param.datatype, param.name, NumNode(arg_value, None, None), param.pos_start, param.pos_end))
+
+        # Execute the body of the curse
+        if curse_dec_node.datatype is None:
+            try:
+                self.visit(curse_dec_node.body, curse_dec_node)
+                self.symbol_table.pop()  
+            except ReturnException:
+                self.symbol_table.pop()
+                return
+        else:
             recall_val = None
             try:
                 self.visit(curse_dec_node.body, curse_dec_node)
             except ReturnException as e:
                 recall_val = e.value
 
-            print(f"Returning value from curse '{node.name}': {recall_val}")
-            return recall_val
-        finally:
             self.symbol_table.pop()  # Exit the scope after the curse call
+
+            # Return the value from the recall statement
+            if recall_val is not None:
+                if isinstance(recall_val, NumNode):
+                    return recall_val.value
+                elif isinstance(recall_val, StringNode):
+                    return recall_val.value
+                elif isinstance(recall_val, BoolNode):
+                    return recall_val.value
+                else:
+                    if isinstance(recall_val, (int, float, str, bool)):
+                        return recall_val
+            return recall_val
 
     def visit_InvokeNode(self, node, parent):
         print(f"Visiting InvokeNode")
@@ -710,10 +755,9 @@ class CodeRunner(DOMInterpreter):
             self.error = error
             return
 
-        print(f"Vow condition evaluated to: {condition_value}")
         if condition_value:
             print(f'Vow Condition True, executing body')
-            self.visit(node.body, node)
+            self.visit_children(node.body)
             return
         else:
             for else_vow in node.else_vows:
@@ -722,15 +766,14 @@ class CodeRunner(DOMInterpreter):
                     self.error = error
                     return
 
-                print(f"Else Vow condition evaluated to: {else_condition_value}")
                 if else_condition_value:
                     print(f'Else Vow Condition True: executing body')
-                    self.visit(else_vow.body, else_vow)
+                    self.visit(else_vow.body)
                     return
             else:
                 if node.else_body:
                     print(f'No condition was true, executing else body')
-                    self.visit(node.else_body.body, node.else_body)
+                    self.visit(node.else_body.body)
                     return
 
         print(f"Exiting VowNode")
@@ -1004,43 +1047,30 @@ class CodeRunner(DOMInterpreter):
             return value, None
 
         elif isinstance(node, (BinOpNode, RelOpNode, LogOpNode)):
-            original_scopes = copy.deepcopy(self.symbol_table.scopes)
-            
-            # Evaluate left side
             left_value, error = self.evaluate_node(node.left)
             if error:
                 return None, error
-            
-            # FULL RESTORATION of original state before right side evaluation
-            self.symbol_table.scopes = copy.deepcopy(original_scopes)
-
             right_value, error = self.evaluate_node(node.right)
             if error:
                 return None, error
-
+            
             if isinstance(left_value, NumNode):
                 left_value = left_value.value
             if isinstance(right_value, NumNode):
                 right_value = right_value.value
-
+            
             try:
                 if left_value is not None and right_value is not None:
                     if node.op == '+':
                         return left_value + right_value, None
                     elif node.op == '-':
-                        result = left_value - right_value
-                        print(f"Evaluating subtraction: {left_value} - {right_value} = {result}")
-                        return result, None
+                        return left_value - right_value, None
                     elif node.op == '*':
                         return left_value * right_value, None
                     elif node.op == '/':
-                        if right_value == 0:
-                            return None, RTError(node.pos_start, node.pos_end, "Division by zero")
                         return left_value / right_value, None
                     elif node.op == '%':
                         return left_value % right_value, None
-                    elif node.op == '**':
-                        return left_value ** right_value, None
                     elif node.op == '==':
                         return left_value == right_value, None
                     elif node.op == '!=':
@@ -1057,10 +1087,10 @@ class CodeRunner(DOMInterpreter):
                         return left_value and right_value, None
                     elif node.op == '||':
                         return left_value or right_value, None
-                    else:
-                        return None, RTError(node.pos_start, node.pos_end, f"Unknown operator '{node.op}'")
-            except Exception as e:
-                return None, RTError(node.pos_start, node.pos_end, f"Error during operation '{node.op}': {str(e)}")
+            except ZeroDivisionError:
+                return None, RTError(node.pos_start, node.pos_end, f'Division by Zero')
+            except: 
+                return None, RTError(node.pos_start, node.pos_end, f'Invalid operation: {node.op}')
         
         elif isinstance(node, UnaryOpNode):
             if node.op.op == '-' and node.pre is True:

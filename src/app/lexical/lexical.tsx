@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { Console } from 'console';
 
 interface Token {
   lexeme: string;
