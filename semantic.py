@@ -2542,7 +2542,7 @@ class SymbolTable:
         # Search from innermost to outermost scope
         for scope in reversed(self.scopes):
             if name in scope:
-                print(f"Found name '{name}' in scope {scope}!")
+                print(f"Found variable '{name}' in scope {scope}")
                 return scope[name]  # Return the actual object stored
         return None
     
@@ -2558,7 +2558,7 @@ class SymbolTable:
         # Search from innermost to outermost scope
         for scope in reversed(self.scopes):
             if name in scope:
-                print(f"Found name type '{name}' in scope {scope}!")
+                print(f"Found variable datype '{name}' in scope {scope}")
                 return scope[name].datatype if hasattr(scope[name], 'datatype') else scope[name]
         print(f"'{name}' not found in any scope, get_type returns None")
         return None
@@ -2574,6 +2574,10 @@ class SymbolTable:
         # If the name does not exist in any scope, add it to the innermost scope
         if not self.scopes:
             self.scopes.append({})  # Ensure at least one scope exists
+        self.scopes[-1][name] = value
+        print(f"Id '{name}' added to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
+
+    def set_local(self, name, value):
         self.scopes[-1][name] = value
         print(f"Id '{name}' added to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
 # Parser Class

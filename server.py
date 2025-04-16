@@ -18,9 +18,13 @@ def run_lexer():
     tokens, errors = lexer(text)  # Call run with text and default fn
     if errors:  
         error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
-        print(f"{error_messages}\n\n")  # Print the errors for debugging
+        error_pos = [{'idx_start': error.pos_start.idx, 'ln_start': error.pos_start.ln, 'col_start': error.pos_start.col,
+                      'idx_end': error.pos_end.idx, 'ln_end': error.pos_end.ln, 'col_end': error.pos_end.col} for error in errors]
+        error_pos = [{'idx_start': error.pos_start.idx, 'ln_start': error.pos_start.ln, 'col_start': error.pos_start.col,
+                      'idx_end': error.pos_end.idx, 'ln_end': error.pos_end.ln, 'col_end': error.pos_end.col} for error in errors]
         token_list = [{'type': token.type, 'value': token.value} for token in tokens]
-        return jsonify({'tokens': token_list, 'errors': error_messages})
+        return jsonify({'tokens': token_list, 'errors': error_messages, 'error_pos': error_pos})
+        return jsonify({'tokens': token_list, 'errors': error_messages, 'error_pos': error_pos})
     token_list = [{'type': token.type, 'value': token.value} for token in tokens]
     return jsonify({'tokens': token_list})
 
@@ -34,7 +38,9 @@ def run_syntax():
     syntax_result, syntax_error = syntax(tokens)
     if syntax_error:
         syntax_error_message = f"{syntax_error.as_string()}"
-        return jsonify({'result': syntax_result, 'error': syntax_error_message})
+        error_pos = {'idx_start': syntax_error.pos_start.idx, 'ln_start': syntax_error.pos_start.ln, 'col_start': syntax_error.pos_start.col,
+                     'idx_end': syntax_error.pos_end.idx, 'ln_end': syntax_error.pos_end.ln, 'col_end': syntax_error.pos_end.col}
+        return jsonify({'result': syntax_result, 'error': syntax_error_message, 'error_pos': error_pos})
     return jsonify({'result': syntax_result, 'error': None})
 
 @app.route('/api/semantic', methods=['POST'])
@@ -52,7 +58,9 @@ def run_semantic():
     ast, errors, tree_str, symbol_table = semantic(tokens)
     if errors:  
         error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
-        return jsonify({'semantic_result': "AST Building Failed", 'errors': error_messages, 'tree_str': tree_str})
+        error_pos = [{'idx_start': error.pos_start.idx, 'ln_start': error.pos_start.ln, 'col_start': error.pos_start.col,
+                      'idx_end': error.pos_end.idx, 'ln_end': error.pos_end.ln, 'col_end': error.pos_end.col} for error in errors]
+        return jsonify({'semantic_result': "AST Building Failed", 'errors': error_messages, 'tree_str': tree_str, 'error_pos': error_pos})
     
     if ast:
         return jsonify({'semantic_result': "Successful from Semantic Analyzer", 'errors': None, 'tree_str': tree_str})
@@ -67,11 +75,16 @@ def run_interpreter():
         return jsonify({'result': "Error: Failure from Interpreter\nFile: <stdin>, Message: Check lexical analysis.", 'error': None})
     syntax_result, syntax_error = syntax(tokens)
     if syntax_error:
-        return jsonify({'result': "Error: Failure from Interpreter\nFile: <stdin>, Message: Check syntax analysis.", 'error': None})
+        error_messages = f"{syntax_error.as_string()}"
+        error_pos = {'idx_start': syntax_error.pos_start.idx, 'ln_start': syntax_error.pos_start.ln, 'col_start': syntax_error.pos_start.col,
+                        'idx_end': syntax_error.pos_end.idx, 'ln_end': syntax_error.pos_end.ln, 'col_end': syntax_error.pos_end.col}
+        return jsonify({'result': "Error: Failure from Interpreter\nFile: <stdin>, Message: Check syntax analysis.", 'error': error_messages, 'error_pos': error_pos})
     ast, semantic_errors, tree_str, symbol_table = semantic(tokens)
     if semantic_errors:  
         error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(semantic_errors)]
-        return jsonify({'result': "Error: Failure from Interpreter", 'error': error_messages})
+        error_pos = [{'idx_start': error.pos_start.idx, 'ln_start': error.pos_start.ln, 'col_start': error.pos_start.col,
+                        'idx_end': error.pos_end.idx, 'ln_end': error.pos_end.ln, 'col_end': error.pos_end.col} for error in semantic_errors]
+        return jsonify({'result': "Error: Failure from Interpreter", 'error': error_messages, 'error_pos': error_pos})
     if ast:
         global runner
         runner = CodeRunner(symbol_table, socketio=socketio) 
@@ -80,7 +93,9 @@ def run_interpreter():
         error = runner.error
         if error:
             error_message = [f"Error: {error.as_string()}\n"]
-            return jsonify({'result': output, 'error': error_message})
+            error_pos = {'idx_start': error.pos_start.idx, 'ln_start': error.pos_start.ln, 'col_start': error.pos_start.col,
+                            'idx_end': error.pos_end.idx, 'ln_end': error.pos_end.ln, 'col_end': error.pos_end.col}
+            return jsonify({'result': output, 'error': error_message, 'error_pos': error_pos})
         if output:
             output_messages = "".join(output)
             return jsonify({'result': output_messages, 'error': None})
