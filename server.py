@@ -20,7 +20,10 @@ def run_lexer():
         error_messages = [f"Error {i+1}: {error.as_string()}\n" for i, error in enumerate(errors)]
         error_pos = [{'idx_start': error.pos_start.idx, 'ln_start': error.pos_start.ln, 'col_start': error.pos_start.col,
                       'idx_end': error.pos_end.idx, 'ln_end': error.pos_end.ln, 'col_end': error.pos_end.col} for error in errors]
+        error_pos = [{'idx_start': error.pos_start.idx, 'ln_start': error.pos_start.ln, 'col_start': error.pos_start.col,
+                      'idx_end': error.pos_end.idx, 'ln_end': error.pos_end.ln, 'col_end': error.pos_end.col} for error in errors]
         token_list = [{'type': token.type, 'value': token.value} for token in tokens]
+        return jsonify({'tokens': token_list, 'errors': error_messages, 'error_pos': error_pos})
         return jsonify({'tokens': token_list, 'errors': error_messages, 'error_pos': error_pos})
     token_list = [{'type': token.type, 'value': token.value} for token in tokens]
     return jsonify({'tokens': token_list})
