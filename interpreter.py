@@ -457,10 +457,12 @@ class CodeRunner(DOMInterpreter):
                 value = float(value)
             elif clan.datatype != self.infer_type(value):
                 self.error = SemanticError(node.pos_start, node.pos_end, f"Type mismatch: expected {clan.datatype}, got {self.infer_type(value)}")
-
+                return
             try:
+                print(f'BEFORE UPDATING CLAN AT [{index1}] VALUE: {clan.initial_values.values[index1]}')
                 clan.initial_values.values[index1] = value
                 print(f"Updated clan '{node.name}' at [{index1}] with value: {value}")
+                print(f'AFTER UPDATING CLAN AT [{index1}] VALUE: {clan.initial_values.values[index1]}')
             except IndexError:
                 self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid access at [{index1}] for clan '{node.name}'")
 
@@ -526,6 +528,9 @@ class CodeRunner(DOMInterpreter):
         if curse_dec_node is None:
             self.error = SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' is not declared")
             return None
+        
+        if curse_dec_node.datatype is not None:
+            return # early return because this visit method is for void curse calls only so if it has a datatype, just ignore.
 
         # Evaluate arguments and map them to parameters
         self.symbol_table.push()  # Enter new scope for curse call
@@ -539,15 +544,8 @@ class CodeRunner(DOMInterpreter):
                 print(f"Parameter '{param.name}' set to: {arg_value}")
                 self.symbol_table.set(param.name, VarDecNode(False, param.datatype, param.name, NumNode(arg_value, None, None), param.pos_start, param.pos_end))
 
-            # Execute the body of the curse
-            recall_val = None
-            try:
-                self.visit(curse_dec_node.body, curse_dec_node)
-            except ReturnException as e:
-                recall_val = e.value
-
-            print(f"Returning value from curse '{node.name}': {recall_val}")
-            return recall_val
+            self.visit(curse_dec_node.body, curse_dec_node)
+            return
         finally:
             self.symbol_table.pop()  # Exit the scope after the curse call
 
@@ -913,6 +911,7 @@ class CodeRunner(DOMInterpreter):
 
     def resume_execution(self):
         self.visit(self.current_node, self.current_parent)
+
     def infer_type(self, node):
         if isinstance(node, NumNode):
             return 'int' if isinstance(node.value, int) else 'float'
@@ -1004,19 +1003,35 @@ class CodeRunner(DOMInterpreter):
             return value, None
 
         elif isinstance(node, (BinOpNode, RelOpNode, LogOpNode)):
-            original_scopes = copy.deepcopy(self.symbol_table.scopes)
+            # Check if this is inside a recursive function call
+            inside_recursion = False
+            true_parent = node.parent
+            while true_parent and hasattr(true_parent, 'parent'):
+                if isinstance(true_parent, CurseDecNode) and hasattr(node, 'left') and hasattr(node, 'right'):
+                    # Check if either side contains a recursive call to the same function
+                    if isinstance(node.left, CurseCallNode) and isinstance(node.right, CurseCallNode):
+                        # If both sides call functions, we need isolation
+                        inside_recursion = True
+                        break
+                true_parent = true_parent.parent
+
+            # Only make a copy of scopes if we're in a recursive context
+            if inside_recursion:
+                original_scopes = copy.deepcopy(self.symbol_table.scopes)
             
             # Evaluate left side
             left_value, error = self.evaluate_node(node.left)
             if error:
                 return None, error
             
-            # FULL RESTORATION of original state before right side evaluation
-            self.symbol_table.scopes = copy.deepcopy(original_scopes)
+            # Only restore scopes if needed
+            if inside_recursion:
+                self.symbol_table.scopes = copy.deepcopy(original_scopes)
 
             right_value, error = self.evaluate_node(node.right)
             if error:
                 return None, error
+
 
             if isinstance(left_value, NumNode):
                 left_value = left_value.value
@@ -1249,7 +1264,7 @@ class CodeRunner(DOMInterpreter):
                     else:
                         value = recall_val
                     return value, None
-                else: return None, RTError(node.pos_start, node.pos_end, f"Curse '{node.name}' did not return a value 456")
+                else: return None, RTError(node.pos_start, node.pos_end, f"Curse '{node.name}' did not return a value")
         
         elif isinstance(node, LenNode):
             print(f"Visiting LenNode with name: {node.name}")

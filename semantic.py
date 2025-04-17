@@ -633,11 +633,10 @@ class MyASTVisitor(ASTVisitor):
 
         if left_type != right_type:
             if (left_type == 'string' and right_type in ['int', 'float']) or (right_type == 'string' and left_type in ['int', 'float']):
-                true_parent = parent
-                while true_parent.parent and not isinstance(true_parent, InvokeNode):
-                    true_parent = true_parent.parent
-                if not isinstance(true_parent, InvokeNode):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 1: Cannot concatenate '{left_type}' and '{right_type}'"))
+                if node.op == '+':
+                    pass
+                else:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform operation '{node.op}' between string and {right_type}"))
             else:
                 if isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
                     self.unresolved_cases.append((node, parent))
@@ -713,8 +712,11 @@ class MyASTVisitor(ASTVisitor):
                     parent_function = parent_function.parent
                 else:
                     break
-            if isinstance(parent_function, CurseDecNode) and parent_function.datatype != binop_type:
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 3: Expected '{parent_function.datatype}', got '{binop_type}'"))
+            if isinstance(parent_function, CurseDecNode) and parent_function.datatype == 'string':
+                pass
+            else:
+                if isinstance(parent_function, CurseDecNode) and parent_function.datatype != binop_type:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 3: Expected '{parent_function.datatype}', got '{binop_type}'"))
         elif isinstance(binop_parent, (CycleConditionNode)):
             if binop_type == 'unknown':
                 pass
@@ -1501,8 +1503,11 @@ class MyASTVisitor(ASTVisitor):
                     if symbol_type == 'unknown':
                         self.unresolved_cases.append((node, parent))
                     else: 
-                        if true_parent.datatype != symbol_type:
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 18: Expected '{true_parent.datatype}', got '{symbol_type}'"))
+                        if true_parent.datatype == 'string' or symbol_type == 'string':
+                            pass
+                        else:
+                            if true_parent.datatype != symbol_type:
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 18: Expected '{true_parent.datatype}', got '{symbol_type}'"))
                 else:
                     return_type = self.infer_type(node.value)
                     
