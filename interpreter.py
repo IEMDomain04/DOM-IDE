@@ -457,10 +457,12 @@ class CodeRunner(DOMInterpreter):
                 value = float(value)
             elif clan.datatype != self.infer_type(value):
                 self.error = SemanticError(node.pos_start, node.pos_end, f"Type mismatch: expected {clan.datatype}, got {self.infer_type(value)}")
-
+                return
             try:
+                print(f'BEFORE UPDATING CLAN AT [{index1}] VALUE: {clan.initial_values.values[index1]}')
                 clan.initial_values.values[index1] = value
                 print(f"Updated clan '{node.name}' at [{index1}] with value: {value}")
+                print(f'AFTER UPDATING CLAN AT [{index1}] VALUE: {clan.initial_values.values[index1]}')
             except IndexError:
                 self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid access at [{index1}] for clan '{node.name}'")
 
@@ -526,6 +528,9 @@ class CodeRunner(DOMInterpreter):
         if curse_dec_node is None:
             self.error = SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' is not declared")
             return None
+        
+        if curse_dec_node.datatype is not None:
+            return # early return because this visit method is for void curse calls only so if it has a datatype, just ignore.
 
         # Evaluate arguments and map them to parameters
         self.symbol_table.push()  # Enter new scope for curse call
@@ -539,15 +544,11 @@ class CodeRunner(DOMInterpreter):
                 print(f"Parameter '{param.name}' set to: {arg_value}")
                 self.symbol_table.set(param.name, VarDecNode(False, param.datatype, param.name, NumNode(arg_value, None, None), param.pos_start, param.pos_end))
 
-            # Execute the body of the curse
-            recall_val = None
-            try:
-                self.visit(curse_dec_node.body, curse_dec_node)
-            except ReturnException as e:
-                recall_val = e.value
-
-            print(f"Returning value from curse '{node.name}': {recall_val}")
-            return recall_val
+            self.visit(curse_dec_node.body, curse_dec_node)
+            return
+        except RecursionError:
+            self.error = SemanticError(node.pos_start, node.pos_end, f"Recursion limit exceeded in curse '{node.name}'")
+            return
         finally:
             self.symbol_table.pop()  # Exit the scope after the curse call
 
@@ -625,56 +626,17 @@ class CodeRunner(DOMInterpreter):
             var_symbol_copy = VarDecNode(False, var_symbol.datatype, var_symbol.name, user_input, var_symbol.pos_start, var_symbol.pos_end)
             self.symbol_table.set(var_name, var_symbol_copy) 
             self.processed_capture_nodes.add(node.name.name)  # flag this node as processed
-            print(f'\n\nNEW PROCESSED CAPTURE NODES: {self.processed_capture_nodes}\n\n')
+            
     def visit_CleaveNode(self, node, parent):
-        print(f"Visiting CleaveNode with name: {node.name}")
-        self.current_node = node
-        self.current_parent = parent
-        self.visit_children(node)
+        print(f"Visiting CleaveNode with arg: {node.arg1}")
         print(f"Exiting CleaveNode")
 
     def visit_DismantleNode(self, node, parent):
         print(f"Visiting DismantleNode with name: {node.name}")
-        self.current_node = node
-        self.current_parent = parent
-        self.visit_children(node)
         print(f"Exiting DismantleNode")
 
     def visit_LenNode(self, node, parent):
         print(f"Visiting LenNode with name: {node.name}")
-        self.current_node = node
-        self.current_parent = parent
-
-        # Retrieve the clan from the symbol table
-        symbol = self.symbol_table.get(node.name)
-        if symbol is None:
-            self.error = SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not declared")
-            return None
-
-        if not isinstance(symbol, (ClanDecNode, StringNode, str)):
-            self.error = SemanticError(node.pos_start, node.pos_end, f"Expected clan or string")
-            return None
-
-        # Determine the length based on the dimensions
-        if isinstance(symbol, ClanDecNode):
-            if symbol.size1:
-                size1, error = self.evaluate_node(symbol.size1)
-                if error:
-                    self.error = error
-                    return None
-                return size1
-            else:
-                clan_lit = symbol.initial_values
-                if not isinstance(clan_lit, ClanLiteralNode):
-                    self.error = SemanticError(node.pos_start, node.pos_end, f"Expected ClanLiteralNode for clan '{node.name}'")
-                    return None
-                if isinstance(clan_lit.values, list):
-                    return len(clan_lit.values)
-                else:
-                    return sum(1 for clan in clan_lit.values if isinstance(clan, ClanLiteralNode))
-                
-        elif isinstance(symbol, StringNode):
-            return len(StringNode.value)
         print(f"Exiting LenNode")
 
     def visit_RecallNode(self, node, parent):
@@ -913,6 +875,7 @@ class CodeRunner(DOMInterpreter):
 
     def resume_execution(self):
         self.visit(self.current_node, self.current_parent)
+
     def infer_type(self, node):
         if isinstance(node, NumNode):
             return 'int' if isinstance(node.value, int) else 'float'
@@ -1003,64 +966,81 @@ class CodeRunner(DOMInterpreter):
 
             return value, None
 
-        elif isinstance(node, (BinOpNode, RelOpNode, LogOpNode)):
-            original_scopes = copy.deepcopy(self.symbol_table.scopes)
+        elif isinstance(node, (BinOpNode, RelOpNode, LogOpNode, ExponentNode)):
+            # Check if this is inside a recursive function call
+            inside_recursion = False
+            true_parent = node.parent
+            while true_parent and hasattr(true_parent, 'parent'):
+                if isinstance(true_parent, CurseDecNode) and hasattr(node, 'left') and hasattr(node, 'right'):
+                    # Check if either side contains a recursive call to the same function
+                    if isinstance(node.left, CurseCallNode) and isinstance(node.right, CurseCallNode):
+                        # If both sides call functions, we need isolation
+                        inside_recursion = True
+                        break
+                true_parent = true_parent.parent
+
+            # Only make a copy of scopes if we're in a recursive context
+            if inside_recursion:
+                original_scopes = copy.deepcopy(self.symbol_table.scopes)
             
             # Evaluate left side
             left_value, error = self.evaluate_node(node.left)
             if error:
                 return None, error
             
-            # FULL RESTORATION of original state before right side evaluation
-            self.symbol_table.scopes = copy.deepcopy(original_scopes)
+            # Only restore scopes if needed
+            if inside_recursion:
+                self.symbol_table.scopes = copy.deepcopy(original_scopes)
 
             right_value, error = self.evaluate_node(node.right)
             if error:
                 return None, error
 
+
             if isinstance(left_value, NumNode):
                 left_value = left_value.value
             if isinstance(right_value, NumNode):
                 right_value = right_value.value
-
-            try:
-                if left_value is not None and right_value is not None:
-                    if node.op == '+':
-                        return left_value + right_value, None
-                    elif node.op == '-':
-                        result = left_value - right_value
-                        print(f"Evaluating subtraction: {left_value} - {right_value} = {result}")
-                        return result, None
-                    elif node.op == '*':
-                        return left_value * right_value, None
-                    elif node.op == '/':
-                        if right_value == 0:
-                            return None, RTError(node.pos_start, node.pos_end, "Division by zero")
-                        return left_value / right_value, None
-                    elif node.op == '%':
-                        return left_value % right_value, None
-                    elif node.op == '**':
-                        return left_value ** right_value, None
-                    elif node.op == '==':
-                        return left_value == right_value, None
-                    elif node.op == '!=':
-                        return left_value != right_value, None
-                    elif node.op == '<':
-                        return left_value < right_value, None
-                    elif node.op == '>':
-                        return left_value > right_value, None
-                    elif node.op == '<=':
-                        return left_value <= right_value, None
-                    elif node.op == '>=':
-                        return left_value >= right_value, None
-                    elif node.op == '&&':
-                        return left_value and right_value, None
-                    elif node.op == '||':
-                        return left_value or right_value, None
-                    else:
-                        return None, RTError(node.pos_start, node.pos_end, f"Unknown operator '{node.op}'")
-            except Exception as e:
-                return None, RTError(node.pos_start, node.pos_end, f"Error during operation '{node.op}': {str(e)}")
+            
+            if not isinstance(node, ExponentNode):
+                try:
+                    if left_value is not None and right_value is not None:
+                        if node.op == '+':
+                            return left_value + right_value, None
+                        elif node.op == '-':
+                            result = left_value - right_value
+                            print(f"Evaluating subtraction: {left_value} - {right_value} = {result}")
+                            return result, None
+                        elif node.op == '*':
+                            return left_value * right_value, None
+                        elif node.op == '/':
+                            if right_value == 0:
+                                return None, RTError(node.pos_start, node.pos_end, "Division by zero")
+                            return left_value / right_value, None
+                        elif node.op == '%':
+                            return left_value % right_value, None
+                        elif node.op == '==':
+                            return left_value == right_value, None
+                        elif node.op == '!=':
+                            return left_value != right_value, None
+                        elif node.op == '<':
+                            return left_value < right_value, None
+                        elif node.op == '>':
+                            return left_value > right_value, None
+                        elif node.op == '<=':
+                            return left_value <= right_value, None
+                        elif node.op == '>=':
+                            return left_value >= right_value, None
+                        elif node.op == '&&':
+                            return left_value and right_value, None
+                        elif node.op == '||':
+                            return left_value or right_value, None
+                        else:
+                            return None, RTError(node.pos_start, node.pos_end, f"Unknown operator '{node.op}'")
+                except Exception as e:
+                    return None, RTError(node.pos_start, node.pos_end, f"Error during operation '{node.op}': {str(e)}")
+            else:
+                return left_value ** right_value, None
         
         elif isinstance(node, UnaryOpNode):
             if node.op.op == '-' and node.pre is True:
@@ -1249,7 +1229,7 @@ class CodeRunner(DOMInterpreter):
                     else:
                         value = recall_val
                     return value, None
-                else: return None, RTError(node.pos_start, node.pos_end, f"Curse '{node.name}' did not return a value 456")
+                else: return None, RTError(node.pos_start, node.pos_end, f"Curse '{node.name}' did not return a value")
         
         elif isinstance(node, LenNode):
             print(f"Visiting LenNode with name: {node.name}")
@@ -1259,8 +1239,14 @@ class CodeRunner(DOMInterpreter):
             if symbol is None:
                 return None, SemanticError(node.pos_start, node.pos_end, f"'{node.name.name}' is not declared")
 
-            if not isinstance(symbol, (ClanDecNode, StringNode, str)):
-                return None, SemanticError(node.pos_start, node.pos_end, f"Expected clan or string")
+            if not isinstance(symbol, (ClanDecNode, StringNode, VarDecNode, str)):
+                if isinstance(symbol, VarDecNode):
+                    if symbol.datatype != 'string':
+                        self.error = SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a clan or string")
+                    else: pass
+                else: 
+                    self.error = SemanticError(node.pos_start, node.pos_end, f"Expected clan or string, got {type(symbol)}")
+                    return None, SemanticError(node.pos_start, node.pos_end, f"Expected clan or string")
 
             # Determine the length based on the dimensions
             if isinstance(symbol, ClanDecNode):
@@ -1280,6 +1266,73 @@ class CodeRunner(DOMInterpreter):
                 
             elif isinstance(symbol, StringNode):
                 return len(StringNode.value), None
+            
+            elif isinstance(symbol, VarDecNode):
+                if symbol.datatype == 'string':
+                    return len(symbol.value.value), None
+                else:
+                    if isinstance(symbol, str):
+                        start, error = self.evaluate_node(node.index1)
+                        if error:
+                            return None, error
+                        end, error = self.evaluate_node(node.index2)
+                        if error:
+                            return None, error
+                        return symbol[start:start + end], None
+
+                    elif isinstance(symbol, ClanDecNode):
+                        start, error = self.evaluate_node(node.index1)
+                        if error:
+                            return None, error
+                        end, error = self.evaluate_node(node.index2)
+                        if error:
+                            return None, error
+
+                        if not isinstance(start, int) or not isinstance(end, int):
+                            return None, SemanticError(node.pos_start, node.pos_end, f"Indexes must be integers")
+
+                        if start < 0 or end < 0:
+                            return None, SemanticError(node.pos_start, node.pos_end, f"Indexes must be non-negative")
+
+                        result = []
+                        for i in range(start, start + end):
+                            if i >= len(symbol.initial_values.values):
+                                break
+                            result.append(symbol.initial_values.values[i])
+
+                        return result, None
+
+                    return None, SemanticError(node.pos_start, node.pos_end, f"'{node.name.name}' is not a clan or string")
+
+        elif isinstance(node, CleaveNode):
+           pass
+
+        elif isinstance(node, DismantleNode):
+            # Evaluate the value to be dismantled
+            value, error = self.evaluate_node(node.value)
+            if error:
+                return None, error
+
+            # Evaluate the delimiter
+            delimiter, error = self.evaluate_node(node.delimiter)
+            if error:
+                return None, error
+
+            # Ensure the value is a string
+            if not isinstance(value, str):
+                return None, SemanticError(node.pos_start, node.pos_end, f"Dismantle requires a string value, got {type(value).__name__}")
+
+            # Ensure the delimiter is a string
+            if not isinstance(delimiter, str):
+                return None, SemanticError(node.pos_start, node.pos_end, f"Dismantle requires a string delimiter, got {type(delimiter).__name__}")
+
+            # Split the string using the delimiter
+            substrings = value.split(delimiter)
+
+            # Convert substrings into a ClanLiteralNode
+            clan_literal = ClanLiteralNode([StringNode(substring, None, None) for substring in substrings])
+
+            return clan_literal, None
 
         elif isinstance(node, (str, int, float)):
             return node, None
