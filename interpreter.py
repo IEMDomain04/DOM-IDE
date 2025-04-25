@@ -297,6 +297,28 @@ class CodeRunner(DOMInterpreter):
                 self.symbol_table.set(node.name, node)
 
         # default values
+        if not node.size1 and not node.size2:
+            if isinstance(node.initial_values, CleaveNode):
+                new_clan, error = self.evaluate_node(node.initial_values)
+                if error:
+                    self.error = error
+                    return
+                if not isinstance(new_clan, ClanLiteralNode):
+                    self.error = SemanticError(node.pos_start, node.pos_end, "Not a clan")
+                node.initial_values = new_clan
+            elif isinstance(node.initial_values, DismantleNode):
+                new_clan, error = self.evaluate_node(node.initial_values)
+                if error:
+                    self.error = error
+                    return
+                if not isinstance(new_clan, ClanLiteralNode):
+                    self.error = SemanticError(node.pos_start, node.pos_end, "Not a clan")
+                node.initial_values = new_clan
+            elif not isinstance(node.initial_values, ClanLiteralNode):
+                self.error = SemanticError(node.pos_start, node.pos_end, "Cannot initialize multi-dimensional array with single-dimensional size")
+            else:
+                self.error = SemanticError(node.pos_start, node.pos_end, "Unknown value type")
+
         # Handle single-dimensional array
         if node.size1 and not node.size2:
             size1_value, error = self.evaluate_node(node.size1)
@@ -304,12 +326,55 @@ class CodeRunner(DOMInterpreter):
                 self.error = error
                 return
             if size1_value is not None:
-                if not isinstance(node.initial_values, ClanLiteralNode):
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot initialize multi-dimensional array with single-dimensional size"))
+                if isinstance(node.initial_values, CleaveNode):
+                    new_clan, error = self.evaluate_node(node.initial_values)
+                    if error:
+                        self.error = error
+                        return
+                    if not isinstance(new_clan, ClanLiteralNode):
+                        self.error = SemanticError(node.pos_start, node.pos_end, "Not a clan")
+                    if len(new_clan.values) > size1_value:
+                        self.error = SemanticError(node.pos_start, node.pos_end, f"Array out of index 1: size1 is {size1_value}, but got {len(new_clan.values)} initial values")
+                    else:
+                        # Fill missing values
+                        while len(new_clan.values) < size1_value:
+                            if node.datatype == 'int':
+                                new_clan.values.append(NumNode(0))
+                            elif node.datatype == 'float':
+                                new_clan.values.append(NumNode(0.0))
+                            elif node.datatype == 'string':
+                                new_clan.values.append(StringNode("null"))
+                            elif node.datatype == 'bool':
+                                new_clan.values.append(BoolNode(False))
+                        node.initial_values = new_clan
+                elif isinstance(node.initial_values, DismantleNode):
+                    print(f'I REACHED HEREEEEEEEEE')
+                    new_clan, error = self.evaluate_node(node.initial_values)
+                    if error:
+                        self.error = error
+                        return
+                    if not isinstance(new_clan, ClanLiteralNode):
+                        self.error = SemanticError(node.pos_start, node.pos_end, "Not a clan")
+                    if len(new_clan.values) > size1_value:
+                        self.error = SemanticError(node.pos_start, node.pos_end, f"Array out of index 2: size1 is {size1_value}, but got {len(new_clan.values)} initial values")
+                    else:
+                        # Fill missing values
+                        while len(new_clan.values) < size1_value:
+                            if node.datatype == 'int':
+                                new_clan.values.append(NumNode(0))
+                            elif node.datatype == 'float':
+                                new_clan.values.append(NumNode(0.0))
+                            elif node.datatype == 'string':
+                                new_clan.values.append(StringNode("null"))
+                            elif node.datatype == 'bool':
+                                new_clan.values.append(BoolNode(False))
+                        node.initial_values = new_clan
+                elif not isinstance(node.initial_values, ClanLiteralNode):
+                    self.error = SemanticError(node.pos_start, node.pos_end, "Cannot initialize multi-dimensional array with single-dimensional size")
                 elif size1_value <=0:
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Array size must be greater than 0"))
+                    self.error = (SemanticError(node.pos_start, node.pos_end, f"Array size must be greater than 0"))
                 elif len(node.initial_values.values) > size1_value:
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Array out of index 1: size1 is {size1_value}, but got {len(node.initial_values.values)} initial values"))
+                    self.error = SemanticError(node.pos_start, node.pos_end, f"Array out of index 3: size1 is {size1_value}, but got {len(node.initial_values.values)} initial values")
                 else:
                     # Fill missing values
                     while len(node.initial_values.values) < size1_value:
@@ -318,7 +383,7 @@ class CodeRunner(DOMInterpreter):
                         elif node.datatype == 'float':
                             node.initial_values.values.append(NumNode(0.0))
                         elif node.datatype == 'string':
-                            node.initial_values.values.append(StringNode(""))
+                            node.initial_values.values.append(StringNode("null"))
                         elif node.datatype == 'bool':
                             node.initial_values.values.append(BoolNode(False))
 
@@ -334,7 +399,7 @@ class CodeRunner(DOMInterpreter):
                 return
             if size1_value is not None and size2_value is not None:
                 if len(node.initial_values) > size1_value:
-                    self.error = SemanticError(node.pos_start, node.pos_end, f"Array out of index 1: size1 is {size1_value}, but got {len(node.initial_values)} initial values")
+                    self.error = SemanticError(node.pos_start, node.pos_end, f"Array out of index 4: size1 is {size1_value}, but got {len(node.initial_values)} initial values")
                 if len(node.initial_values) < size1_value:
                     while len(node.initial_values) < size1_value:
                         clan_literal = ClanLiteralNode([])
@@ -343,7 +408,7 @@ class CodeRunner(DOMInterpreter):
                         elif node.datatype == 'float':
                             clan_literal.values.append(NumNode(0.0))
                         elif node.datatype == 'string':
-                            clan_literal.values.append(StringNode(""))
+                            clan_literal.values.append(StringNode("null"))
                         elif node.datatype == 'bool':
                             clan_literal.values.append(BoolNode(False))
                         node.initial_values.append(clan_literal)
@@ -361,7 +426,7 @@ class CodeRunner(DOMInterpreter):
                             elif node.datatype == 'float':
                                 inner_node.values.append(NumNode(0.0, None, None))
                             elif node.datatype == 'string':
-                                inner_node.values.append(StringNode("", None, None))
+                                inner_node.values.append(StringNode("null", None, None))
                             elif node.datatype == 'bool':
                                 inner_node.values.append(BoolNode(False, None, None))
         print(f"Exiting ClanDecNode")
@@ -502,20 +567,17 @@ class CodeRunner(DOMInterpreter):
         self.current_node = node
         self.current_parent = parent
         print(f"BodyNode Parent: {type(parent)}")
-        if not isinstance(parent, (CycleNode, CycleConditionNode, SustainNode, PerformSustainNode)):
-            self.symbol_table.push()  # Enter new scope for body
-        
-            for child in list(node.children):
-                if isinstance(child, CurseDecNode):
-                    if self.symbol_table.get(child.name):
-                        self.errors.append(SemanticError(child.pos_start, child.pos_end, f"Curse '{child.name}' already declared in this scope"))
-                    else:
-                        self.symbol_table.set(child.name, child)
+        self.symbol_table.push()  # Enter new scope for body
+    
+        for child in list(node.children):
+            if isinstance(child, CurseDecNode):
+                if self.symbol_table.get(child.name):
+                    self.errors.append(SemanticError(child.pos_start, child.pos_end, f"Curse '{child.name}' already declared in this scope"))
+                else:
+                    self.symbol_table.set(child.name, child)
 
-            self.visit_children(node)
-            self.symbol_table.pop()  # Exit body scope
-        else:
-            self.visit_children(node)
+        self.visit_children(node)
+        self.symbol_table.pop()  # Exit body scope
         print(f"Exiting BodyNode")
 
     def visit_CurseCallNode(self, node, parent):
@@ -588,9 +650,6 @@ class CodeRunner(DOMInterpreter):
         print(f"Visiting CaptureNode with name: {node.name}")
         self.current_node = node
         self.current_parent = parent
-
-        if node.name.name in self.processed_capture_nodes:
-            return  # skip if already processed
         
         var_symbol = self.symbol_table.get(node.name.name)
         print(f"CaptureNode var_symbol: {var_symbol}")
@@ -625,7 +684,6 @@ class CodeRunner(DOMInterpreter):
             
             var_symbol_copy = VarDecNode(False, var_symbol.datatype, var_symbol.name, user_input, var_symbol.pos_start, var_symbol.pos_end)
             self.symbol_table.set(var_name, var_symbol_copy) 
-            self.processed_capture_nodes.add(node.name.name)  # flag this node as processed
             
     def visit_CleaveNode(self, node, parent):
         print(f"Visiting CleaveNode with arg: {node.arg1}")
@@ -1103,8 +1161,20 @@ class CodeRunner(DOMInterpreter):
             if clan is None:
                 return None, SemanticError(node.pos_start, node.pos_end, f"Clan '{node.name}' is not declared")
             
-            if not isinstance(clan, ClanDecNode):
-                return None, SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a clan")
+            if isinstance(clan, ClanDecNode):
+                pass
+            elif isinstance(clan, VarDecNode):
+                index1, error = self.evaluate_node(node.index1)
+                if error:
+                    return None, error
+                return clan.value.value[index1], None
+            elif isinstance(clan, str):
+                index1, error = self.evaluate_node(node.index1)
+                if error:
+                    return None, error
+                return clan[index1], None
+            else:
+                self.error = (SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a clan"))
             
             index1, error = self.evaluate_node(node.index1)
             if error:
@@ -1305,34 +1375,73 @@ class CodeRunner(DOMInterpreter):
                     return None, SemanticError(node.pos_start, node.pos_end, f"'{node.name.name}' is not a clan or string")
 
         elif isinstance(node, CleaveNode):
-           pass
+            symbol = self.symbol_table.get(node.arg1.name)
+            if symbol is None:
+                return None, SemanticError(node.pos_start, node.pos_end, f"'{node.arg1.name}' is not declared")
+
+            if isinstance(symbol, VarDecNode) and symbol.datatype == 'string':
+                string_value = symbol.value.value
+                start, error = self.evaluate_node(node.index1)
+                if error:
+                    return None, error
+                length, error = self.evaluate_node(node.index2)
+                if error:
+                    return None, error
+
+                if not isinstance(start, int) or not isinstance(length, int):
+                    return None, SemanticError(node.pos_start, node.pos_end, f"Indexes must be integers")
+
+                if start < 0:
+                    start = max(len(string_value) + start, 0)
+
+                result = string_value[start:start + length]
+                
+                return result, None
+
+            elif isinstance(symbol, ClanDecNode):
+                start, error = self.evaluate_node(node.index1)
+                if error:
+                    return None, error
+                length, error = self.evaluate_node(node.index2)
+                if error:
+                    return None, error
+
+                if not isinstance(start, int) or not isinstance(length, int):
+                    return None, SemanticError(node.pos_start, node.pos_end, f"Indexes must be integers")
+
+                if start < 0:
+                    start = max(len(symbol.initial_values.values) + start, 0)
+
+                result = []
+                for i in range(start, start + length):
+                    if i >= len(symbol.initial_values.values):
+                        break
+                    result.append(symbol.initial_values.values[i])
+                print(f'Interpreter CleaveNode result: {result}')
+                return ClanLiteralNode(result), None
+
+            else:
+                return None, SemanticError(node.pos_start, node.pos_end, f"'{node.arg1.name}' is not a string or clan")
 
         elif isinstance(node, DismantleNode):
-            # Evaluate the value to be dismantled
-            value, error = self.evaluate_node(node.value)
+            string_value, error = self.evaluate_node(node.value)
             if error:
                 return None, error
 
-            # Evaluate the delimiter
-            delimiter, error = self.evaluate_node(node.delimiter)
+            delimiter_value, error = self.evaluate_node(node.delimiter)
             if error:
                 return None, error
 
-            # Ensure the value is a string
-            if not isinstance(value, str):
-                return None, SemanticError(node.pos_start, node.pos_end, f"Dismantle requires a string value, got {type(value).__name__}")
+            if not isinstance(string_value, str):
+                return None, SemanticError(node.pos_start, node.pos_end, f"Expected a string for dismantle, got {type(string_value).__name__}")
 
-            # Ensure the delimiter is a string
-            if not isinstance(delimiter, str):
-                return None, SemanticError(node.pos_start, node.pos_end, f"Dismantle requires a string delimiter, got {type(delimiter).__name__}")
+            if not isinstance(delimiter_value, str):
+                return None, SemanticError(node.pos_start, node.pos_end, f"Expected a string as delimiter, got {type(delimiter_value).__name__}")
 
             # Split the string using the delimiter
-            substrings = value.split(delimiter)
-
-            # Convert substrings into a ClanLiteralNode
-            clan_literal = ClanLiteralNode([StringNode(substring, None, None) for substring in substrings])
-
-            return clan_literal, None
+            split_values = string_value.split(delimiter_value)
+            result = [StringNode(value, None, None) for value in split_values]
+            return ClanLiteralNode(result), None
 
         elif isinstance(node, (str, int, float)):
             return node, None
