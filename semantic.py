@@ -899,13 +899,6 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_VarDecNode(self, node, parent):
         print(f"Visiting VarDecNode with type: {node.datatype}")
-
-        check_ancestors = parent
-        while check_ancestors and not isinstance(check_ancestors, (SustainNode, PerformSustainNode)):
-            check_ancestors = check_ancestors.parent
-        
-        if isinstance(check_ancestors, (SustainNode, PerformSustainNode)):
-            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot declare variable '{node.name}' inside a loop"))
         
         if not self.symbol_table.get_local(node.name):
             self.symbol_table.set(node.name, node)  # Store the VarDecNode object itself
@@ -1001,7 +994,9 @@ class MyASTVisitor(ASTVisitor):
         if node.size1 and not node.size2:
             size1_value = self.evaluate_node(node.size1)
             if size1_value is not None:
-                if not isinstance(node.initial_values, ClanLiteralNode):
+                if isinstance(node.initial_values, (CleaveNode, DismantleNode)):
+                    pass
+                elif not isinstance(node.initial_values, ClanLiteralNode):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot initialize multi-dimensional array with single-dimensional size"))
                 elif size1_value <=0:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Array size must be greater than 0"))
@@ -1015,7 +1010,7 @@ class MyASTVisitor(ASTVisitor):
                         elif node.datatype == 'float':
                             node.initial_values.values.append(NumNode(0.0))
                         elif node.datatype == 'string':
-                            node.initial_values.values.append(StringNode(""))
+                            node.initial_values.values.append(StringNode("null"))
                         elif node.datatype == 'bool':
                             node.initial_values.values.append(BoolNode(False))
 
@@ -1043,7 +1038,7 @@ class MyASTVisitor(ASTVisitor):
                             elif node.datatype == 'float':
                                 inner_node.values.append(NumNode(0.0, None, None))
                             elif node.datatype == 'string':
-                                inner_node.values.append(StringNode("", None, None))
+                                inner_node.values.append(StringNode("null", None, None))
                             elif node.datatype == 'bool':
                                 inner_node.values.append(BoolNode(False, None, None))
 
@@ -1109,8 +1104,15 @@ class MyASTVisitor(ASTVisitor):
         if symbol is None:
             self.unresolved_cases.append((node, parent))
         else:
-            if not isinstance(symbol, ClanDecNode):
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a clan"))
+            if isinstance(symbol, ClanDecNode):
+                pass
+            elif isinstance(symbol, VarDecNode):
+                if symbol.datatype != "string":
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a string"))
+            elif isinstance(symbol, str):
+                pass
+            else:
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a clan 456 is type of: {type(symbol)}"))
 
             if node.index1:
                 if isinstance(node.index1, IdNode) and not self.symbol_table.get(node.index1.name):
@@ -1297,20 +1299,18 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_BodyNode(self, node, parent):
         print(f"Visiting BodyNode")
-        if not isinstance(parent, (CycleNode, CycleConditionNode, SustainNode, PerformSustainNode)):
-            self.symbol_table.push()  # Enter new scope for body
-        
-            for child in list(node.children):
-                if isinstance(child, CurseDecNode):
-                    if self.symbol_table.get(child.name):
-                        self.errors.append(SemanticError(child.pos_start, child.pos_end, f"Curse '{child.name}' already declared in this scope"))
-                    else:
-                        self.symbol_table.set(child.name, child)
+        self.symbol_table.push()  # Enter new scope for body
+    
+        for child in list(node.children):
+            if isinstance(child, CurseDecNode):
+                if self.symbol_table.get(child.name):
+                    self.errors.append(SemanticError(child.pos_start, child.pos_end, f"Curse '{child.name}' already declared in this scope"))
+                else:
+                    self.symbol_table.set(child.name, child)
 
-            self.visit_children(node)
-            self.symbol_table.pop()  # Exit body scope
-        else:
-            self.visit_children(node)
+        self.visit_children(node)
+        self.symbol_table.pop()  # Exit body scope
+    
         print(f"Exiting BodyNode")
 
     def visit_CurseCallNode(self, node, parent):
@@ -2299,7 +2299,7 @@ class MyASTVisitor(ASTVisitor):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared clan 5: '{node.name}'"))
                 else:
                     if not isinstance(symbol, ClanDecNode):
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a clan"))
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a clan 123"))
                     if isinstance(symbol, ClanDecNode):
                         if node.index2 and not symbol.size2:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Out of bounds 25: '{node.name}' is a single-dimensional array"))
