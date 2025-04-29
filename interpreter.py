@@ -315,9 +315,8 @@ class CodeRunner(DOMInterpreter):
                     self.error = SemanticError(node.pos_start, node.pos_end, "Not a clan")
                 node.initial_values = new_clan
             elif not isinstance(node.initial_values, ClanLiteralNode):
-                self.error = SemanticError(node.pos_start, node.pos_end, "Cannot initialize multi-dimensional array with single-dimensional size")
-            else:
-                self.error = SemanticError(node.pos_start, node.pos_end, "Unknown value type")
+                self.error = SemanticError(node.pos_start, node.pos_end, "Invalid clan value")
+            
 
         # Handle single-dimensional array
         if node.size1 and not node.size2:
