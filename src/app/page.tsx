@@ -30,13 +30,8 @@ curse domain(){
   const codeEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
 
-  useEffect(() => {
-    if (socket) {
-      console.log("WebSocket connection established:", socket);
-    }
-  }, [socket]);
-
-  const [inputPrompt, setInputPrompt] = useState<string | null>(null);
+  // State for input handling - simplified to just inputMode
+  const [inputMode, setInputMode] = useState<boolean>(false);
   const pendingInputRef = useRef<{ var_name: string } | null>(null);
 
   useEffect(() => {
@@ -48,31 +43,37 @@ curse domain(){
 
     setSocket(socketInstance);
 
+    // Handle server requesting input for a variable
     socketInstance.on("capture_input", (data: { var_name: string }) => {
-      setInputPrompt(`Enter value for ${data.var_name}:`);
       pendingInputRef.current = data;
+      setInputMode(true); // Just set inputMode to true
+    });
+
+    // Handle server sending output text
+    socketInstance.on("output_update", (data: { output: string }) => {
+      const formattedOutput = String(data.output).replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+      setTerminalOutput(prev => prev + formattedOutput);
     });
 
     return () => {
       socketInstance.disconnect();
     };
   }, []);
-
+  
+  // Handle user submitting input in terminal
   const handleInputSubmit = (input: string) => {
     if (socket && pendingInputRef.current) {
+      // Send input to server and let server echo it back
       socket.emit("capture_input", {
         var_name: pendingInputRef.current.var_name,
         input: input
       });
-
-      // Append to terminal output
-      setTerminalOutput(prev => prev + `\n> ${input}`);
-
-      setInputPrompt(null);
+      
+      // Immediately turn off input mode - server will handle all output
+      setInputMode(false);
       pendingInputRef.current = null;
     }
   };
-
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -87,10 +88,10 @@ curse domain(){
     codeEditorRef.current = editor;
   };
 
-
   const Interpreter = async () => {
     setOutputData([]);
     setTerminalOutput(''); // Clears the terminal before running
+    setInputMode(false); // Reset input mode
     await handleRunClick(code, setTerminalOutput);
   };
 
@@ -140,6 +141,7 @@ curse domain(){
         backgroundRepeat: 'no-repeat',
       }}
     >
+      {/* Rest of your JSX */}
       <div className="flex flex-col w-full h-full overflow-hidden bg-light-background/0 dark:bg-dark-foreground/30">
 
         {/* Topnav and Editor Panel */}
@@ -164,7 +166,7 @@ curse domain(){
             terminalOutput={terminalOutput}
             isDarkMode={isDarkMode}
             onInputSubmit={handleInputSubmit}
-            inputPrompt={inputPrompt}
+            inputMode={inputMode} // Pass inputMode instead of inputPrompt
           />
         </div>
       </div>
@@ -196,7 +198,5 @@ curse domain(){
         </div>
       )}
     </section>
-
-
   );
 }

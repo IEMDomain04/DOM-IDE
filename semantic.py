@@ -4128,13 +4128,49 @@ class Parser:
                     if self.current_token.type != 'id':
                         errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier"))
                     name = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                    name_value = self.current_token.value
                     self.advance()
-                    if self.current_token.type != ')':
-                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
+                    if self.current_token.type not in [')', '[']:
+                        errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')' or '['"))
                         continue
-                    capture_pos_end = self.current_token.pos_end
-                    self.advance()
-                    body.add_child(CaptureNode(name, capture_pos_start, capture_pos_end))
+                    if self.current_token.type == ')':
+                        capture_pos_end = self.current_token.pos_end
+                        self.advance()
+                        body.add_child(CaptureNode(name, capture_pos_start, capture_pos_end))
+                    elif self.current_token.type == '[':
+                        self.advance()
+                        index1, error = self.parseExpr()
+                        if error:
+                            errors.append(error)
+                            continue
+                        if self.current_token.type != ']':
+                            errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ']'"))
+                            continue
+                        self.advance()
+                        if self.current_token.type not in [')', '[']:
+                            errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')' or '['"))
+                            continue
+                        if self.current_token.type == ')':
+                            capture_pos_end = self.current_token.pos_end
+                            clan_access = ClanAccessNode(name_value, index1, None, capture_pos_start, capture_pos_end)
+                            self.advance()
+                            body.add_child(CaptureNode(clan_access, capture_pos_start, capture_pos_end))
+                        elif self.current_token.type == '[':
+                            index2, error = self.parseExpr()
+                            if error:
+                                errors.append(error)
+                                continue
+                            if self.current_token.type != ']':
+                                errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ']'"))
+                                continue
+                            self.advance()
+                            if self.current_token.type != ')':
+                                errors.append(ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'"))
+                                continue
+                            capture_pos_end = self.current_token.pos_end
+                            clan_access = ClanAccessNode(name, index1, index2, capture_pos_start, capture_pos_end)
+                            self.advance()
+                            body.add_child(CaptureNode(name_value, capture_pos_start, capture_pos_end))
                 elif self.current_token.type == 'dismiss':
                     pos_start, pos_end = self.current_token.pos_start, self.current_token.pos_end
                     self.advance()
@@ -4474,11 +4510,37 @@ class Parser:
                 if self.current_token.type != 'id':
                     return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected identifier")
                 name = IdNode(self.current_token.value, self.current_token.pos_start, self.current_token.pos_end)
+                name_value = self.current_token.value
                 self.advance()
-                if self.current_token.type != ')':
-                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
-                self.advance()
-                body.add_child(CaptureNode(name, capture_start, self.current_token.pos_end))
+                if self.current_token.type not in [')', '[']:
+                    return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')' or '['")
+                if self.current_token.type == ')':
+                    self.advance()
+                    body.add_child(CaptureNode(name, capture_start, self.current_token.pos_end))
+                elif self.current_token.type == '[':
+                    self.advance()
+                    index1, error = self.parseExpr()
+                    if error: return None, error
+                    if self.current_token.type != ']':
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ']'")
+                    self.advance()
+                    if self.current_token.type not in [')', '[']:
+                        return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')' or '['")
+                    if self.current_token.type == ')':
+                        clan_access = ClanAccessNode(name, index1, None, capture_start, self.current_token.pos_end)
+                        self.advance()
+                        body.add_child(CaptureNode(name_value, capture_start, self.current_token.pos_end))
+                    elif self.current_token.type == '[':
+                        index2, error = self.parseExpr()
+                        if error: return None, error
+                        if self.current_token.type != ']':
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ']'")
+                        self.advance()
+                        if self.current_token.type != ')':
+                            return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: ')'")
+                        clan_access = ClanAccessNode(name_value, index1, index2, capture_start, self.current_token.pos_end)
+                        self.advance()
+                        body.add_child(CaptureNode(name_value, capture_start, self.current_token.pos_end))
             elif self.current_token.type == 'dismiss':
                 pos_start, pos_end = self.current_token.pos_start, self.current_token.pos_end
                 self.advance()

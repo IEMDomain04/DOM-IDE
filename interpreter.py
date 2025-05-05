@@ -622,8 +622,8 @@ class CodeRunner(DOMInterpreter):
             for list_item in node.value:
                 temp, error = self.evaluate_node(list_item)
                 if error:
-                        self.error = error
-                        break
+                    self.error = error
+                    break
                 if isinstance(temp, str):
                     value += temp
                 else: 
@@ -636,53 +636,158 @@ class CodeRunner(DOMInterpreter):
                 self.error = error
                 return
 
+        # Convert to string representation
         if hasattr(value, 'to_string'):
-            self.output.append(value.to_string())
-            print(f'Invocation: {value.to_string()}')
+            output_text = value.to_string()
         else:
-            self.output.append(value)
-            print(f'Invocation: {value}')
+            output_text = str(value)
             
+        # Add to accumulated output
+        self.output.append(output_text)
+        
+        # Emit real-time update via socket
+        if self.socketio:
+            self.socketio.emit('output_update', {'output': output_text})
+            
+        print(f'Invocation: {output_text}')
         print(f"Exiting InvokeNode")
 
     def visit_CaptureNode(self, node, parent):
         print(f"Visiting CaptureNode with name: {node.name}")
         self.current_node = node
         self.current_parent = parent
-        
-        var_symbol = self.symbol_table.get(node.name.name)
-        print(f"CaptureNode var_symbol: {var_symbol}")
-        var_name = var_symbol.name if isinstance(var_symbol, (VarDecNode, ClanDecNode)) else None
-        var_type = var_symbol.datatype if isinstance(var_symbol, (VarDecNode, ClanDecNode)) else None
 
-        if self.socketio:
-            self.socketio.emit('capture_input', {'var_name': var_name})
-
-        user_input = self.wait_for_input(var_name)
-
-        if user_input is not None:
-            try:
-                if var_type == 'int':
-                    user_input = NumNode(int(user_input))
-                elif var_type == 'float':
-                    user_input = NumNode(float(user_input))
-                elif var_type == 'string':
-                    user_input = StringNode(str(user_input))
-                elif var_type == 'bool':
-                    user_input = user_input.lower()
-                    if user_input == 'true':
-                        user_input = BoolNode(True)
-                    elif user_input == 'false':
-                        user_input = BoolNode(False)
-                    else:
-                        self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid input for variable '{var_name}': expected bool")
-                        return
-            except:
-                self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid input for variable '{var_name}': expected int")
+        if isinstance(node.name, ClanAccessNode):
+            clan = self.symbol_table.get(node.name.name)
+            if clan is None:
+                self.error = SemanticError(node.pos_start, node.pos_end, f"Clan '{node.name.name}' is not declared")
                 return
-            
-            var_symbol_copy = VarDecNode(False, var_symbol.datatype, var_symbol.name, user_input, var_symbol.pos_start, var_symbol.pos_end)
-            self.symbol_table.set(var_name, var_symbol_copy) 
+
+            if not isinstance(clan, ClanDecNode):
+                self.error = SemanticError(node.pos_start, node.pos_end, f"'{node.name.name}' is not a clan")
+                return
+
+            index1, error = self.evaluate_node(node.name.index1)
+            if error:
+                self.error = error
+                return
+
+            size1, error = self.evaluate_node(clan.size1)
+            if error:
+                self.error = error
+                return
+
+            if not isinstance(index1, int) or index1 < 0 or (clan.size1 and index1 >= size1):
+                self.error = SemanticError(node.pos_start, node.pos_end, f"Index 1 out of bounds for clan '{node.name.name}'")
+                return
+
+            if node.name.index2:
+                index2, error = self.evaluate_node(node.name.index2)
+                if error:
+                    self.error = error
+                    return
+
+                size2, error = self.evaluate_node(clan.size2)
+                if error:
+                    self.error = error
+                    return
+
+                if not isinstance(index2, int) or index2 < 0 or (clan.size2 and index2 >= size2):
+                    self.error = SemanticError(node.pos_start, node.pos_end, f"Index 2 out of bounds for clan '{node.name.name}'")
+                    return
+
+            if self.socketio:
+                self.socketio.emit('capture_input', {'var_name': node.name.name})
+
+            user_input = self.wait_for_input(node.name.name)
+
+            if user_input is not None:
+                try:
+                    if clan.datatype == 'int':
+                        user_input = NumNode(int(user_input))
+                        if user_input.value > 99999999999999999:
+                            self.error = SemanticError(node.pos_start, node.pos_end, f"Input value too large for integer '{node.name.name}', limit is 16 digits")
+                            return
+                    elif clan.datatype == 'float':
+                        user_input = NumNode(float(user_input))
+                        if user_input.value > 999999999:
+                            self.error = SemanticError(node.pos_start, node.pos_end, f"Input value too large for float '{node.name.name}', limit is 9 digits")
+                            return
+                        decimal_part = str(user_input.value).split('.')[-1]
+                        if len(decimal_part) > 7:
+                            truncated_value = round(user_input.value, 7)
+                            user_input = NumNode(truncated_value)
+                    elif clan.datatype == 'string':
+                        user_input = StringNode(str(user_input))
+                    elif clan.datatype == 'bool':
+                        user_input = user_input.lower()
+                        if user_input == 'true':
+                            user_input = BoolNode(True)
+                        elif user_input == 'false':
+                            user_input = BoolNode(False)
+                        else:
+                            self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid input for clan '{node.name.name}': expected bool")
+                            return
+                except:
+                    self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid input for clan '{node.name.name}': expected int")
+                    return
+
+                if node.name.index2:
+                    try:
+                        clan.initial_values[index1].values[index2] = user_input
+                        print(f"Updated clan '{node.name.name}' at [{index1}][{index2}] with value: {user_input}")
+                    except IndexError:
+                        self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid access at [{index1}][{index2}] for clan '{node.name.name}'")
+                else:
+                    try:
+                        clan.initial_values.values[index1] = user_input
+                        print(f"Updated clan '{node.name.name}' at [{index1}] with value: {user_input}")
+                    except IndexError:
+                        self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid access at [{index1}] for clan '{node.name.name}'")
+        else:
+            var_symbol = self.symbol_table.get(node.name.name)
+            print(f"CaptureNode var_symbol: {var_symbol}")
+            var_name = var_symbol.name if isinstance(var_symbol, (VarDecNode, ClanDecNode)) else None
+            var_type = var_symbol.datatype if isinstance(var_symbol, (VarDecNode, ClanDecNode)) else None
+
+            if self.socketio:
+                self.socketio.emit('capture_input', {'var_name': var_name})
+
+            user_input = self.wait_for_input(var_name)
+
+            if user_input is not None:
+                try:
+                    if var_type == 'int':
+                        user_input = NumNode(int(user_input))
+                        if user_input.value > 99999999999999999:
+                            self.error = SemanticError(node.pos_start, node.pos_end, f"Input value too large for integer '{var_name}', limit is 16 digits")
+                            return
+                    elif var_type == 'float':
+                        user_input = NumNode(float(user_input))
+                        if user_input.value > 999999999:
+                            self.error = SemanticError(node.pos_start, node.pos_end, f"Input value too large for float '{var_name}', limit is 9 digits")
+                            return
+                        decimal_part = str(user_input.value).split('.')[-1]
+                        if len(decimal_part) > 7:
+                            truncated_value = round(user_input.value, 7)
+                            user_input = NumNode(truncated_value)
+                    elif var_type == 'string':
+                        user_input = StringNode(str(user_input))
+                    elif var_type == 'bool':
+                        user_input = user_input.lower()
+                        if user_input == 'true':
+                            user_input = BoolNode(True)
+                        elif user_input == 'false':
+                            user_input = BoolNode(False)
+                        else:
+                            self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid input for variable '{var_name}': expected bool")
+                            return
+                except:
+                    self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid input for variable '{var_name}': expected int")
+                    return
+
+                var_symbol_copy = VarDecNode(False, var_symbol.datatype, var_symbol.name, user_input, var_symbol.pos_start, var_symbol.pos_end)
+                self.symbol_table.set(var_name, var_symbol_copy)
             
     def visit_CleaveNode(self, node, parent):
         print(f"Visiting CleaveNode with arg: {node.arg1}")

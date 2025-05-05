@@ -136,7 +136,7 @@ CFG = {
         ["<literal>"],
         ["id", "<curse_or_clan>"],
         ["invoke", "(","<arguments>",")"],
-        ["capture", "(", "id", ")"],
+        ["capture", "(", "id", "<clan_call>", ")"],
         ["cleave", "(", "<arguments>", ")"],
         ["dismantle", "(", "<arguments>", ")"],
         ["len", "(", "<arguments>", ")"],
@@ -170,11 +170,16 @@ CFG = {
         ["invoke", "(", "<arguments>", ")", ";", "<body>"],     ###########
         ["cleave", "(", "<arguments>", ")", ";", "<body>"],     ###########
         ["dismantle", "(", "<arguments>", ")", ";", "<body>"],  ###########
-        ["capture", "(", "id", ")", ";", "<body>"],             ###########
+        ["capture", "(", "id", "<clan_call>", ")", ";", "<body>"], ###########
         ["len", "(", "<arguments>", ")", ";", "<body>"],        ###########
         ["<recall_stm>", "<body>"],                             ###########
         ["<conditional_stm>", "<body>"],                        ###########
         ["<looping_stm>", "<body>"],                            ###########
+        []
+    ],
+
+    "<clan_call>": [
+        ["[", "<expression>", "]", "<more_clan>"], 
         []
     ],
 
@@ -294,7 +299,7 @@ CFG = {
         ["invoke", "(", "<arguments>", ")", ";", "<con_loop_body>"],   ########### 2
         ["cleave", "(", "<arguments>", ")", ";", "<con_loop_body>"],   ########### 3
         ["dismantle", "(", "<arguments>", ")", ";", "<con_loop_body>"],########### 4
-        ["capture", "(", "id", ")", ";", "<con_loop_body>"],           ########### 5
+        ["capture", "(", "id", "<clan_call>", ")", ";", "<con_loop_body>"],           ########### 5
         ["len", "(", "<arguments>", ")", ";", "<con_loop_body>"],      ########### 6
         ["<recall_stm>", "<con_loop_body>"],                           ########### 7 
         ["<conditional_stm>", "<con_loop_body>"],                      ###########
@@ -764,6 +769,11 @@ PREDICT_SET = {
         "perform": ["<statement>", 9],
         "}": ["<statement>", 10],
         "λ": ["<statement>", 10]
+    },
+
+    "<clan_call>": { ############# verified
+        "[": ["<clan_call>", 0],
+        ")": ["<clan_call>", 1],
     },
 
     "<local>": { ############# verified
