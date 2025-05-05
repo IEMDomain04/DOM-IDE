@@ -1,10 +1,3 @@
-##############
-# IMPORTS
-##############
-from lexer import run as lexer_run
-from lexer import string_with_arrows 
-from semantic import semantic_run
-
 ############## 
 # CONSTANTS 
 ##############

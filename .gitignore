@@ -3,6 +3,9 @@
 # custom
 /myenv
 
+__pycache__/
+*.py[cod]
+
 # dependencies
 /node_modules
 /.pnp
