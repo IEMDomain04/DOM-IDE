@@ -1,6 +1,6 @@
 import threading, copy
 
-from semantic import (
+from .semantic import (
     NumNode, DatatypeNode, StringNode, BoolNode, NullNode, ExponentNode, BinOpNode, 
     RelOpNode, LogOpNode, UnaryOpNode, IdNode, VarDecNode, VarAssignNode, ClanDecNode, 
     ClanLiteralNode, ClanAccessNode, ClanIndexAssignNode, 

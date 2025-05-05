@@ -1,10 +1,10 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from lexer import run as lexer
-from syntax import parse_run as syntax
-from semantic import semantic_run as semantic
-from interpreter import interpreter_run as interpreter
-from interpreter import CodeRunner
+from backend.lexer import run as lexer
+from backend.syntax import parse_run as syntax
+from backend.semantic import semantic_run as semantic
+from backend.interpreter import interpreter_run as interpreter
+from backend.interpreter import CodeRunner
 from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
