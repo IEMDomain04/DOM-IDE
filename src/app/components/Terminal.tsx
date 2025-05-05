@@ -56,16 +56,12 @@ const Terminal: React.FC<TerminalProps> = ({
           {inputMode && (
             <input
               ref={inputRef}
-              className="bg-transparent focus:outline-none border-none"
+              className="bg-transparent focus:outline-none border-none w-5/6"
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               autoFocus
-              style={{
-                caretColor: isDarkMode ? 'white' : 'black',
-                minWidth: '4px',
-              }}
             />
           )}
           

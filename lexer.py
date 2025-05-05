@@ -2080,9 +2080,9 @@ class Lexer:
                     dec_count += 1
 
                 # checks if num_count exceeds limit of 17 if number is an int
-                if dot_count == 0 and int_count > 17:
+                if dot_count == 0 and int_count > 16:
                     pos_end = self.pos.copy()
-                    return [], LexicalError(pos_start, pos_end, "Whole number exceeded maximum character limit of 17")
+                    return [], LexicalError(pos_start, pos_end, "Whole number exceeded maximum character limit of 16")
                 
                 # checks if num_count exceeds limit of 9 if number is a float
                 if dot_count == 1 and num_count > 9:
