@@ -622,8 +622,8 @@ class CodeRunner(DOMInterpreter):
             for list_item in node.value:
                 temp, error = self.evaluate_node(list_item)
                 if error:
-                        self.error = error
-                        break
+                    self.error = error
+                    break
                 if isinstance(temp, str):
                     value += temp
                 else: 
@@ -636,13 +636,20 @@ class CodeRunner(DOMInterpreter):
                 self.error = error
                 return
 
+        # Convert to string representation
         if hasattr(value, 'to_string'):
-            self.output.append(value.to_string())
-            print(f'Invocation: {value.to_string()}')
+            output_text = value.to_string()
         else:
-            self.output.append(value)
-            print(f'Invocation: {value}')
+            output_text = str(value)
             
+        # Add to accumulated output
+        self.output.append(output_text)
+        
+        # Emit real-time update via socket
+        if self.socketio:
+            self.socketio.emit('output_update', {'output': output_text})
+            
+        print(f'Invocation: {output_text}')
         print(f"Exiting InvokeNode")
 
     def visit_CaptureNode(self, node, parent):

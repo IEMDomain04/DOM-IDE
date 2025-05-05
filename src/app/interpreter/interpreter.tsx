@@ -22,8 +22,10 @@ export const handleRunClick = async (
           */ 
     } else {
       // Replace literal \n with actual newline character
-      const formattedResult = String(result).replace(/\\n/g, '\n').replace(/\\t/g, '\t');
-      setTerminalOutput(formattedResult);
+      if (window.location.hostname !== 'localhost') {
+        const formattedResult = String(result).replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+        setTerminalOutput(formattedResult);
+      }
     }
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
