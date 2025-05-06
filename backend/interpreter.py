@@ -762,6 +762,9 @@ class CodeRunner(DOMInterpreter):
                         if user_input.value > 99999999999999999:
                             self.error = SemanticError(node.pos_start, node.pos_end, f"Input value too large for integer '{var_name}', limit is 16 digits")
                             return
+                        if not isinstance(user_input, NumNode):
+                            self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid input for variable '{var_name}', expected int")
+                            return
                     elif var_type == 'float':
                         user_input = NumNode(float(user_input))
                         if user_input.value > 999999999:
@@ -771,6 +774,9 @@ class CodeRunner(DOMInterpreter):
                         if len(decimal_part) > 7:
                             truncated_value = round(user_input.value, 7)
                             user_input = NumNode(truncated_value)
+                        if not isinstance(user_input, NumNode):
+                            self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid input for variable '{var_name}', expected float")
+                            return
                     elif var_type == 'string':
                         user_input = StringNode(str(user_input))
                     elif var_type == 'bool':
@@ -780,10 +786,10 @@ class CodeRunner(DOMInterpreter):
                         elif user_input == 'false':
                             user_input = BoolNode(False)
                         else:
-                            self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid input for variable '{var_name}': expected bool")
+                            self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid input for variable '{var_name}', expected bool")
                             return
                 except:
-                    self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid input for variable '{var_name}': expected int")
+                    self.error = SemanticError(node.pos_start, node.pos_end, f"Invalid input for variable '{var_name}', expected int")
                     return
 
                 var_symbol_copy = VarDecNode(False, var_symbol.datatype, var_symbol.name, user_input, var_symbol.pos_start, var_symbol.pos_end)
