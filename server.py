@@ -109,7 +109,7 @@ def handle_capture_input(data):
     user_input = data.get('input')
 
     if var_name and user_input is not None:
-        socketio.emit('output_update', {'output': user_input})
+        socketio.emit('output_update', {'output': user_input + "\n"})
         
         runner.provide_input(var_name, user_input)
         
