@@ -12,7 +12,7 @@ export const handleSemanticClick = async (
           const url = window.location.hostname === 'localhost' ? 'http://127.0.0.1:5000/api/semantic' : '/api/semantic';
           const response = await axios.post(url, { text });
         console.log('Response from /api/semantic:', response.data); // Add logging
-        const { semantic_result, errors /*, tree_str*/, error_pos } = response.data;
+        const { semantic_result, errors , tree_str, error_pos } = response.data;
         if (errors) {
           setTerminalOutput(errors);
           if (error_pos) {
@@ -27,8 +27,8 @@ export const handleSemanticClick = async (
             */ 
           }
         } else {
-          // setTerminalOutput(semantic_result + '\n\nAbstract Syntax Tree (For Debugging):\n' + tree_str);
-          setTerminalOutput(semantic_result);
+          setTerminalOutput(semantic_result + '\n\nAbstract Syntax Tree (For Debugging):\n' + tree_str);
+          //setTerminalOutput(semantic_result);
         }
       } catch (error) {
         if (axios.isAxiosError(error) && error.response) {

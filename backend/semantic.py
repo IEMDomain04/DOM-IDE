@@ -721,6 +721,7 @@ class MyASTVisitor(ASTVisitor):
                     pass
                 else:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 2: Expected '{binop_parent.datatype}', got '{binop_type}'"))
+        
         elif isinstance(binop_parent, (RecallNode)):
             parent_function = binop_parent.parent
             while not isinstance(parent_function, CurseDecNode):
