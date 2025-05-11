@@ -2,6 +2,14 @@
 # CONSTANTS 
 ##############
 
+##########################################
+######### CONTEXT FREE GRAMMAR ###########
+##########################################
+# > This is the grammar for the language
+# > The grammar is in the form of a dictionary where the keys are non-terminals
+#   and the values are lists of productions
+##########################################
+
 CFG = {
     "<program>": [              
         ["expansion", ";", "<program_tail>"] ########### 1 
@@ -373,6 +381,19 @@ CFG = {
 
     
 }
+
+##########################################
+############## PREDICT SET ###############
+##########################################
+# > This is the set of terminals that can be used in the grammar
+# > Each non terminal corresponds to a set of predicted terminals
+# > The first sets corresponds to a production in the CFG
+#   while the follow sets corresponds to the null production in the CFG
+# > Example: <init_void_curse> has first set of "id" so it corresponds to the
+#           CFG rule that creates a void curse if it encounters that token;
+#           while its follow set is "domain" which means that if it encounters
+#           that token it will be expecting to see a domain function
+##########################################
 
 PREDICT_SET = {
     "<program>": { ############# verified
@@ -1172,9 +1193,24 @@ def string_with_arrows(text, pos_start, pos_end):
 
     return result.replace('\t', ' ')
 
-###################
-# Syntax Analyzer 
-###################
+######################################
+########## Syntax Analyzer ###########
+######################################
+# This class is responsible for analyzing the syntax of the input tokens
+# I just followed the algo from Neso Academy
+#   1.  Check if the top of the stack is a non-terminal.
+#       > If it is a non-terminal, proceed to #2. 
+#       > If it is a terminal, check if the top of the stack is equal with the current token. 
+#           if it is, pop the stack and self.advance.
+#   2.  If it is a non-terminal, Check what production to use by checking the top of the stack and the current token
+#       > See their combination in the predict set with production = PREDICT_SET[stack.pop(), self.current_token]
+#       > Example: PREDICT_SET["<program>", "int"] = ["<program>", 0]
+#       > This means that the production it will use from the CFG is "<program>" and the index is 0
+#   3.  Check if the production exists as a key in CFG[production], and append/push its values in reverse order into the stack.
+#       > If it does not exist, then it is an error.
+#   4.  Restart to #1. in the algorithm
+#   5.  If the stack is empty, then the syntax analysis is finished and successful.
+######################################
 
 class SyntaxAnalyzer:
     def __init__(self, tokens):
@@ -1250,9 +1286,15 @@ class SyntaxAnalyzer:
             return error
         return []
 
+
+# Function to check if a string is a non-terminal
+# basically it just checks if string starts with '<' and ends with '>'
 def is_non_terminal(text): # (boolean) checks if the given string is a non-terminal
     return text.startswith('<') and text.endswith('>')
 
+# > Function to analyze the order of input tokens
+# > It takes a list of tokens provided by the lexer 
+#   and returns the result of the syntax analysis or error if any.
 def parse_run(tokens):
     syntax_analysis = SyntaxAnalyzer(tokens)
     error = syntax_analysis.syntax_analyzer()

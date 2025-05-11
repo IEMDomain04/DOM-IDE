@@ -62,7 +62,13 @@ def string_with_arrows(text, pos_start, pos_end):
     return result.replace('\t', ' ')
 
 ###################
-# AST Nodes
+#### AST Nodes ####
+###################
+# > Here we defined the structure of each Node type that we need for Abstract-Syntax Tree construction.
+# > Each node inherits from the base class ASTNode which has a function for adding children.
+# > Each node type has a pos_start and pos_end attribute to keep track of its position for error handling.
+# > Example: InvokeNode has attribute of value, which is an array of values that the user wants to print.
+# > Each node type has a corresponding visit_ method/function to check if they are semantically correct. 
 ###################
 
 class ASTNode:
@@ -117,7 +123,6 @@ class ASTNode:
             if idx < len(self.parent.children) - 1:
                 return self.parent.children[idx + 1]
         return None
-
     
 class NumNode(ASTNode): # for numbers
     def __init__(self, value, pos_start=None, pos_end=None):
@@ -564,9 +569,20 @@ class CycleConditionNode(ASTNode): # for-loop initialization, condition, and ite
     def __repr__(self):
         return f"{self.init}; {self.condition}; {self.iteration}"
  
-##################
-## AST Traverser
-##################
+################################
+######## AST Traverser #########
+################################
+# > Visitor object for traversing the AST (Pre-Order Tree Traversal)
+#       > The visitor pattern allows us to separate the algorithm from the object structure.
+#       > Each node type has a corresponding visit_ method/function to check if they are semantically correct.
+#       > The visit method is the main entry point for visiting nodes.
+#       > The generic_visit method is called for specifically for the root node only.
+#       > The visit_children method is called to visit all child nodes of the current node.
+#       > In this setup the visit method is called recursively for each child node.
+# > Each visit_{type(node.__name__)} will create a method specific for that node type.
+# > Each visit_<node_type> will have their own logic of checking for semantics.
+# > Example, visit_VarDecNode will check if the variable is in symbol table, then it will throw an error due to redeclaration.
+################################
 
 class ASTVisitor:
     def visit(self, node, parent=None):
@@ -923,10 +939,6 @@ class MyASTVisitor(ASTVisitor):
                 if var_type != value_type:
                     if isinstance(node.value, CurseCallNode):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 4: Expected '{var_type}' curse, got '{value_type}'"))
-                    # elif var_type == 'float' and value_type == 'int':
-                    #     pass
-                    # elif var_type == 'int' and value_type == 'float':
-                    #     pass
                     else: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 5: Expected '{var_type}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting VarDecNode")
@@ -2039,14 +2051,7 @@ class MyASTVisitor(ASTVisitor):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Curse domain cannot return a value"))
                     else:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Recall statement not within a function"))
-                    # if isinstance(parent_function, CurseDecNode):
-                    #     parent_datatype = self.infer_type(parent_function)
-                    #     if parent_datatype != binop_type:
-                    #         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 16.2: Expected '{parent_function.datatype}', got '{binop_type}'"))
-                    # elif isinstance(parent_function, CurseDomainNode):
-                    #     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Curse domain cannot return a value"))
-                    # else:
-                    #     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Recall statement not within a function"))
+                    
                 elif isinstance(binop_parent, (CycleConditionNode)):
                     if binop_type == 'unknown':
                         pass
@@ -2537,7 +2542,7 @@ class MyASTVisitor(ASTVisitor):
             return 'unknown'
 
 ###################
-# Symbol Table Class
+# Symbol Table Class - responsible for managing variables and functions and scopes
 ###################
 
 class SymbolTable:
@@ -2594,8 +2599,11 @@ class SymbolTable:
     def set_local(self, name, value):
         self.scopes[-1][name] = value
         print(f"Id '{name}' added to local scope {self.scopes[-1]}...\nAppend Success... New Symbol Stack: {self.scopes}")
-# Parser Class
+
+##################
+# Parser Class - responsible for building the Abstract-Syntax Tree or AST
 ###################
+
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -2632,7 +2640,12 @@ class Parser:
                 return None
 
 ###################
-# AST Builder
+### AST Builder ###
+###################
+# > These are the Parse class' functions that builds the AST (Abstract-Syntax Tree) from the input Token Stream.
+# > Unlike the syntax analyzer, it constructs a tree structure representing the program logic,
+#   but it ignores tokens (like "expansion") that do not contribute to the program's semantics.
+# > The AST is a simplified representation of the program, focusing on the logical structure rather than the syntax.
 ###################
 
     def build_ast(self):
@@ -4460,7 +4473,6 @@ class Parser:
             if error: return None, error
         return CycleConditionNode(init, condition, iteration, pos_start, self.current_token.pos_end), None
   
-
     def parseWoogieBody(self):
         body_start = self.current_token.pos_start
         body = BodyNode()
@@ -4609,13 +4621,25 @@ class Parser:
                 self.advance()
         return body, None
 
+
+# > The semantic run does multiple things
+#       1. Instantiates a symbol table object (for storing variables and functions)
+#       2. Instantiates the AST visitor object (for traversing the AST to check for semantic errors) 
+#          that uses the Symbol Table object we created from #1
+#       3. Instantiates the parser object (for parsing the tokens) with argument of the token stream from Lexer
+#       4. Builds or 'parses' the AST from the given token stream
+#       5. Checks if there is an instance of CurseDomainNode in the built AST,
+#               > If not then it will return an error because in our rule curse domain must always be defined.
+#       6. Now that AST is built, we will use the visitor object to traverse the built ast. 
+#       7. If visitor.errors or errors is not empty, then it will return those errors.
+#               > Else if there are no errors, it will return the AST and symbol table.
+
 def semantic_run(tokens):
     symbol_table = SymbolTable()
     visitor = MyASTVisitor(symbol_table)
     parser = Parser(tokens)
     ast, errors = parser.build_ast()
     
-
     # check if there is curse domain node in the ast
     if not any(isinstance(node, CurseDomainNode) for node in ast.children):
         errors.insert(0, DomainError(parser.current_token.pos_start, parser.current_token.pos_end, "Curse domain function is not defined"))
