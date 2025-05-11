@@ -1203,7 +1203,7 @@ def string_with_arrows(text, pos_start, pos_end):
 #       > If it is a terminal, check if the top of the stack is equal with the current token. 
 #           if it is, pop the stack and self.advance.
 #   2.  If it is a non-terminal, Check what production to use by checking the top of the stack and the current token
-#       > See their combination in the predict set with production = PREDICT_SET[stack.pop(), self.current_token]
+#       > See their combination in the predict set with production = PREDICT_SET[top_of_stack, self.current_token]
 #       > Example: PREDICT_SET["<program>", "int"] = ["<program>", 0]
 #       > This means that the production it will use from the CFG is "<program>" and the index is 0
 #   3.  Check if the production exists as a key in CFG[production], and append/push its values in reverse order into the stack.

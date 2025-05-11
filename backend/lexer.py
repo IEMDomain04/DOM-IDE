@@ -203,7 +203,7 @@ TT_TAB      = '\\t'     # Tab '\t'
 ### TOKEN ####
 # - This is our token class, which will be used to create token objects.
 # - The token object has 2 attributes, type and value.
-# - Example: Token('int', 3) will create a token object with type 'int' and value 3.
+# - Example: Token('int_literal', 3) will create a token object with type 'int' and value 3.
 ##############
 class Token:
     def __init__(self, type_, value=None, pos_start=None, pos_end=None):
@@ -1362,6 +1362,7 @@ class Lexer:
                     errors.append(LexicalError(pos_start, pos_end, "Identifier exceeded maximum character limit of 25"))
                     continue
                 else:
+                    pos_end = self.pos.copy()
                     tokens.append(Token(TT_IDENTIFIER, ident_str, pos_start=pos_start, pos_end=pos_end))
                     ident_num += 1
                     ident_state = 240
@@ -2190,7 +2191,7 @@ def string_with_arrows(text, pos_start, pos_end):
 
 # Function to run the lexer
 # Takes a string and a filename as input
-# Returns a list of tokens and an error if any
+# Returns a list of tokens/token stream and an error if any
 def run(text, fn='<stdin>'):
         lexer = Lexer(fn, text)
         tokens, error = lexer.make_tokens()
