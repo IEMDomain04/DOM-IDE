@@ -61,7 +61,6 @@ delim_map = {
     'woogie_delim':     set(NUMERIC + '(' + ' ' + '\n' + '\t' + '#'),
 }
 
-
 ##############
 # ERRORS
 ############## 
@@ -199,6 +198,13 @@ TT_EOF      = 'EOF'     # End of File
 TT_NEWLINE  = '\\n'     # Newline '\n'
 TT_TAB      = '\\t'     # Tab '\t'
 
+
+##############
+### TOKEN ####
+# - This is our token class, which will be used to create token objects.
+# - The token object has 2 attributes, type and value.
+# - Example: Token('int', 3) will create a token object with type 'int' and value 3.
+##############
 class Token:
     def __init__(self, type_, value=None, pos_start=None, pos_end=None):
         self.type = type_
@@ -218,6 +224,15 @@ class Token:
     def __repr__(self):
         if self.value: return f'{self.type}: {self.value}'
         return f'{self.type}'
+
+#########################################################################################
+### LEXER ###############################################################################
+# > This is our lexer class, which will be used to traverse the input string 
+#   and create tokens. 
+# > It checks the input string character by character, and everytime it finds 
+#   a valid token, it creates a token object and appends it to the tokens list.
+# > After creating a token, it also checks the next character to see if it is a valid delimiter for the token.
+#########################################################################################
         
 class Lexer:
     def __init__(self, fn, text):
@@ -2142,6 +2157,10 @@ class Lexer:
         pos_end = self.pos.copy()
         return [], LexicalError(pos_start, pos_end, 'String not properly closed with double quotes (")')
 
+
+
+# Function to generate a string with arrows indicating the position of the error
+
 def string_with_arrows(text, pos_start, pos_end):
     result = ''
 
@@ -2169,6 +2188,9 @@ def string_with_arrows(text, pos_start, pos_end):
 
     return result.replace('\t', ' ')
 
+# Function to run the lexer
+# Takes a string and a filename as input
+# Returns a list of tokens and an error if any
 def run(text, fn='<stdin>'):
         lexer = Lexer(fn, text)
         tokens, error = lexer.make_tokens()
