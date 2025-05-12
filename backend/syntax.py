@@ -123,7 +123,7 @@ CFG = {
     ],
 
     "<operand>": [
-        ["<pre>", "<value>"],
+        ["<unary>", "<value>"],
         ["<value>", "<post>"],
         ["<not_op>", "<value>"]
     ],
@@ -207,8 +207,7 @@ CFG = {
         ["<assign_op>", "<expression>"], ###########
         ["[", "<expression>", "]", "<two_dimensional>", "<assign_op>", "<expression>"], ###########
         ["(", "<arguments>", ")"], ###########
-        ["++"], 
-        ["--"], 
+        ["<unary>"]
     ],
 
     "<arguments>": [
@@ -276,13 +275,12 @@ CFG = {
     ],
 
     "<iteration>": [
-        ["<pre>", "id"],
+        ["<unary>", "id"],
         ["id", "<iteration_tail>"]
     ],
 
     "<iteration_tail>": [
-        ["++"],
-        ["--"],
+        ["<unary>"],
         ["<assign_op>", "<expression>"]
     ],
 
@@ -366,14 +364,13 @@ CFG = {
         ["%="]                                      ###########
     ],
 
-    "<pre>": [
+    "<unary>": [
         ["++"],                                     ########### 
         ["--"]                                      ########### 
     ],
 
     "<post>": [
-        ["++"],                                     ########### 239
-        ["--"],                         ########### 240
+        ["<unary>"],                                     ########### 239
         []
     ],
 
@@ -837,7 +834,7 @@ PREDICT_SET = {
         "[": ["<id_call>", 1],
         "(": ["<id_call>", 2],
         "++": ["<id_call>", 3],
-        "--": ["<id_call>", 4]
+        "--": ["<id_call>", 3]
     },
 
     "<arguments>": { ############# verified
@@ -986,13 +983,13 @@ PREDICT_SET = {
 
     "<iteration_tail>": { ############# verified
         "++": ["<iteration_tail>", 0],
-        "--": ["<iteration_tail>", 1],
-        "=": ["<iteration_tail>", 2],
-        "+=": ["<iteration_tail>", 2],
-        "-=": ["<iteration_tail>", 2],
-        "*=": ["<iteration_tail>", 2],
-        "/=": ["<iteration_tail>", 2],
-        "%=": ["<iteration_tail>", 2]
+        "--": ["<iteration_tail>", 0],
+        "=": ["<iteration_tail>", 1],
+        "+=": ["<iteration_tail>", 1],
+        "-=": ["<iteration_tail>", 1],
+        "*=": ["<iteration_tail>", 1],
+        "/=": ["<iteration_tail>", 1],
+        "%=": ["<iteration_tail>", 1]
     },
 
     "<sustain-loop>": { ############# verified
@@ -1100,48 +1097,48 @@ PREDICT_SET = {
         "%=": ["<assign_op>", 5]
     },
 
-    "<pre>": { ############# verified
-        "++": ["<pre>", 0],
-        "--": ["<pre>", 1]
+    "<unary>": { ############# verified
+        "++": ["<unary>", 0],
+        "--": ["<unary>", 1]
     },
 
     "<post>": { ############# verified
         "++": ["<post>", 0],
-        "--": ["<post>", 1],
-        ",": ["<post>", 2],
-        ";": ["<post>", 2],
-        "]": ["<post>", 2],
-        "id": ["<post>", 2],
-        "int_literal": ["<post>", 2],
-        "string_literal": ["<post>", 2],
-        "bool_literal": ["<post>", 2],
-        "float_literal": ["<post>", 2],
-        "null_literal": ["<post>", 2],
-        "invoke": ["<post>", 2],
-        "capture": ["<post>", 2],
-        "cleave": ["<post>", 2],
-        "dismantle": ["<post>", 2],
-        "len": ["<post>", 2],
-        "!": ["<post>", 2],
-        "{": ["<post>", 2],
-        "}": ["<post>", 2],
-        ")": ["<post>", 2],
-        "(": ["<post>", 2],
-        "+": ["<post>", 2],
-        "-": ["<post>", 2],
-        "*": ["<post>", 2],
-        "**": ["<post>", 2],
-        "/": ["<post>", 2],
-        "%": ["<post>", 2],
-        "==": ["<post>", 2],
-        "!=": ["<post>", 2],
-        ">": ["<post>", 2],
-        "<": ["<post>", 2],
-        ">=": ["<post>", 2],
-        "<=": ["<post>", 2],
-        "&&": ["<post>", 2],
-        "||": ["<post>", 2],
-        ":": ["<post>", 2]
+        "--": ["<post>", 0],
+        ",": ["<post>", 1],
+        ";": ["<post>", 1],
+        "]": ["<post>", 1],
+        "id": ["<post>", 1],
+        "int_literal": ["<post>", 1],
+        "string_literal": ["<post>", 1],
+        "bool_literal": ["<post>", 1],
+        "float_literal": ["<post>", 1],
+        "null_literal": ["<post>", 1],
+        "invoke": ["<post>", 1],
+        "capture": ["<post>", 1],
+        "cleave": ["<post>", 1],
+        "dismantle": ["<post>", 1],
+        "len": ["<post>", 1],
+        "!": ["<post>", 1],
+        "{": ["<post>", 1],
+        "}": ["<post>", 1],
+        ")": ["<post>", 1],
+        "(": ["<post>", 1],
+        "+": ["<post>", 1],
+        "-": ["<post>", 1],
+        "*": ["<post>", 1],
+        "**": ["<post>", 1],
+        "/": ["<post>", 1],
+        "%": ["<post>", 1],
+        "==": ["<post>", 1],
+        "!=": ["<post>", 1],
+        ">": ["<post>", 1],
+        "<": ["<post>", 1],
+        ">=": ["<post>", 1],
+        "<=": ["<post>", 1],
+        "&&": ["<post>", 1],
+        "||": ["<post>", 1],
+        ":": ["<post>", 1]
     }
 }
 
@@ -1204,7 +1201,7 @@ def string_with_arrows(text, pos_start, pos_end):
 #           if it is, pop the stack and self.advance.
 #   2.  If it is a non-terminal, Check what production to use by checking the top of the stack and the current token
 #       > See their combination in the predict set with production = PREDICT_SET[top_of_stack, self.current_token]
-#       > Example: PREDICT_SET["<program>", "int"] = ["<program>", 0]
+#       > Example: PREDICT_SET["<program>", "expansion"] = ["<program>", 0]
 #       > This means that the production it will use from the CFG is "<program>" and the index is 0
 #   3.  Check if the production exists as a key in CFG[production], and append/push its values in reverse order into the stack.
 #       > If it does not exist, then it is an error.
