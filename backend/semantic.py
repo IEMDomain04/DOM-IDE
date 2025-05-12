@@ -734,31 +734,6 @@ class MyASTVisitor(ASTVisitor):
             else:
                 if isinstance(parent_function, CurseDecNode) and parent_function.datatype != binop_type:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 3: Expected '{parent_function.datatype}', got '{binop_type}'"))
-        elif isinstance(binop_parent, (CycleConditionNode)):
-            if binop_type == 'unknown':
-                pass
-            elif binop_type != 'bool':
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"3 Condition must be a boolean expression, got '{binop_type}'"))
-        elif isinstance(binop_parent, (VowNode, ElseVow)):
-            if binop_type == 'unknown':
-                pass
-            elif binop_type != 'bool':
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"4 Condition must be a boolean expression, got '{binop_type}'"))
-        elif isinstance(binop_parent, (WoogieTrueNode)):
-            if binop_type == 'unknown':
-                pass
-            elif binop_type != 'bool':
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"5 Condition must be a boolean expression, got '{binop_type}'"))
-        elif isinstance(binop_parent, SustainNode):
-            if binop_type == 'unknown':
-                pass
-            elif binop_type != 'bool':
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"6 Condition must be a boolean expression, got '{binop_type}'"))
-        elif isinstance(binop_parent, PerformSustainNode):
-            if binop_type == 'unknown':
-                pass
-            elif binop_type != 'bool':
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"7 Condition must be a boolean expression, got '{binop_type}'"))
 
         if node.op == '/':
             if isinstance(node.right, NumNode) and node.right.value == 0:
@@ -1569,6 +1544,7 @@ class MyASTVisitor(ASTVisitor):
         if isinstance(node.condition, BinOpNode):
             if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
+            
         elif isinstance(node.condition, IdNode):
             if not self.symbol_table.get(node.condition.name):
                 self.unresolved_cases.append((node, parent))
@@ -1590,10 +1566,11 @@ class MyASTVisitor(ASTVisitor):
             pass
         elif isinstance(node.condition, LogOpNode):
             pass
+        elif isinstance(node.condition, BoolNode):
+            pass
         elif isinstance(node.condition, UnaryOpNode):
             if not node.condition.op.op == '!':
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-            pass
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         self.visit_children(node)
@@ -1625,10 +1602,11 @@ class MyASTVisitor(ASTVisitor):
             pass
         elif isinstance(node.condition, LogOpNode):
             pass
+        elif isinstance(node.condition, BoolNode):
+            pass
         elif isinstance(node.condition, UnaryOpNode):
             if not node.condition.op.op == '!':
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-            pass
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         self.visit_children(node)
@@ -1670,10 +1648,11 @@ class MyASTVisitor(ASTVisitor):
             pass
         elif isinstance(node.condition, LogOpNode):
             pass
+        elif isinstance(node.condition, BoolNode):
+            pass
         elif isinstance(node.condition, UnaryOpNode):
             if not node.condition.op.op == '!':
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-            pass
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         self.visit_children(node)
@@ -1746,10 +1725,11 @@ class MyASTVisitor(ASTVisitor):
             pass
         elif isinstance(node.condition, LogOpNode):
             pass
+        elif isinstance(node.condition, BoolNode):
+            pass
         elif isinstance(node.condition, UnaryOpNode):
             if not node.condition.op.op == '!':
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-            pass
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         self.visit_children(node)
@@ -1781,10 +1761,11 @@ class MyASTVisitor(ASTVisitor):
             pass
         elif isinstance(node.condition, LogOpNode):
             pass
+        elif isinstance(node.condition, BoolNode):
+            pass
         elif isinstance(node.condition, UnaryOpNode):
             if not node.condition.op.op == '!':
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-            pass
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         self.visit_children(node)
@@ -1839,10 +1820,11 @@ class MyASTVisitor(ASTVisitor):
             pass
         elif isinstance(node.condition, LogOpNode):
             pass
+        elif isinstance(node.condition, BoolNode):
+            pass
         elif isinstance(node.condition, UnaryOpNode):
             if not node.condition.op.op == '!':
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-            pass
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
 
@@ -2053,31 +2035,6 @@ class MyASTVisitor(ASTVisitor):
                     else:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Recall statement not within a function"))
                     
-                elif isinstance(binop_parent, (CycleConditionNode)):
-                    if binop_type == 'unknown':
-                        pass
-                    elif binop_type != 'bool':
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"3 Condition must be a boolean expression, got '{binop_type}'"))
-                elif isinstance(binop_parent, (VowNode, ElseVow)):
-                    if binop_type == 'unknown':
-                        pass
-                    elif binop_type != 'bool':
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"4 Condition must be a boolean expression, got '{binop_type}'"))
-                elif isinstance(binop_parent, (WoogieTrueNode)):
-                    if binop_type == 'unknown':
-                        pass
-                    elif binop_type != 'bool':
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"5 Condition must be a boolean expression, got '{binop_type}'"))
-                elif isinstance(binop_parent, SustainNode):
-                    if binop_type == 'unknown':
-                        pass
-                    elif binop_type != 'bool':
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"6 Condition must be a boolean expression, got '{binop_type}'"))
-                elif isinstance(binop_parent, PerformSustainNode):
-                    if binop_type == 'unknown':
-                        pass
-                    elif binop_type != 'bool':
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"7 Condition must be a boolean expression, got '{binop_type}'"))
                         
                 if op == '/':
                     if isinstance(node.right, NumNode) and node.right.value == 0:
@@ -2207,6 +2164,8 @@ class MyASTVisitor(ASTVisitor):
                 elif isinstance(node.condition, RelOpNode):
                     pass
                 elif isinstance(node.condition, LogOpNode):
+                    pass
+                elif isinstance(node.condition, BoolNode):
                     pass
                 else:
                     self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
