@@ -196,9 +196,10 @@ class UnaryOperator(ASTNode): # unary operator
         return f"{self.op}"
 
 class ExponentNode(ASTNode): # exponentiation
-    def __init__(self, left, right, pos_start=None, pos_end=None):
+    def __init__(self, left, op, right, pos_start=None, pos_end=None):
         super().__init__("Exponentiation", pos_start, pos_end)
         self.left = left
+        self.op = op.type
         self.right = right
         self.add_child(left)
         self.add_child(right)
@@ -2857,16 +2858,7 @@ class Parser:
         return self.parseBinOp(self.parseExponent, ['*', '/', '%'], BinOpNode)
 
     def parseExponent(self):
-        pos_start = self.current_token.pos_start
-        left, error = self.parseFactor()
-        if error: return None, error
-        while self.current_token.type == '**':
-            op = self.current_token
-            self.advance()
-            right, error = self.parseFactor()
-            if error: return None, error
-            left = ExponentNode(left, right, pos_start, self.current_token.pos_end)
-        return left, None
+        return self.parseBinOp(self.parseFactor, ['**'], ExponentNode)
 
     def parseBinOp(self, func, ops, node_class):
         pos_start = self.current_token.pos_start
@@ -2880,6 +2872,8 @@ class Parser:
             left = node_class(left, op, right, pos_start, self.current_token.pos_end)
         return left, None
     
+    
+
     def parseIdCall(self):
         if self.current_token.type != 'id':
             return None, ParseError(self.current_token.pos_start, self.current_token.pos_end, f"Got '{self.current_token.type}', Expected: identifier")
