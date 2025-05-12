@@ -1343,8 +1343,8 @@ class Lexer:
                     ident_count += 1
                     ident_state += 1
                     self.advance()
-                    pos_end = self.pos.copy()
                 
+                pos_end = self.pos.copy()
                 ident_lower = ident_str.lower()
 
                 if ident_lower in keywords:
@@ -1362,7 +1362,6 @@ class Lexer:
                     errors.append(LexicalError(pos_start, pos_end, "Identifier exceeded maximum character limit of 25"))
                     continue
                 else:
-                    pos_end = self.pos.copy()
                     tokens.append(Token(TT_IDENTIFIER, ident_str, pos_start=pos_start, pos_end=pos_end))
                     ident_num += 1
                     ident_state = 240
