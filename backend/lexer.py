@@ -81,10 +81,6 @@ class LexicalError(Error):
     def __init__(self, pos_start, pos_end, details):
         super().__init__(pos_start, pos_end, 'Lexical Error', details)
 
-class InvalidSyntaxError(Error):
-    def __init__(self, pos_start, pos_end, details=''):
-        super().__init__(pos_start, pos_end, 'Invalid Syntax', details)
-
 ##############
 # POSITION
 ##############
@@ -1778,7 +1774,7 @@ class Lexer:
                         tokens.append(Token(TT_AND, '&&', pos_start=pos_start, pos_end=self.pos.copy()))
                         continue
                 else: 
-                    errors.append(InvalidSyntaxError(pos_start, pos_end, "'&' is not a valid operator"))
+                    errors.append(LexicalError(pos_start, pos_end, "'&' is not a valid operator"))
                     self.advance()
                     continue
 
