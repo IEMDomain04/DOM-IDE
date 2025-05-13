@@ -719,7 +719,7 @@ class CodeRunner(DOMInterpreter):
                 try:
                     if clan.datatype == 'int':
                         user_input = NumNode(int(user_input))
-                        if user_input.value > 99999999999999999:
+                        if user_input.value > 9999999999999999:
                             self.error = SemanticError(node.pos_start, node.pos_end, f"Input value too large for integer '{node.name.name}', limit is 16 digits")
                             return
                     elif clan.datatype == 'float':
@@ -1186,6 +1186,10 @@ class CodeRunner(DOMInterpreter):
                 left_value = left_value.value
             if isinstance(right_value, NumNode):
                 right_value = right_value.value
+
+            if left_value == 'Null' or right_value == 'Null':
+                error = SemanticError(node.pos_start, node.pos_end, f'Invalid operation between null objects')
+                return None, error
             
             if not isinstance(node, ExponentNode):
                 try:
