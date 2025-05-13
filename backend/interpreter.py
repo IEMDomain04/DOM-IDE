@@ -227,7 +227,7 @@ class CodeRunner(DOMInterpreter):
         if true_parent is None:
             pass
         else:
-            var_dec_node = self.symbol_table.get(node.name)
+            var_dec_node = self.symbol_table.get_local(node.name)
             if not var_dec_node and parent is not None:
                 self.symbol_table.set(node.name, node)  # Store the VarDecNode object itself
                 var_dec_node = self.symbol_table.get(node.name)
