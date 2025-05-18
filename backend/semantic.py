@@ -10,7 +10,7 @@ class Error:
 
     def as_string(self):
         result = f'{self.error_name}: {self.details}'
-        result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}\n'
+        result += f'\nLine {self.pos_start.ln + 1}, Column {self.pos_start.col + 1}\n'
         result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
         return result
     
@@ -24,7 +24,7 @@ class DomainError(Error):
 
     def as_string(self):
         result = f'{self.error_name}: {self.details}'
-        result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}\n\n'
+        result += f'\nLine {self.pos_start.ln + 1}\n\n'
         return result
 
 class ParseError(Error):
@@ -108,21 +108,6 @@ class ASTNode:
             for child in self.children:
                 result += child.tree_to_str()
         return result
-
-    def get_parent(self):
-        return self.parent
-    
-    def get_leftmost_sibling(self):
-        if self.parent:
-            return self.parent.children[0]
-        return None
-    
-    def get_right_sibling(self):
-        if self.parent:
-            idx = self.parent.children.index(self)
-            if idx < len(self.parent.children) - 1:
-                return self.parent.children[idx + 1]
-        return None
     
 class NumNode(ASTNode): # for numbers
     def __init__(self, value, pos_start=None, pos_end=None):
@@ -675,6 +660,8 @@ class MyASTVisitor(ASTVisitor):
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
                 
                 if left_type == 'unknown' or right_type == 'unknown':
+                    pass
+                elif left_type == None or right_type == None:
                     pass
                 elif left_type == 'null' or right_type == 'null':
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
@@ -1352,7 +1339,10 @@ class MyASTVisitor(ASTVisitor):
             self.unresolved_cases.append((node, parent))
         else:
             if isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode)):
-                arg1_symbol = self.symbol_table.get(arg1.name)
+                if isinstance(arg1, StringNode):
+                    arg1_symbol = arg1
+                else:
+                    arg1_symbol = self.symbol_table.get(arg1.name)
                 if arg1_symbol is None:
                     self.unresolved_cases.append((node, parent))
                 else: 
@@ -1932,8 +1922,10 @@ class MyASTVisitor(ASTVisitor):
                 if symbol is None:
                     if isinstance(parent, RecallNode):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 3: '{node.name}'"))
-                    elif not isinstance(parent, CurseCallNode):
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared variable 6: '{node.name}'"))
+                    elif isinstance(parent, ClanAccessNode):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared clan 3: '{node.name}'"))
+                    elif isinstance(parent, CurseCallNode):
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared curse 6: '{node.name}'"))
                 else:
                     if isinstance(parent, RecallNode):
                         parent_function = parent
@@ -1980,10 +1972,6 @@ class MyASTVisitor(ASTVisitor):
                         if not isinstance(true_parent, InvokeNode):
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 25: Cannot concatenate '{left_type}' and '{right_type}'"))
                     else:
-                        if isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
-                            self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undeclared variable 7: '{node.left.name}'"))
-                        if isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
-                            self.errors.append(SemanticError(node.right.pos_start, node.right.pos_end, f"Undeclared variable 8: '{node.right.name}'"))
                         if isinstance(node.left, CurseCallNode) and not self.symbol_table.get(node.left.name):
                             self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undefined curse 3: '{node.left.name}'"))
                         if isinstance(node.right, CurseCallNode) and not self.symbol_table.get(node.right.name):
@@ -1992,12 +1980,10 @@ class MyASTVisitor(ASTVisitor):
                             self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undeclared clan 1: '{node.left.name}'"))
                         if isinstance(node.right, ClanAccessNode) and not self.symbol_table.get(node.right.name):
                             self.errors.append(SemanticError(node.right.pos_start, node.right.pos_end, f"Undeclared clan 2: '{node.right.name}'"))
-                        if isinstance(node.left, BinOpNode) and not self.symbol_table.get(node.left.name):
-                            self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undeclared variable 9: '{node.left.name}'"))
-                        if isinstance(node.right, BinOpNode) and not self.symbol_table.get(node.right.name):
-                            self.errors.append(SemanticError(node.right.pos_start, node.right.pos_end, f"Undeclared variable 10: '{node.right.name}'"))
                         else: 
                             if left_type == 'unknown' or right_type == 'unknown':
+                                pass
+                            elif left_type == None or right_type == None:
                                 pass
                             elif left_type == 'null' or right_type == 'null':
                                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
@@ -2008,7 +1994,7 @@ class MyASTVisitor(ASTVisitor):
                             elif left_type == 'float' and right_type == 'int':
                                 pass
                             else:
-                                self.errors.append(SemanticError(parent.pos_start, parent.pos_end, f"Cannot perform operation between 2 '{left_type}' and '{right_type}'"))
+                                self.errors.append(SemanticError(parent.pos_start, parent.pos_end, f"Cannot perform operation between '{left_type}' and '{right_type}'"))
                 
                 if left_type == 'null' or right_type == 'null':
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
@@ -2262,7 +2248,7 @@ class MyASTVisitor(ASTVisitor):
             elif isinstance(node, ClanAccessNode):
                 symbol = self.symbol_table.get(node.name)
                 if symbol is None:
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undeclared clan 5: '{node.name}'"))
+                    pass # already defined error for this elsewhere
                 else:
                     if not isinstance(symbol, ClanDecNode):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a clan 123"))

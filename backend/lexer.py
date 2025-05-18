@@ -73,8 +73,8 @@ class Error:
 
     def as_string(self):
         result = f'{self.error_name}: {self.details}'
-        result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}\n'
-        result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end)
+        result += f'\nLine {self.pos_start.ln + 1}, Column {self.pos_start.col + 1}\n\n'
+        result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
         return result
 
 class LexicalError(Error):
@@ -86,11 +86,10 @@ class LexicalError(Error):
 ##############
 
 class Position:
-    def __init__(self, idx, ln, col, fn, ftxt):
+    def __init__(self, idx, ln, col, ftxt):
         self.idx = idx
         self.ln = ln
         self.col = col
-        self.fn = fn
         self.ftxt = ftxt
 
     def advance(self, current_char=None):
@@ -104,7 +103,7 @@ class Position:
         return self
     
     def copy(self):
-        return Position(self.idx, self.ln, self.col, self.fn, self.ftxt)
+        return Position(self.idx, self.ln, self.col, self.ftxt)
 
 #############
 # TOKENS
@@ -231,19 +230,16 @@ class Token:
 #########################################################################################
         
 class Lexer:
-    def __init__(self, fn, text):
-        self.fn = fn
+    def __init__(self, text):
         self.text = text
-        self.pos = Position(-1, 0, -1, fn, text)
-        self.current_char = None
-        self.advance()
+        self.pos = Position(0, 0, 0, text)
+        self.current_char = self.text[0] if len(self.text) > 0 else None
 
     def advance(self):
         self.pos.advance(self.current_char)
         self.current_char = self.text[self.pos.idx] if self.pos.idx < len(self.text) else None
         
     def make_tokens(self):
-        ident_num = 0 # Identifier Number like id1, id2
         tokens = []
         states = []
         errors = []
@@ -1359,7 +1355,6 @@ class Lexer:
                     continue
                 else:
                     tokens.append(Token(TT_IDENTIFIER, ident_str, pos_start=pos_start, pos_end=pos_end))
-                    ident_num += 1
                     ident_state = 240
                     continue
 
@@ -1778,7 +1773,6 @@ class Lexer:
                     self.advance()
                     continue
 
-
             elif self.current_char == '|':          # or operator
                 states.append(204)
                 pos_start = self.pos.copy()
@@ -2187,7 +2181,7 @@ def string_with_arrows(text, pos_start, pos_end):
 # Function to run the lexer
 # Takes a string and a filename as input
 # Returns a list of tokens/token stream and an error if any
-def run(text, fn='<stdin>'):
-        lexer = Lexer(fn, text)
+def lexical_run(text):
+        lexer = Lexer(text)
         tokens, error = lexer.make_tokens()
         return tokens, error

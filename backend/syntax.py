@@ -30,11 +30,6 @@ CFG = {
         ["id", "<type_choice>"]
     ],
 
-    # "<restrict>": [
-    #     ["restrict"], ###########
-    #     []  
-    # ], 
-
     "<nonvoid_curse_dec>": [
         ["(", "<param>", ")", "{", "<body>", "}"], ########### 31
     ],
@@ -404,7 +399,7 @@ PREDICT_SET = {
         "bool": ["<program_tail>", 0],    
         "curse": ["<program_tail>",0],
         "restrict": ["<program_tail>", 0],
-        "λ": ["<program_tail>", 1]
+        "$": ["<program_tail>", 1]
     }, 
 
     "<global>": { ############# verified
@@ -490,7 +485,6 @@ PREDICT_SET = {
 
     "<clan_assign>": { ############# verified
         "=": ["<clan_assign>", 0],
-        "λ": ["<clan_assign>", 1],
         ";": ["<clan_assign>", 1]
     },
 
@@ -756,7 +750,6 @@ PREDICT_SET = {
         "sustain": ["<body>", 0],
         "perform": ["<body>", 0],
         "}": ["<body>", 1],
-        "λ": ["<body>", 1]
     },
         
     "<statement>": { ############# verified
@@ -779,7 +772,6 @@ PREDICT_SET = {
         "sustain": ["<statement>"   , 9],
         "perform": ["<statement>", 9],
         "}": ["<statement>", 10],
-        "λ": ["<statement>", 10]
     },
 
     "<clan_call>": { ############# verified
@@ -1085,7 +1077,6 @@ PREDICT_SET = {
         "cleave": ["<more_not_op>", 1],
         "dismantle": ["<more_not_op>", 1],
         "len": ["<more_not_op>", 1],
-        "λ": ["<more_not_op>", 1]
     },
 
     "<assign_op>": { ############# verified
@@ -1155,7 +1146,7 @@ class Error:
 
     def as_string(self):
         result = f'{self.error_name}: {self.details}'
-        result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}\n'
+        result += f'\nLine {self.pos_start.ln + 1}, Column {self.pos_start.col + 1}\n'
         result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
         return result
     
@@ -1215,6 +1206,7 @@ class SyntaxAnalyzer:
         self.token_idx = -1
         self.advance()
         self.semantic_errors = []
+        self.last_nonterminal = ""
 
     def advance(self):
         while True:
@@ -1252,12 +1244,13 @@ class SyntaxAnalyzer:
             #print(f"1. New Stack: {stack}\n2. Current Token: {self.current_token.type}")  
             if self.current_token is None or self.current_token.type == 'EOF':
                 self.current_token = type('Token', (object,), {
-                    'type': 'λ',
+                    'type': '$',
                     'pos_start': self.tokens[-1].pos_end if self.tokens else None,
                     'pos_end': self.tokens[-1].pos_end if self.tokens else None
                 })()
 
             if is_non_terminal(top):
+                self.last_nonterminal = top
                 if top in PREDICT_SET and self.current_token.type in PREDICT_SET[top]:
                     production_key = PREDICT_SET[top][self.current_token.type]
                     production = CFG[production_key[0]][production_key[1]]
@@ -1266,8 +1259,11 @@ class SyntaxAnalyzer:
                     stack.extend(reversed(production))
                 else:
                     expected_tokens = list(PREDICT_SET[top].keys())
-                    error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                               f"Unexpected token '{self.current_token.type}' here. Expected one of {expected_tokens}\n[No prediction for {self.current_token.type} in {top}]")
+                    error = InvalidSyntaxError(
+                        self.current_token.pos_start, 
+                        self.current_token.pos_end, 
+                        f"Unexpected token '{self.current_token.type}' here. Expected one of {expected_tokens}\n[No prediction for '{self.current_token.type}' in {top}]"
+                    )
                     break
             else:
                 if top == self.current_token.type:
@@ -1275,8 +1271,11 @@ class SyntaxAnalyzer:
                     stack.pop()
                     self.advance()
                 else:
-                    error = InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, 
-                                               f"Expected '{top}', got '{self.current_token.type}'")
+                    error = InvalidSyntaxError(
+                        self.current_token.pos_start,
+                        self.current_token.pos_end,
+                        f"Expected '{top}', got '{self.current_token.type}'\n[Current token '{self.current_token.type}' did not match top of the stack '{top}']"
+                    )
                     break
 
         if error:
