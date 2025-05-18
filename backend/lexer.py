@@ -197,7 +197,7 @@ TT_TAB      = '\\t'     # Tab '\t'
 ##############
 ### TOKEN ####
 # - This is our token class, which will be used to create token objects.
-# - The token object has 2 attributes, type and value.
+# - The token object has 4 attributes, type and value, pos_start, pos_end
 # - Example: Token('int_literal', 3) will create a token object with type 'int' and value 3.
 ##############
 class Token:
@@ -213,12 +213,9 @@ class Token:
         if pos_end:
             self.pos_end = pos_end
 
-    def matches(self, type_, value):
-        return self.type == type_ and self.value == value
-
     def __repr__(self):
-        if self.value: return f'{self.type}: {self.value}'
-        return f'{self.type}'
+        if self.value: return f'{self.type}: {self.value}' # 'TT_INT: 3'
+        return f'{self.type}' 
 
 #########################################################################################
 ### LEXER ###############################################################################
@@ -233,26 +230,34 @@ class Lexer:
     def __init__(self, text):
         self.text = text
         self.pos = Position(0, 0, 0, text)
-        self.current_char = self.text[0] if len(self.text) > 0 else None
+
+        if len(self.text) > 0:
+            self.current_char = self.text[0]
+        else:
+            self.current_char = None
 
     def advance(self):
         self.pos.advance(self.current_char)
-        self.current_char = self.text[self.pos.idx] if self.pos.idx < len(self.text) else None
+
+        if self.pos.idx < len(self.text):
+            self.current_char = self.text[self.pos.idx]
+        else:
+            self.current_char = None
         
     def make_tokens(self):
         tokens = []
-        states = []
+        states = [] 
         errors = []
 
-        while self.current_char is not None:
+        while self.current_char is not None: 
             
-            if self.current_char in ALPHA:
-                ident_state = 240
-                ident_str = ''  # Identifier string to append the characters if it turns into an identifier
-                ident_count = 0 # Identifier character counter to set limit of 20
+            if self.current_char in ALPHA:  
+                ident_state = 240 
+                ident_str = ''  
+                ident_count = 0 
                 pos_start = self.pos.copy()
 
-                if self.current_char == 'b':
+                if self.current_char == 'b': 
                     states.append(1)
                     ident_str += self.current_char
                     ident_count+=1
@@ -2047,19 +2052,17 @@ class Lexer:
                 continue
         pos_start = self.pos.copy()
         tokens.append(Token(TT_EOF, pos_start=pos_start, pos_end=self.pos.copy()))
+        
         return tokens, errors
                 
 
-    def make_number(self, is_negative=False):  # for making numbers: int and float
+    def make_number(self):  # for making numbers: int and float
         num_str = ''
         int_count = 0 # counts the number of digits in the integer part of the number
         num_count = 0 # counts the total number of digits in the number
         dec_count = 0 # counts the number of digits in the decimal part of the number
         dot_count = 0 # counts the number of periods in the number
         pos_start = self.pos.copy()
-
-        if is_negative:  # Prepend '-' to handle negative numbers
-            num_str = '-'
 
         while self.current_char != None and self.current_char in NUMERIC + '.':
             if self.current_char == '.':
@@ -2096,7 +2099,8 @@ class Lexer:
                 
                 # checks if dec_count exceeds limit of 7 if number is a float, if it exceeds then just ignore
                 if dot_count == 1 and dec_count > 7:
-                    self.advance()
+                    pos_end = self.pos.copy()
+                    return [], LexicalError(pos_start, pos_end, "Float's decimal number exceeded maximum character limit of 7")
                 # append the latest character to the number string
                 else:
                     num_str += self.current_char
@@ -2118,7 +2122,7 @@ class Lexer:
         
     def make_string(self):
         id_str = ''
-        self.advance()
+        self.advance() 
         pos_start = self.pos.copy()
         escape_character = False
 
@@ -2142,6 +2146,7 @@ class Lexer:
                 return [], LexicalError(pos_start, pos_end, 'String not properly closed with double quotes (")')
             else:
                 id_str += self.current_char
+            
             self.advance()
 
         pos_end = self.pos.copy()
