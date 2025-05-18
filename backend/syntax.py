@@ -1202,11 +1202,9 @@ def string_with_arrows(text, pos_start, pos_end):
 
 class SyntaxAnalyzer:
     def __init__(self, tokens):
-        self.tokens = tokens
+        self.tokens = tokens 
         self.token_idx = -1
         self.advance()
-        self.semantic_errors = []
-        self.last_nonterminal = ""
 
     def advance(self):
         while True:
@@ -1219,24 +1217,9 @@ class SyntaxAnalyzer:
                 self.current_token = None
                 break
         return self.current_token
-    
-    def reset(self):
-        self.token_idx = -1
-        self.advance()
-
-    def peek(self):
-        current_idx = self.token_idx
-        while True:
-            current_idx += 1
-            if current_idx < len(self.tokens):
-                next_token = self.tokens[current_idx]
-                if next_token.type not in ['\n', '\t', ' ', '\\n', '\\t', 'space']:
-                    return next_token
-            else:
-                return None
 
     def syntax_analyzer(self):
-        stack = ["<program>"]
+        stack = ["<program>"]             
         error = None
 
         while stack:
@@ -1250,9 +1233,8 @@ class SyntaxAnalyzer:
                 })()
 
             if is_non_terminal(top):
-                self.last_nonterminal = top
                 if top in PREDICT_SET and self.current_token.type in PREDICT_SET[top]:
-                    production_key = PREDICT_SET[top][self.current_token.type]
+                    production_key = PREDICT_SET[top][self.current_token.type] 
                     production = CFG[production_key[0]][production_key[1]]
                     #print(f"3. Production found for {top}: {self.current_token.type}")  
                     stack.pop()
