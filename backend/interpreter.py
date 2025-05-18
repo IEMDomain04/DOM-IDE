@@ -23,7 +23,7 @@ class Error:
     def as_string(self):
         result = f'{self.error_name}: {self.details}'
         try:
-            result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}\n'
+            result += f'\nLine {self.pos_start.ln + 1}, Column {self.pos_start.col + 1}\n'
             result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
         except:
             result = "there was an error in the error message"
@@ -90,6 +90,9 @@ class ReturnException(Exception):
 
 class DOMInterpreter: 
     def visit(self, node, parent=None):
+        if hasattr(self, 'error') and self.error:
+            return None 
+    
         method_name = f'visit_{type(node).__name__}'
         visitor = getattr(self, method_name, self.generic_visit)
         return visitor(node, parent)
@@ -1055,9 +1058,6 @@ class CodeRunner(DOMInterpreter):
         self.input_events.pop(var_name, None)
         return value
 
-    def resume_execution(self):
-        self.visit(self.current_node, self.current_parent)
-
     def infer_type(self, node):
         if isinstance(node, NumNode):
             return 'int' if isinstance(node.value, int) else 'float'
@@ -1436,9 +1436,12 @@ class CodeRunner(DOMInterpreter):
             print(f"Visiting LenNode with name: {node.name}")
 
             # Retrieve the clan from the symbol table
-            symbol = self.symbol_table.get(node.name.name)
-            if symbol is None:
-                return None, SemanticError(node.pos_start, node.pos_end, f"'{node.name.name}' is not declared")
+            if isinstance(node.name, IdNode):
+                symbol = self.symbol_table.get(node.name.name)
+                if symbol is None:
+                    return None, SemanticError(node.pos_start, node.pos_end, f"'{node.name.name}' is not declared")
+            else: 
+                symbol = node.name.value
 
             if not isinstance(symbol, (ClanDecNode, StringNode, VarDecNode, str)):
                 if isinstance(symbol, VarDecNode):
@@ -1467,6 +1470,9 @@ class CodeRunner(DOMInterpreter):
                 
             elif isinstance(symbol, StringNode):
                 return len(StringNode.value), None
+            
+            elif isinstance(symbol, str):
+                return len(symbol), None
             
             elif isinstance(symbol, VarDecNode):
                 if symbol.datatype == 'string':
@@ -1506,12 +1512,34 @@ class CodeRunner(DOMInterpreter):
                     return None, SemanticError(node.pos_start, node.pos_end, f"'{node.name.name}' is not a clan or string")
 
         elif isinstance(node, CleaveNode):
-            symbol = self.symbol_table.get(node.arg1.name)
+            if isinstance(node.arg1, StringNode):
+                symbol = node.arg1
+            else:
+                symbol = self.symbol_table.get(node.arg1.name)
             if symbol is None:
                 return None, SemanticError(node.pos_start, node.pos_end, f"'{node.arg1.name}' is not declared")
 
             if isinstance(symbol, VarDecNode) and symbol.datatype == 'string':
                 string_value = symbol.value.value
+                start, error = self.evaluate_node(node.index1)
+                if error:
+                    return None, error
+                length, error = self.evaluate_node(node.index2)
+                if error:
+                    return None, error
+
+                if not isinstance(start, int) or not isinstance(length, int):
+                    return None, SemanticError(node.pos_start, node.pos_end, f"Indexes must be integers")
+
+                if start < 0:
+                    start = max(len(string_value) + start, 0)
+
+                result = string_value[start:start + length]
+                
+                return result, None
+
+            elif isinstance(symbol, StringNode):
+                string_value = symbol.value
                 start, error = self.evaluate_node(node.index1)
                 if error:
                     return None, error
@@ -1579,16 +1607,3 @@ class CodeRunner(DOMInterpreter):
         
         else:
             return None, None
-
-# > Function to run the interpreter
-# > This function takes an AST and a symbol table as parameter, and the symbol_table to be used 
-#   and returns the output of the interpreter, otherwise it returns the error.
-def interpreter_run(ast, symbol_table, socketio=None):
-    runner = CodeRunner(symbol_table, socketio=socketio)
-    runner.visit(ast)
-
-    print(f"Interpreter output: {runner.output}")
-    if runner.error:
-        return None, runner.error
-    
-    return runner.output, None
