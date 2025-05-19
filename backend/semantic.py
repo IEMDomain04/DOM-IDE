@@ -18,10 +18,6 @@ class SemanticError(Error):
     def __init__(self, pos_start, pos_end, details=''):
         super().__init__(pos_start, pos_end, 'Semantic Error', details)
 
-class DomainError(Error):
-    def __init__(self, pos_start, pos_end, details=''):
-        super().__init__(pos_start, pos_end, 'Semantic Error', details)
-
     def as_string(self):
         result = f'{self.error_name}: {self.details}'
         result += f'\nLine {self.pos_start.ln + 1}\n\n'
@@ -159,7 +155,7 @@ class UnaryOpNode(ASTNode): # unary operation
         self.op = UnaryOperator(op, pos_start, pos_end)
         self.expr = expr
         self.pre = pre
-        self.post = post
+        self.post = post 
         if pre: self.add_child(self.op)
         self.add_child(expr)
         if post: self.add_child(self.op)
@@ -573,17 +569,13 @@ class CycleConditionNode(ASTNode): # for-loop initialization, condition, and ite
 class ASTVisitor:
     def visit(self, node, parent=None):
         method_name = f'visit_{type(node).__name__}'
-        visitor = getattr(self, method_name, self.generic_visit)
-        return visitor(node, parent)
+        visitor = getattr(self, method_name, self.generic_visit) 
+        return visitor(node, parent) 
 
     def generic_visit(self, node, parent):
         if parent is None:
             print(f"Visiting root node: {type(node).__name__}")
-        self.visit_node(node, parent)
         self.visit_children(node)
-
-    def visit_node(self, node, parent):
-        pass
 
     def visit_children(self, node):
         for child in node.children:
@@ -697,7 +689,6 @@ class MyASTVisitor(ASTVisitor):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform operation '{node.op}' on strings"))
             elif left_type == 'bool' or right_type == 'bool':
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform arithmetic operation on boolean values"))
-
 
         if isinstance(binop_parent, (VarDecNode)):
             if binop_type == 'unknown':
@@ -2529,7 +2520,6 @@ class SymbolTable:
         print(f"'{name}' not found in any scope, get_type returns None")
         return None
 
-
     def set(self, name, value):
         # Set in the closest scope where the name exists, or the current (innermost) scope if not found
         for scope in reversed(self.scopes):
@@ -2630,7 +2620,7 @@ class Parser:
         tok = self.current_token
 
         if tok.type in ('int_literal', 'float_literal'):
-            self.advance()
+            self.advance() 
             if self.current_token.type in ('++', '--'):
                 op = self.current_token
                 pos_end = self.current_token.pos_end
@@ -4576,13 +4566,13 @@ class Parser:
 
 def semantic_run(tokens):
     symbol_table = SymbolTable()
-    visitor = MyASTVisitor(symbol_table)
     parser = Parser(tokens)
+    visitor = MyASTVisitor(symbol_table)
     ast, errors = parser.build_ast()
     
     # check if there is curse domain node in the ast
     if not any(isinstance(node, CurseDomainNode) for node in ast.children):
-        errors.insert(0, DomainError(parser.current_token.pos_start, parser.current_token.pos_end, "Curse domain function is not defined"))
+        errors.insert(0, SemanticError(parser.current_token.pos_start, parser.current_token.pos_end, "Curse domain function is not defined"))
 
     if ast:
         visitor.visit(ast)
@@ -4590,6 +4580,7 @@ def semantic_run(tokens):
         print(symbol_table.scopes)
         tree_str = ast.tree_to_str()
         ast.print_tree()
+
     else:
         print("No AST built")
         return "No AST built", None, tree_str, None
