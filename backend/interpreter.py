@@ -1205,7 +1205,14 @@ class CodeRunner(DOMInterpreter):
                         elif node.op == '/':
                             if right_value == 0:
                                 return None, RTError(node.pos_start, node.pos_end, "Division by zero")
-                            return left_value / right_value, None
+                            result = left_value / right_value
+                            if result>999999999:
+                                return None, RTError(node.pos_start, node.pos_end, "Float significant values exceeded limit of 9 digits")
+                            if isinstance(result, float):
+                                decimal_part = str(result).split('.')[-1]
+                                if len(decimal_part) > 7:
+                                    result = round(result, 7)
+                            return result, None
                         elif node.op == '%':
                             return left_value % right_value, None
                         elif node.op == '==':
