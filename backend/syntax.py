@@ -1,6 +1,15 @@
-############## 
-# CONSTANTS 
 ##############
+# IMPORTS
+############## 
+from .lexer import Error
+
+##############
+# ERRORS
+############## 
+    
+class InvalidSyntaxError(Error):
+    def __init__(self, pos_start, pos_end, details=''):
+        super().__init__(pos_start, pos_end, 'Syntax Error', details)
 
 ##########################################
 ######### CONTEXT FREE GRAMMAR ###########
@@ -118,7 +127,6 @@ CFG = {
     ],
 
     "<operand>": [
-        ["<unary>", "<value>"],
         ["<value>", "<post>"],
         ["<not_op>", "<value>"]
     ],
@@ -270,7 +278,6 @@ CFG = {
     ],
 
     "<iteration>": [
-        ["<unary>", "id"],
         ["id", "<iteration_tail>"]
     ],
 
@@ -562,20 +569,18 @@ PREDICT_SET = {
     },
 
     "<operand>": { ############# verified
-        "++": ["<operand>", 0],
-        "--": ["<operand>", 0],
-        "id": ["<operand>", 1],
-        "string_literal": ["<operand>", 1],
-        "float_literal": ["<operand>", 1],
-        "null_literal": ["<operand>", 1],
-        "bool_literal": ["<operand>", 1],
-        "int_literal": ["<operand>", 1],
-        "dismantle": ["<operand>", 1],
-        "capture": ["<operand>", 1],
-        "invoke": ["<operand>", 1],
-        "cleave": ["<operand>", 1],
-        "len": ["<operand>", 1],
-        "!": ["<operand>", 2],
+        "id": ["<operand>", 0],
+        "string_literal": ["<operand>", 0],
+        "float_literal": ["<operand>", 0],
+        "null_literal": ["<operand>", 0],
+        "bool_literal": ["<operand>", 0],
+        "int_literal": ["<operand>", 0],
+        "dismantle": ["<operand>", 0],
+        "capture": ["<operand>", 0],
+        "invoke": ["<operand>", 0],
+        "cleave": ["<operand>", 0],
+        "len": ["<operand>", 0],
+        "!": ["<operand>", 1],
     },
 
     "<value>": { ############# verified
@@ -968,9 +973,7 @@ PREDICT_SET = {
     },
 
     "<iteration>": { ############# verified
-        "++": ["<iteration>", 0],
-        "--": ["<iteration>", 0],
-        "id": ["<iteration>", 1],
+        "id": ["<iteration>", 0]
     },
 
     "<iteration_tail>": { ############# verified
@@ -1133,54 +1136,6 @@ PREDICT_SET = {
     }
 }
 
-
-##############
-# ERRORS
-############## 
-class Error:
-    def __init__(self, pos_start, pos_end, error_name, details):
-        self.pos_start = pos_start
-        self.pos_end = pos_end
-        self.error_name = error_name
-        self.details = details
-
-    def as_string(self):
-        result = f'{self.error_name}: {self.details}'
-        result += f'\nLine {self.pos_start.ln + 1}, Column {self.pos_start.col + 1}\n'
-        result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
-        return result
-    
-class InvalidSyntaxError(Error):
-    def __init__(self, pos_start, pos_end, details=''):
-        super().__init__(pos_start, pos_end, 'Syntax Error', details)
-
-def string_with_arrows(text, pos_start, pos_end):
-    result = ''
-
-    # Calculate indices
-    idx_start = max(text.rfind('\n', 0, pos_start.idx), 0)
-    idx_end = text.find('\n', idx_start + 1)
-    if idx_end < 0: idx_end = len(text)
-
-    # Generate each line
-    line_count = pos_end.ln - pos_start.ln + 1
-    for i in range(line_count):
-        # Calculate line columns
-        line = text[idx_start:idx_end]
-        col_start = pos_start.col if i == 0 else 0
-        col_end = pos_end.col if i == line_count - 1 else len(line) - 1
-
-        # Append to result
-        result += line + '\n' 
-        result += ' ' * col_start + '^' * (col_end - col_start)
-
-        # Re-calculate indices
-        idx_start = idx_end
-        idx_end = text.find('\n', idx_start + 1)
-        if idx_end < 0 : idx_end = len(text)
-
-    return result.replace('\t', ' ')
-
 ######################################
 ########## Syntax Analyzer ###########
 ######################################
@@ -1221,6 +1176,7 @@ class SyntaxAnalyzer:
     def syntax_analyzer(self):
         stack = ["<program>"]             
         error = None
+        last_nonterminal = None
 
         while stack:
             top = stack[-1]
@@ -1233,6 +1189,7 @@ class SyntaxAnalyzer:
                 })()
 
             if is_non_terminal(top):
+                last_nonterminal = top
                 if top in PREDICT_SET and self.current_token.type in PREDICT_SET[top]:
                     production_key = PREDICT_SET[top][self.current_token.type] 
                     production = CFG[production_key[0]][production_key[1]]
@@ -1253,10 +1210,23 @@ class SyntaxAnalyzer:
                     stack.pop()
                     self.advance()
                 else:
+                    # Check if last_nonterminal has an empty production in CFG
+                    expected_tokens = []
+                    if last_nonterminal and last_nonterminal in CFG:
+                        for prod in CFG[last_nonterminal]:
+                            if prod == []:
+                                # If there is an empty production, include all terminals in the predict set
+                                if last_nonterminal in PREDICT_SET:
+                                    expected_tokens = get_first_set(last_nonterminal)
+                                break
+                    if not expected_tokens:
+                        expected_tokens = [top]
+                    if self.current_token.type in expected_tokens:
+                        expected_tokens.remove(self.current_token.type)
                     error = InvalidSyntaxError(
                         self.current_token.pos_start,
                         self.current_token.pos_end,
-                        f"Expected '{top}', got '{self.current_token.type}'\n[Current token '{self.current_token.type}' did not match top of the stack '{top}']"
+                        f"{last_nonterminal} Unexpected token '{self.current_token.type}' here. Expected {expected_tokens}\n[Current token '{self.current_token.type}' did not match top of the stack '{top}']"
                     )
                     break
 
@@ -1269,6 +1239,18 @@ class SyntaxAnalyzer:
 # basically it just checks if string starts with '<' and ends with '>'
 def is_non_terminal(text): # (boolean) checks if the given string is a non-terminal
     return text.startswith('<') and text.endswith('>')
+
+# Function to get first set of a non-terminal
+def get_first_set(non_terminal):
+    first_set = set()
+    for production in CFG[non_terminal]:
+        if production:
+            first_symbol = production[0]
+            if is_non_terminal(first_symbol):
+                first_set.update(get_first_set(first_symbol))
+            else:
+                first_set.add(first_symbol)
+    return first_set
 
 # > Function to analyze the order of input tokens
 # > It takes a list of tokens provided by the lexer 

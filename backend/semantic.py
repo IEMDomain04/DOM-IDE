@@ -1,18 +1,11 @@
 ##############
+# IMPORTS
+############## 
+from .lexer import Error
+
+##############
 # ERRORS
 ############## 
-class Error:
-    def __init__(self, pos_start, pos_end, error_name, details):
-        self.pos_start = pos_start
-        self.pos_end = pos_end
-        self.error_name = error_name
-        self.details = details
-
-    def as_string(self):
-        result = f'{self.error_name}: {self.details}'
-        result += f'\nLine {self.pos_start.ln + 1}, Column {self.pos_start.col + 1}\n'
-        result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
-        return result
     
 class SemanticError(Error):
     def __init__(self, pos_start, pos_end, details=''):
@@ -26,36 +19,6 @@ class SemanticError(Error):
 class ParseError(Error):
     def __init__(self, pos_start, pos_end, details=''):
         super().__init__(pos_start, pos_end, 'Parse Failure', details)
-
-def string_with_arrows(text, pos_start, pos_end):
-    result = ''
-
-    # Calculate indices
-    idx_start = max(text.rfind('\n', 0, pos_start.idx), 0)
-    idx_end = text.find('\n', idx_start + 1)
-    if idx_end < 0: idx_end = len(text)
-
-    # Generate each line
-    line_count = pos_end.ln - pos_start.ln + 1
-    for i in range(line_count):
-        # Calculate line columns
-        line = text[idx_start:idx_end]
-        col_start = pos_start.col if i == 0 else 0
-        col_end = pos_end.col if i == line_count - 1 else len(line) - 1
-
-        # Append to result
-        result += line + '\n'
-        if pos_start.idx == pos_end.idx and pos_start.ln == pos_end.ln and pos_start.col == pos_end.col:
-            result += ' ' * col_start + '^'
-        else:
-            result += ' ' * col_start + '^' * (col_end - col_start)
-
-        # Re-calculate indices
-        idx_start = idx_end
-        idx_end = text.find('\n', idx_start + 1)
-        if idx_end < 0: idx_end = len(text)
-
-    return result.replace('\t', ' ')
 
 ###################
 #### AST Nodes ####
@@ -76,7 +39,6 @@ class ASTNode:
         self.pos_end = pos_end
 
     def add_child(self, child):
-        print(f'CHILD TYPE {type(child)}: {child}')
         child.parent = self
         self.children.append(child)
 
@@ -796,13 +758,13 @@ class MyASTVisitor(ASTVisitor):
         elif left_type == 'null' or right_type == 'null':
             self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on Null values"))
         elif isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
-            self.unresolved_cases.append((node, parent))
+            self.unresolved_cases.append((node.left, node))
         elif isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
-            self.unresolved_cases.append((node, parent))
+            self.unresolved_cases.append((node.right, node))
         elif isinstance(node.left, CurseCallNode) and not self.symbol_table.get(node.left.name):
-            self.unresolved_cases.append((node, parent))
+            self.unresolved_cases.append((node.left, node))
         elif isinstance(node.right, CurseCallNode) and not self.symbol_table.get(node.right.name):
-            self.unresolved_cases.append((node, parent))
+            self.unresolved_cases.append((node.right, node))
 
         self.visit_children(node)
         print(f"Exiting RelOpNode")
@@ -1762,7 +1724,6 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_CycleConditionNode(self, node, parent):
         print(f"Visiting CycleConditionNode")
-        self.visit_children(node)
         if isinstance(node.init, VarDecNode):
             init_type = node.init.datatype
             if init_type != 'int':
@@ -1783,6 +1744,7 @@ class MyASTVisitor(ASTVisitor):
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         elif isinstance(node.condition, IdNode):
             if not self.symbol_table.get(node.condition.name):
+                print("I REACHED HERE!!!!!!!")
                 self.unresolved_cases.append((node.condition, node))
             else:
                 condition_type = self.symbol_table.get_type(node.condition.name)
@@ -1791,6 +1753,7 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(node.condition, CurseCallNode):
             curse_node = self.symbol_table.get(node.condition.name)
             if curse_node is None:
+                print("I REACHED HERE!!!!!!! 2")
                 self.unresolved_cases.append((node.condition, node))
             else:
                 curse_return_type = curse_node.datatype
@@ -1825,7 +1788,7 @@ class MyASTVisitor(ASTVisitor):
                     self.errors.append(SemanticError(node.iteration.pos_start, node.iteration.pos_end, "Cycle iteration must be an integer"))
         else:
             self.errors.append(SemanticError(node.iteration.pos_start, node.iteration.pos_end, "Invalid cycle iteration"))
-
+        self.visit_children(node)
         print(f"Exiting CycleConditionNode")
 
     def evaluate_node(self, node):
@@ -3047,7 +3010,7 @@ class Parser:
                 if self.current_token.type == '=':
                     self.advance()
                     if self.current_token.type == 'id' and self.peek().type in ['++', '--']:
-                        value, error = self.parseIdCall()
+                        value, error = self.parseExpr()
                         if error: return None, error
                         if self.peek() == ',':
                             declarations = [VarDecNode(None, datatype, name, value, pos_start, self.current_token.pos_end)]

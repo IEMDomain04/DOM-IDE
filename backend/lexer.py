@@ -61,50 +61,6 @@ delim_map = {
     'woogie_delim':     set(NUMERIC + '(' + ' ' + '\n' + '\t' + '#'),
 }
 
-##############
-# ERRORS
-############## 
-class Error:
-    def __init__(self, pos_start, pos_end, error_name, details):
-        self.pos_start = pos_start
-        self.pos_end = pos_end
-        self.error_name = error_name
-        self.details = details
-
-    def as_string(self):
-        result = f'{self.error_name}: {self.details}'
-        result += f'\nLine {self.pos_start.ln + 1}, Column {self.pos_start.col + 1}\n\n'
-        result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
-        return result
-
-class LexicalError(Error):
-    def __init__(self, pos_start, pos_end, details):
-        super().__init__(pos_start, pos_end, 'Lexical Error', details)
-
-##############
-# POSITION
-##############
-
-class Position:
-    def __init__(self, idx, ln, col, ftxt):
-        self.idx = idx
-        self.ln = ln
-        self.col = col
-        self.ftxt = ftxt
-
-    def advance(self, current_char=None):
-        self.idx += 1
-        self.col += 1
-
-        if current_char == '\n':
-            self.ln += 1
-            self.col = 0
-            
-        return self
-    
-    def copy(self):
-        return Position(self.idx, self.ln, self.col, self.ftxt)
-
 #############
 # TOKENS
 #############
@@ -193,6 +149,49 @@ TT_EOF      = 'EOF'     # End of File
 TT_NEWLINE  = '\\n'     # Newline '\n'
 TT_TAB      = '\\t'     # Tab '\t'
 
+##############
+# POSITION UTILITY CLASS
+##############
+class Position:
+    def __init__(self, idx, ln, col, ftxt):
+        self.idx = idx
+        self.ln = ln
+        self.col = col
+        self.ftxt = ftxt
+
+    def advance(self, current_char=None):
+        self.idx += 1
+        self.col += 1
+
+        if current_char == '\n':
+            self.ln += 1
+            self.col = 0
+            
+        return self
+    
+    def copy(self):
+        return Position(self.idx, self.ln, self.col, self.ftxt)
+    
+##############
+# ERRORS
+############## 
+class Error:
+    def __init__(self, pos_start, pos_end, error_name, details):
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        self.error_name = error_name
+        self.details = details
+
+    def as_string(self):
+        result = f'{self.error_name}: {self.details}'
+        result += f'\nLine {self.pos_start.ln + 1}, Column {self.pos_start.col + 1}\n'
+        result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
+        return result
+
+class LexicalError(Error):
+    def __init__(self, pos_start, pos_end, details):
+        super().__init__(pos_start, pos_end, 'Lexical Error', details)
+
 
 ##############
 ### TOKEN ####
@@ -225,7 +224,7 @@ class Token:
 #   a valid token, it creates a token object and appends it to the tokens list.
 # > After creating a token, it also checks the next character to see if it is a valid delimiter for the token.
 #########################################################################################
-        
+
 class Lexer:
     def __init__(self, text):
         self.text = text

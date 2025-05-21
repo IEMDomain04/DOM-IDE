@@ -1,4 +1,9 @@
+##############
+# IMPORTS
+############## 
 import threading, copy
+
+from .lexer import Error
 
 from .semantic import (
     NumNode, DatatypeNode, StringNode, BoolNode, NullNode, ExponentNode, BinOpNode, 
@@ -13,21 +18,6 @@ from .semantic import (
 ##############
 # ERRORS
 ############## 
-class Error:
-    def __init__(self, pos_start, pos_end, error_name, details):
-        self.pos_start = pos_start
-        self.pos_end = pos_end
-        self.error_name = error_name
-        self.details = details
-
-    def as_string(self):
-        result = f'{self.error_name}: {self.details}'
-        try:
-            result += f'\nLine {self.pos_start.ln + 1}, Column {self.pos_start.col + 1}\n'
-            result += string_with_arrows(self.pos_start.ftxt, self.pos_start, self.pos_end) + '\n'
-        except:
-            result = "there was an error in the error message"
-        return result
     
 class SemanticError(Error):
     def __init__(self, pos_start, pos_end, details=''):
@@ -36,36 +26,6 @@ class SemanticError(Error):
 class RTError(Error):
     def __init__(self, pos_start, pos_end, details=''):
         super().__init__(pos_start, pos_end, 'Runtime Error', details)
-
-def string_with_arrows(text, pos_start, pos_end):
-    result = ''
-
-    # Calculate indices
-    idx_start = max(text.rfind('\n', 0, pos_start.idx), 0)
-    idx_end = text.find('\n', idx_start + 1)
-    if idx_end < 0: idx_end = len(text)
-
-    # Generate each line
-    line_count = pos_end.ln - pos_start.ln + 1
-    for i in range(line_count):
-        # Calculate line columns
-        line = text[idx_start:idx_end]
-        col_start = pos_start.col if i == 0 else 0
-        col_end = pos_end.col if i == line_count - 1 else len(line) - 1
-
-        # Append to result
-        result += line + '\n'
-        if pos_start.idx == pos_end.idx and pos_start.ln == pos_end.ln and pos_start.col == pos_end.col:
-            result += ' ' * col_start + '^'
-        else:
-            result += ' ' * col_start + '^' * (col_end - col_start)
-
-        # Re-calculate indices
-        idx_start = idx_end
-        idx_end = text.find('\n', idx_start + 1)
-        if idx_end < 0: idx_end = len(text)
-
-    return result.replace('\t', ' ')
 
 class ContinueIteration(Exception):
     pass
@@ -245,7 +205,18 @@ class CodeRunner(DOMInterpreter):
                 print(f"Converted float value to integer for variable '{node.name}'")
 
             value_node = None
-            if isinstance(value, (int, float)):
+            if isinstance(value, int):
+                if value > 9999999999999999:
+                    self.error = RTError(node.pos_start, node.pos_end, f'Integer value exceeded maximum limit of 16 digits')
+                    return
+                value_node = NumNode(value, None, None)
+            elif isinstance(value, float):
+                if value > 999999999:
+                    self.error = RTError(node.pos_start, node.pos_end, f"Float's significant value exceeded maximum limit of 9 digits")
+                    return
+                decimal_part = str(value).split('.')[-1]
+                if len(decimal_part) > 7:
+                    value = round(value, 7)
                 value_node = NumNode(value, None, None)
             elif isinstance(value, str):
                 value_node = StringNode(value, None, None)
@@ -1205,7 +1176,14 @@ class CodeRunner(DOMInterpreter):
                         elif node.op == '/':
                             if right_value == 0:
                                 return None, RTError(node.pos_start, node.pos_end, "Division by zero")
-                            return left_value / right_value, None
+                            result = left_value / right_value
+                            if result>999999999:
+                                return None, RTError(node.pos_start, node.pos_end, "Float significant values exceeded limit of 9 digits")
+                            if isinstance(result, float):
+                                decimal_part = str(result).split('.')[-1]
+                                if len(decimal_part) > 7:
+                                    result = round(result, 7)
+                            return result, None
                         elif node.op == '%':
                             return left_value % right_value, None
                         elif node.op == '==':
