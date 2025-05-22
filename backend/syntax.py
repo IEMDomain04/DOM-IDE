@@ -1158,8 +1158,8 @@ PREDICT_SET = {
 class SyntaxAnalyzer:
     def __init__(self, tokens):
         self.tokens = tokens 
-        self.token_idx = -1
-        self.advance()
+        self.token_idx = 0
+        self.current_token = tokens[self.token_idx]
 
     def advance(self):
         while True:

@@ -11,11 +11,6 @@ class SemanticError(Error):
     def __init__(self, pos_start, pos_end, details=''):
         super().__init__(pos_start, pos_end, 'Semantic Error', details)
 
-    def as_string(self):
-        result = f'{self.error_name}: {self.details}'
-        result += f'\nLine {self.pos_start.ln + 1}\n\n'
-        return result
-
 class ParseError(Error):
     def __init__(self, pos_start, pos_end, details=''):
         super().__init__(pos_start, pos_end, 'Parse Failure', details)
@@ -2507,8 +2502,8 @@ class SymbolTable:
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
-        self.token_idx = -1
-        self.advance()
+        self.token_idx = 0
+        self.current_token = tokens[self.token_idx]
         self.semantic_errors = []
         self.symbol_table = SymbolTable()
 
