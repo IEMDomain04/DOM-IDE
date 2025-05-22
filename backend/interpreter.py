@@ -60,11 +60,7 @@ class DOMInterpreter:
     def generic_visit(self, node, parent):
         if parent is None:
             print(f"Visiting root node: {type(node).__name__}")
-        self.visit_node(node, parent)
         self.visit_children(node)
-
-    def visit_node(self, node, parent):
-        pass
 
     def visit_children(self, node):
         for child in node.children:
