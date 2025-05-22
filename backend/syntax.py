@@ -1176,7 +1176,7 @@ class SyntaxAnalyzer:
     def syntax_analyzer(self):
         stack = ["<program>"]             
         error = None
-        last_nonterminal = None
+        prev_popped_nonterminal = None
 
         while stack:
             top = stack[-1]
@@ -1189,12 +1189,12 @@ class SyntaxAnalyzer:
                 })()
 
             if is_non_terminal(top):
-                last_nonterminal = top
                 if top in PREDICT_SET and self.current_token.type in PREDICT_SET[top]:
                     production_key = PREDICT_SET[top][self.current_token.type] 
                     production = CFG[production_key[0]][production_key[1]]
                     #print(f"3. Production found for {top}: {self.current_token.type}")  
                     stack.pop()
+                    prev_popped_nonterminal = top
                     stack.extend(reversed(production))
                 else:
                     expected_tokens = list(PREDICT_SET[top].keys())
@@ -1205,21 +1205,18 @@ class SyntaxAnalyzer:
                     )
                     break
             else:
+                stack.pop()
                 if top == self.current_token.type:
                     #print(f"3. Matched terminal {self.current_token.type}")  
-                    stack.pop()
                     self.advance()
+                    prev_popped_nonterminal = None
                 else:
-                    # Check if last_nonterminal has an empty production in CFG
-                    expected_tokens = []
-                    if last_nonterminal and last_nonterminal in CFG:
-                        for prod in CFG[last_nonterminal]:
-                            if prod == []:
-                                # If there is an empty production, include all terminals in the predict set
-                                if last_nonterminal in PREDICT_SET:
-                                    expected_tokens = get_first_set(last_nonterminal)
-                                break
-                    if not expected_tokens:
+                    # Determine expected tokens based on previous popped item
+                    if prev_popped_nonterminal and is_non_terminal(prev_popped_nonterminal):
+                        expected_tokens = list(get_first_set(prev_popped_nonterminal))
+                        if top not in expected_tokens:
+                            expected_tokens.append(top)
+                    else:
                         expected_tokens = [top]
                     if self.current_token.type in expected_tokens:
                         expected_tokens.remove(self.current_token.type)
