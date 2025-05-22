@@ -1226,7 +1226,7 @@ class SyntaxAnalyzer:
                     error = InvalidSyntaxError(
                         self.current_token.pos_start,
                         self.current_token.pos_end,
-                        f"{last_nonterminal} Unexpected token '{self.current_token.type}' here. Expected {expected_tokens}\n[Current token '{self.current_token.type}' did not match top of the stack '{top}']"
+                        f"Unexpected token '{self.current_token.type}' here. Expected {expected_tokens}\n[Current token '{self.current_token.type}' did not match top of the stack '{top}']"
                     )
                     break
 
