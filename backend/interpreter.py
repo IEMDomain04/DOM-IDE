@@ -168,7 +168,7 @@ class CodeRunner(DOMInterpreter):
         else:
             var_dec_node = self.symbol_table.get_local(node.name)
             if not var_dec_node and parent is not None:
-                self.symbol_table.set(node.name, node)  # Store the VarDecNode object itself
+                self.symbol_table.set_local(node.name, node)  # Store the VarDecNode object itself
                 var_dec_node = self.symbol_table.get(node.name)
             
             value, error = self.evaluate_node(var_dec_node.value)
@@ -1129,6 +1129,8 @@ class CodeRunner(DOMInterpreter):
                             return left_value or right_value, None
                         else:
                             return None, RTError(node.pos_start, node.pos_end, f"Unknown operator '{node.op}'")
+                    else: return None, RTError(node.pos_start, node.pos_end, "Invalid operation on 'null'")
+
                 except Exception as e:
                     return None, RTError(node.pos_start, node.pos_end, f"Error during operation '{node.op}': {str(e)}")
             else:
@@ -1349,6 +1351,18 @@ class CodeRunner(DOMInterpreter):
                 symbol = self.symbol_table.get(node.name.name)
                 if symbol is None:
                     return None, SemanticError(node.pos_start, node.pos_end, f"'{node.name.name}' is not declared")
+            elif isinstance(node.name, CleaveNode):
+                symbol = node.name.arg1
+            elif isinstance(node.name, ClanAccessNode):
+                symbol = self.symbol_table.get(node.name.name)
+                if symbol is None:
+                    return None, SemanticError(node.pos_start, node.pos_end, f"'{node.name.name}' is not declared")
+            elif isinstance(node.name, ClanDecNode):
+                symbol = node.name
+            elif isinstance(node.name, StringNode):
+                symbol = node.name.value
+            elif isinstance(node.name, str):
+                symbol = node.name
             else: 
                 symbol = node.name.value
 
@@ -1506,6 +1520,8 @@ class CodeRunner(DOMInterpreter):
             if not isinstance(delimiter_value, str):
                 return None, SemanticError(node.pos_start, node.pos_end, f"Expected a string as delimiter, got {type(delimiter_value).__name__}")
 
+            if not delimiter_value:
+                return None, SemanticError(node.pos_start, node.pos_end, "Delimiter cannot be an empty string")
             # Split the string using the delimiter
             split_values = string_value.split(delimiter_value)
             result = [StringNode(value, None, None) for value in split_values]
