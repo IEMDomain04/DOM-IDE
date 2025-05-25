@@ -585,15 +585,15 @@ class MyASTVisitor(ASTVisitor):
 
         if left_type != right_type:
                 if left_type == 'null' or right_type == 'null':
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on 'null'"))
                 elif left_type == 'bool' or right_type == 'bool':
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform arithmetic operation on boolean values"))
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type Error: Cannot perform arithmetic operation on 'bool' type"))
                 elif left_type == 'int' and right_type == 'float':
                     pass
                 elif left_type == 'float' and right_type == 'int':
                     pass
                 else:
-                    self.errors.append(SemanticError(parent.pos_start, parent.pos_end, f"Cannot perform operation between '{left_type}' and '{right_type}'"))
+                    self.errors.append(SemanticError(parent.pos_start, parent.pos_end, f"Type Mismatch: Cannot perform operation between '{left_type}' and '{right_type}'"))
         else:
             evaluation = None
             if isinstance(parent, BinOpNode):
@@ -615,9 +615,9 @@ class MyASTVisitor(ASTVisitor):
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on 'null'"))
             elif left_type == 'string' and right_type == 'string':
                 if node.op != '+':
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform operation '{node.op}' on strings"))
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type Error: Cannot perform operation '{node.op}' on strings"))
             elif left_type == 'bool' or right_type == 'bool':
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform arithmetic operation on boolean values"))
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type Error: Cannot perform arithmetic operation on boolean values"))
 
         if isinstance(binop_parent, (VarDecNode)):
             if binop_type == 'unknown':
