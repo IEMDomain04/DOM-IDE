@@ -577,42 +577,14 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_BinOpNode(self, node, parent):
         print(f"Visiting BinOpNode with operator: {node.op}")
+        self.visit_children(node)
         left_type = self.infer_type(node.left)
         right_type = self.infer_type(node.right)
         binop_parent = parent
         binop_type = self.infer_type(node)
 
         if left_type != right_type:
-            if (left_type == 'string' and right_type in ['int', 'float']) or (right_type == 'string' and left_type in ['int', 'float']):
-                if node.op == '+':
-                    pass
-                else:
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform operation '{node.op}' between string and {right_type}"))
-            else:
-                if isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
-                    self.unresolved_cases.append((node, parent))
-                elif isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
-                    self.unresolved_cases.append((node, parent))
-                elif isinstance(node.left, CurseCallNode) and not self.symbol_table.get(node.left.name):
-                    self.unresolved_cases.append((node, parent))
-                elif isinstance(node.right, CurseCallNode) and not self.symbol_table.get(node.right.name):
-                    self.unresolved_cases.append((node, parent))
-                if isinstance(node.left, IdNode) and self.symbol_table.get(node.left.name):
-                    left_node = self.symbol_table.get(node.left.name)
-                    if isinstance(left_node, VarDecNode):
-                        if isinstance(left_node.value, NullNode):
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
-                if isinstance(node.right, IdNode) and self.symbol_table.get(node.right.name):
-                    right_node = self.symbol_table.get(node.right.name)
-                    if isinstance(right_node, VarDecNode):
-                        if isinstance(right_node.value, NullNode):
-                            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
-                
-                if left_type == 'unknown' or right_type == 'unknown':
-                    pass
-                elif left_type == None or right_type == None:
-                    pass
-                elif left_type == 'null' or right_type == 'null':
+                if left_type == 'null' or right_type == 'null':
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
                 elif left_type == 'bool' or right_type == 'bool':
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform arithmetic operation on boolean values"))
@@ -640,7 +612,7 @@ class MyASTVisitor(ASTVisitor):
                         if isinstance(parent, BinOpNode) and parent.op == '/' and parent.right == node:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
             if left_type == 'null' or right_type == 'null':
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on 'null'"))
             elif left_type == 'string' and right_type == 'string':
                 if node.op != '+':
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform operation '{node.op}' on strings"))
@@ -682,9 +654,6 @@ class MyASTVisitor(ASTVisitor):
             elif isinstance(node.right, ClanAccessNode):
                 value = None
                 clan_symbol = self.symbol_table.get(node.right.name)
-                if not clan_symbol: 
-                    print("I reached here (5)")
-                    self.unresolved_cases.append((node, parent))
 
                 if clan_symbol and isinstance(clan_symbol, ClanDecNode):
                     size1_value = size2_value = index1_value = index2_value = None
@@ -694,7 +663,6 @@ class MyASTVisitor(ASTVisitor):
                     elif not node.right.index2 and clan_symbol.size2:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Out of bounds 2: '{node.right.name}' is a multi-dimensional array"))
 
-                    
                     try:
                         size1_value = self.evaluate_node(clan_symbol.size1)
                     except: size1_value = None
@@ -704,7 +672,6 @@ class MyASTVisitor(ASTVisitor):
                             size2_value = self.evaluate_node(clan_symbol.size2)
                         except: size2_value = None
                     
-
                     try:
                         index1_value = self.evaluate_node(node.right.index1)
                     except: index1_value = None
@@ -715,7 +682,6 @@ class MyASTVisitor(ASTVisitor):
                         except: index2_value = None
                     else: index2_value = None
 
-                    print(f'Left Index: {node.right.index1}, Right Index: {node.right.index2}')
                     if index1_value is not None and size1_value is not None and (index1_value < 0 or index1_value >= size1_value):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Out of bounds 3: First index {index1_value} exceeds the allowed range (size: {size1_value})")) 
                     if index2_value is not None and size2_value is not None and (index2_value < 0 or index2_value >= size2_value):
@@ -725,10 +691,10 @@ class MyASTVisitor(ASTVisitor):
                             try: 
                                 value = clan_symbol.initial_values.values[index1_value]
                             except IndexError:
-                                pass
+                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Out of bounds 5: Index {index1_value} exceeds the allowed range (size: {len(clan_symbol.initial_values.values)})"))
                         else:
                             value = clan_symbol.initial_values[index1_value].values[index2_value] 
-                            print(f'Value Hey: {value}')
+
                         if isinstance(value, NumNode) and value.value == 0:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
                         elif isinstance(value, IdNode) and isinstance(value.parent, BinOpNode):
@@ -740,78 +706,50 @@ class MyASTVisitor(ASTVisitor):
                             value = self.evaluate_node(value)
                             if value == 0:
                                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
-        self.visit_children(node)
         print(f"Exiting BinOpNode")
 
     def visit_RelOpNode(self, node, parent):
         print(f"Visiting RelOpNode with operator: {node.op}")
+        self.visit_children(node)
         left_type = self.infer_type(node.left)
         right_type = self.infer_type(node.right)
 
         if left_type == 'bool' or right_type == 'bool':
-            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on boolean values"))
+            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on 'bool' type"))
         elif left_type == 'null' or right_type == 'null':
-            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on Null values"))
-        elif isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
-            self.unresolved_cases.append((node.left, node))
-        elif isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
-            self.unresolved_cases.append((node.right, node))
-        elif isinstance(node.left, CurseCallNode) and not self.symbol_table.get(node.left.name):
-            self.unresolved_cases.append((node.left, node))
-        elif isinstance(node.right, CurseCallNode) and not self.symbol_table.get(node.right.name):
-            self.unresolved_cases.append((node.right, node))
-
-        self.visit_children(node)
+            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on 'null'"))
         print(f"Exiting RelOpNode")
 
     def visit_LogOpNode(self, node, parent):
         print(f"Visiting LogOpNode with operator: {node.op}")
+        self.visit_children(node)
         left_type = self.infer_type(node.left)
         right_type = self.infer_type(node.right)
 
         if left_type in ['int', 'float'] or right_type in ['int', 'float']:
             self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform logical operation on numeric values"))
         elif left_type == 'null' or right_type == 'null':
-            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform logical operation on Null values"))
-        elif isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
-            self.unresolved_cases.append((node, parent))
-        elif isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
-            self.unresolved_cases.append((node, parent))
-        elif isinstance(node.left, CurseCallNode) and not self.symbol_table.get(node.left.name):
-            self.unresolved_cases.append((node, parent))
-        elif isinstance(node.right, CurseCallNode) and not self.symbol_table.get(node.right.name):
-            self.unresolved_cases.append((node, parent))
-        self.visit_children(node)
+            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform logical operation on 'null'"))
         print(f"Exiting LogOpNode")
 
     def visit_UnaryOpNode(self, node, parent):
         print(f"Visiting UnaryOpNode with operator: {node.op.op}")
-
+        self.visit_children(node)
         if node.op.op in ['++', '--']:
             if not isinstance(node.expr, IdNode):
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Invalid unary operation '{node.op.op}' on non-variable"))
-            elif not self.symbol_table.get(node.expr.name):
-                self.unresolved_cases.append((node, parent))
             else: 
                 symbol = self.symbol_table.get(node.expr.name)
-                if isinstance(symbol, str):
-                    pass
-                elif not isinstance(symbol, VarDecNode):
-                    print(f'SYmbol Is: {type(symbol)}\nSymbol_Name: {node.expr.name}')
+                if symbol and not isinstance(symbol, VarDecNode):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Invalid unary operation '{node.op.op}' on non-variable"))
                 if hasattr(symbol, 'restrict') and symbol.restrict:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot modify restricted variable '{node.expr.name}'"))
-
-        self.visit_children(node)
         print(f"Exiting UnaryOpNode")
 
     def visit_IdNode(self, node, parent):
         print(f"Visiting IdNode with name: {node.name}")
-        if isinstance(parent, (CurseDecNode, CurseDomainNode)):
-            print(f"IdNode '{node.name}' is a parameter of a curse declaration")
-        if not self.symbol_table.get(node.name):
-            if isinstance(parent, (CleaveNode, DismantleNode)): pass
-            else: self.unresolved_cases.append((node, parent))
+        if not self.symbol_table.get(node.name) and not isinstance(parent, (CurseCallNode, ClanAccessNode)):
+            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' is not declared"))
         else:
             symbol = self.symbol_table.get(node.name)
             true_parent = parent
@@ -857,27 +795,25 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_VarAssignNode(self, node, parent):
         print(f"Visiting VarAssignNode with name: {node.name}")
-        if not self.symbol_table.get(node.name):
-            self.unresolved_cases.append((node, parent))
-        else:
+        self.visit_children(node)
+        if self.symbol_table.get(node.name):
             symbol = self.symbol_table.get(node.name)
             if hasattr(symbol, 'restrict') and symbol.restrict:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot modify restricted variable '{node.name}'"))
             elif isinstance(symbol, (ClanDecNode)):
-                pass
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot assign a value to a whole clan"))
             elif isinstance(symbol, (CurseDecNode)):
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot assign value to curse '{node.name}'"))
             else:
                 value_type = self.infer_type(node.value)
                 var_type = self.symbol_table.get_type(node.name)
-                if value_type == 'null':
+                if isinstance (node.value, NullNode):
                     pass
-                elif value_type == 'unknown':
-                    self.unresolved_cases.append((node.value, node))
+                elif isinstance(node.value, CurseCallNode) and value_type == 'unknown':
+                    pass
                 else:
                     if var_type != value_type:
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 6: Expected '{var_type}', got '{value_type}'"))
-        self.visit_children(node)
         print(f"Exiting VarAssignNode")
 
     def visit_ClanDecNode(self, node, parent):
@@ -896,9 +832,6 @@ class MyASTVisitor(ASTVisitor):
         # Check if size1 and size2 are strictly integers
         if node.size1:
             size1_type = self.infer_type(node.size1)
-            if size1_type == 'unknown':
-                self.unresolved_cases.append((node.size1, node))
-                return
             if size1_type != 'int':
                 self.errors.append(SemanticError(node.size1.pos_start, node.size1.pos_end, f"Type mismatch 7: Expected 'int' for size1, got '{size1_type}'"))
             else:
@@ -906,9 +839,6 @@ class MyASTVisitor(ASTVisitor):
 
         if node.size2:
             size2_type = self.infer_type(node.size2)
-            if size2_type == 'unknown':
-                self.unresolved_cases.append((node.size2, node))
-                return
             if size2_type != 'int':
                 self.errors.append(SemanticError(node.size2.pos_start, node.size2.pos_end, f"Type mismatch 8: Expected 'int' for size2, got '{size2_type}'"))
             else:
@@ -970,10 +900,7 @@ class MyASTVisitor(ASTVisitor):
         if isinstance(node.initial_values, ClanLiteralNode):
             for value in node.initial_values.values:
                 value_type = self.infer_type(value)
-                if isinstance(value, IdNode) and value_type is None:
-                    self.unresolved_cases.append((value, node))
-                    return
-                elif isinstance(value, CurseCallNode) and value_type == 'unknown':
+                if isinstance(value, CurseCallNode) and value_type == 'unknown':
                     self.unresolved_cases.append((value, node))
                     return
                 if node.datatype != value_type:
@@ -989,10 +916,7 @@ class MyASTVisitor(ASTVisitor):
                     for value in inner_node.values:
                         print(f'Value Type: {type(value)}')
                         value_type = self.infer_type(value)
-                        if isinstance(value, IdNode) and value_type is None:
-                            self.unresolved_cases.append((value, node))
-                            return
-                        elif isinstance(value, CurseCallNode) and value_type == 'unknown':
+                        if isinstance(value, CurseCallNode) and value_type == 'unknown':
                             self.unresolved_cases.append((value, node))
                             return
                         if node.datatype != value_type:
@@ -1003,10 +927,7 @@ class MyASTVisitor(ASTVisitor):
             elif isinstance(node.initial_values, ClanLiteralNode):
                 for value in node.initial_values.values:
                     value_type = self.infer_type(value)
-                    if isinstance(value, IdNode) and value_type is None:
-                        self.unresolved_cases.append((value, node))
-                        return
-                    elif isinstance(value, CurseCallNode) and value_type == 'unknown':
+                    if isinstance(value, CurseCallNode) and value_type == 'unknown':
                         self.unresolved_cases.append((value, node))
                         return
                     if node.datatype != value_type:
@@ -1026,22 +947,18 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting ClanAccessNode with name: {node.name}")
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
-            self.unresolved_cases.append((node, parent))
+            self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Clan '{node.name}' is not declared"))
         else:
             if isinstance(symbol, ClanDecNode):
                 pass
             elif isinstance(symbol, VarDecNode):
                 if symbol.datatype != "string":
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a string"))
-            elif isinstance(symbol, str):
-                pass
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not indexable"))
             else:
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a clan 456 is type of: {type(symbol)}"))
+                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a clan"))
 
             if node.index1:
-                if isinstance(node.index1, IdNode) and not self.symbol_table.get(node.index1.name):
-                    self.unresolved_cases.append((node.index1, node))
-                elif isinstance(node.index1, CurseCallNode) and not self.symbol_table.get(node.index1.name):
+                if isinstance(node.index1, CurseCallNode) and not self.symbol_table.get(node.index1.name):
                     self.unresolved_cases.append((node.index1, node))
                 else:
                     index1_type = self.infer_type(node.index1)
@@ -1051,9 +968,7 @@ class MyASTVisitor(ASTVisitor):
                         self.errors.append(SemanticError(node.index1.pos_start, node.index1.pos_end, f"Type mismatch 9: Expected int value for index, got '{index1_type}'"))
             
             if node.index2:
-                if isinstance(node.index2, IdNode) and not self.symbol_table.get(node.index2.name):
-                    self.unresolved_cases.append((node.index2, node))
-                elif isinstance(node.index2, CurseCallNode) and not self.symbol_table.get(node.index2.name):
+                if isinstance(node.index2, CurseCallNode) and not self.symbol_table.get(node.index2.name):
                     self.unresolved_cases.append((node.index2, node))
                 else:
                     index2_type = self.infer_type(node.index2)
@@ -1097,77 +1012,64 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_ClanIndexAssignNode(self, node, parent):
         print(f"Visiting ClanIndexAssignNode with name: {node.name}")
+        self.visit_children(node)
         symbol = self.symbol_table.get(node.name)
-        if symbol is None:
-            self.unresolved_cases.append((node, parent))
-        else:
+        if symbol:
             if hasattr(symbol, 'restrict') and symbol.restrict:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot modify restricted clan '{node.name}'"))
                 pass
             symbol_type = self.symbol_table.get_type(node.name)
-            if symbol_type is None:
-                self.unresolved_cases.append((node, parent))
-            else:
-                if node.index1:
-                    if isinstance(node.index1, IdNode) and not self.symbol_table.get(node.index1.name):
-                        self.unresolved_cases.append((node.index1, node))
-                    elif isinstance(node.index1, CurseCallNode) and not self.symbol_table.get(node.index1.name):
-                        self.unresolved_cases.append((node.index1, node))
-                    else:
-                        index1_type = self.infer_type(node.index1)
-                        if index1_type == 'unknown':
-                            pass
-                        elif not index1_type == 'int':
-                            self.errors.append(SemanticError(node.index1.pos_start, node.index1.pos_end, f"Type mismatch 12: Expected int value, got '{index1_type}'"))
-                
-                if node.index2:
-                    if isinstance(node.index2, IdNode) and not self.symbol_table.get(node.index2.name):
-                        self.unresolved_cases.append((node.index2, node))
-                    elif isinstance(node.index2, CurseCallNode) and not self.symbol_table.get(node.index2.name):
-                        self.unresolved_cases.append((node.index2, node))
-                    else:
-                        index2_type = self.infer_type(node.index2)
-                        if index2_type == 'unknown':
-                            pass
-                        elif not index2_type == 'int':
-                            self.errors.append(SemanticError(node.index2.pos_start, node.index2.pos_end, f"Type mismatch 13: Expected int value, got '{index2_type}'"))
+            if node.index1:
+                if isinstance(node.index1, CurseCallNode) and not self.symbol_table.get(node.index1.name):
+                    self.unresolved_cases.append((node.index1, node))
+                else:
+                    index1_type = self.infer_type(node.index1)
+                    if index1_type == 'unknown':
+                        pass
+                    elif not index1_type == 'int':
+                        self.errors.append(SemanticError(node.index1.pos_start, node.index1.pos_end, f"Type mismatch 12: Expected int value, got '{index1_type}'"))
+            
+            if node.index2:
+                if isinstance(node.index2, CurseCallNode) and not self.symbol_table.get(node.index2.name):
+                    self.unresolved_cases.append((node.index2, node))
+                else:
+                    index2_type = self.infer_type(node.index2)
+                    if index2_type == 'unknown':
+                        pass
+                    elif not index2_type == 'int':
+                        self.errors.append(SemanticError(node.index2.pos_start, node.index2.pos_end, f"Type mismatch 13: Expected int value, got '{index2_type}'"))
 
-                if isinstance(node.value, CurseCallNode):
-                    if self.infer_type(node.value) == 'unknown':
-                        self.unresolved_cases.append((node.value, node))
-                if node.value:
-                    value_type = self.infer_type(node.value)
-                    if value_type == 'unknown':
-                        self.unresolved_cases.append((node.value, node))
-                    if symbol_type != value_type:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 11: Expected '{symbol_type}', got '{value_type}'"))
+            if node.value:
+                value_type = self.infer_type(node.value)
+                if value_type == 'unknown' and isinstance(node.value, CurseCallNode):
+                    self.unresolved_cases.append((node.value, node))
+                if symbol_type != value_type:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 11: Expected '{symbol_type}', got '{value_type}'"))
 
-                # Check for out-of-bounds errors
-                if isinstance(symbol, ClanDecNode):
-                    if node.index2 and not symbol.size2:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Out of bounds 11: '{node.name}' is a single-dimensional array"))
-                    elif not node.index2 and symbol.size2:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Out of bounds 12: '{node.name}' is a multi-dimensional array"))
+            # Check for out-of-bounds errors
+            if isinstance(symbol, ClanDecNode):
+                if node.index2 and not symbol.size2:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Out of bounds 11: '{node.name}' is a single-dimensional array"))
+                elif not node.index2 and symbol.size2:
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Out of bounds 12: '{node.name}' is a multi-dimensional array"))
 
-                    size1_value = None
-                    if symbol.size1:
-                        size1_value = self.evaluate_node(symbol.size1) 
-                    else:
-                        try:
-                            size1_value = len(symbol.initial_values.values)
-                        except: pass
-                    size2_value = self.evaluate_node(symbol.size2) if symbol.size2 else None
+                size1_value = None
+                if symbol.size1:
+                    size1_value = self.evaluate_node(symbol.size1) 
+                else:
+                    try:
+                        size1_value = len(symbol.initial_values.values)
+                    except: pass
+                size2_value = self.evaluate_node(symbol.size2) if symbol.size2 else None
 
-                    index1_value = self.evaluate_node(node.index1) if node.index1 else None
-                    index2_value = self.evaluate_node(node.index2) if node.index2 else None
+                index1_value = self.evaluate_node(node.index1) if node.index1 else None
+                index2_value = self.evaluate_node(node.index2) if node.index2 else None
 
-                    if index1_value is not None and size1_value is not None and (index1_value < 0 or index1_value >= size1_value):
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Out of bounds 13: First index {index1_value} exceeds the allowed range (size: {size1_value})"))
+                if index1_value is not None and size1_value is not None and (index1_value < 0 or index1_value >= size1_value):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Out of bounds 13: First index {index1_value} exceeds the allowed range (size: {size1_value})"))
 
-                    if index2_value is not None and size2_value is not None and (index2_value < 0 or index2_value >= size2_value):
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Out of bounds 14: Second index {index2_value} exceeds the allowed range (size: {size2_value})"))
-
-        self.visit_children(node)
+                if index2_value is not None and size2_value is not None and (index2_value < 0 or index2_value >= size2_value):
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Out of bounds 14: Second index {index2_value} exceeds the allowed range (size: {size2_value})"))
         print(f"Exiting ClanIndexAssignNode")
 
     def visit_CurseDecNode(self, node, parent):
@@ -1239,6 +1141,7 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_CurseCallNode(self, node, parent):
         print(f"Visiting CurseCallNode with name: {node.name}")
+        self.visit_children(node)
         curse_node = self.symbol_table.get(node.name)
         if curse_node is None:
             self.unresolved_cases.append((node, parent))
@@ -1258,7 +1161,6 @@ class MyASTVisitor(ASTVisitor):
             if curse_node.datatype is None:
                 if isinstance(parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode, ClanDecNode, LenNode, InvokeNode, CleaveNode, DismantleNode, CurseCallNode, BinOpNode, RelOpNode, LogOpNode, UnaryOpNode, ClanAccessNode, ClanLiteralNode, CycleNode, CycleConditionNode, VowNode, ElseVow, WoogieTrueNode, SustainNode, PerformSustainNode, RecallNode)):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Curse '{node.name}' has no return value"))
-        self.visit_children(node)
         print(f"Exiting CurseCallNode")
 
     def visit_InvokeNode(self, node, parent):
@@ -1273,6 +1175,7 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_CleaveNode(self, node, parent):
         print(f"Visiting CleaveNode: {node.arg1}")
+        self.visit_children(node)
         true_parent = parent
         while true_parent and not isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode, ClanDecNode, LenNode, InvokeNode)):
             true_parent = true_parent.parent
@@ -1283,17 +1186,13 @@ class MyASTVisitor(ASTVisitor):
         arg2_type = self.infer_type(arg2)
         arg3_type = self.infer_type(arg3)
 
-        if isinstance(arg1, IdNode) and not self.symbol_table.get(arg1.name):
-            self.unresolved_cases.append((node, parent))
-        else:
+        if isinstance(arg1, IdNode) and self.symbol_table.get(arg1.name):
             if isinstance(true_parent, (VarDecNode, VarAssignNode, ClanIndexAssignNode)):
                 if isinstance(arg1, StringNode):
                     arg1_symbol = arg1
                 else:
                     arg1_symbol = self.symbol_table.get(arg1.name)
-                if arg1_symbol is None:
-                    self.unresolved_cases.append((node, parent))
-                else: 
+                if arg1_symbol:
                     if isinstance(arg1_symbol, ClanDecNode):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot assign clan outside of clan declaration"))
                     
@@ -1301,41 +1200,36 @@ class MyASTVisitor(ASTVisitor):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected string for cleave first argument, got {arg1_type}"))
             elif isinstance(true_parent, ClanDecNode):
                 arg1_symbol = self.symbol_table.get(arg1.name) if hasattr(arg1, 'name') else None
-                if arg1_symbol is None:
-                    if isinstance(arg1, StringNode): self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan in first argument"))
-                    else: self.unresolved_cases.append((node, parent))
+                if isinstance(arg1, StringNode): 
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan in first argument"))
                 elif not isinstance(arg1_symbol, ClanDecNode):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan in first argument"))
                 elif true_parent.datatype != arg1_symbol.datatype:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 14: Expected '{true_parent.datatype}', got '{arg1_symbol.datatype}'"))
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 14: Expected '{true_parent.datatype}', got '{arg1_symbol.datatype}'"))
             elif isinstance(true_parent, (LenNode, InvokeNode)):
                 pass
             else:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected clan or string (2), got '{arg1_type}'"))
 
-        if isinstance(arg2, IdNode) and not self.symbol_table.get(arg2.name):
-            self.unresolved_cases.append((node, parent))
-        elif isinstance(arg2, UnaryOpNode):
+        if isinstance(arg2, UnaryOpNode):
             if arg2.op.op == '-':
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Out of bounds 17: Index cannot be a negative integer"))
         else: 
             if not arg2_type == 'int':
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected 'int', got '{arg2_type}'"))
 
-        if isinstance(arg3, IdNode) and not self.symbol_table.get(arg3.name):
-            self.unresolved_cases.append((node, parent))
-        elif isinstance(arg3, UnaryOpNode):
+        if isinstance(arg3, UnaryOpNode):
             if arg3.op.op == '-':
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Out of bounds 18: Index cannot be a negative integer"))
         else:
             if not arg3_type == 'int':
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Expected 'int', got '{arg3_type}'"))
 
-        self.visit_children(node)
         print(f"Exiting CleaveNode")
 
     def visit_DismantleNode(self, node, parent):
         print(f"Visiting DismantleNode: {node.value}")
+        self.visit_children(node)
 
         arg1 = node.value
         arg2 = node.delimiter
@@ -1350,33 +1244,27 @@ class MyASTVisitor(ASTVisitor):
         if not isinstance(true_parent, (ClanDecNode, InvokeNode, LenNode)):
             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot dismantle outside of clan declaration or invoke"))
 
-        if isinstance(arg1, IdNode) and not self.symbol_table.get(arg1.name):
-            self.unresolved_cases.append((node, parent))
-        else:
+        if isinstance(arg1, IdNode) and self.symbol_table.get(arg1.name):
             arg1_symbol = None
             if hasattr(arg1_symbol, 'name'):
                 arg1_symbol = self.symbol_table.get(arg1.name)
             if arg1_type != 'string' and not isinstance(arg1_symbol, ClanDecNode):
                 self.errors.append(SemanticError(node.value.pos_start, node.value.pos_end, f"Expected 'string', got '{arg1_type}'"))
 
-        if isinstance(arg2, IdNode) and not self.symbol_table.get(arg2.name):
-            self.unresolved_cases.append((node, parent))
-        else:
+        if isinstance(arg2, IdNode) and self.symbol_table.get(arg2.name):
             if arg2_type != 'string':
                 self.errors.append(SemanticError(node.delimiter.pos_start, node.delimiter.pos_end, f"Expected 'string', got '{arg2_type}'"))
 
-        self.visit_children(node)
         print(f"Exiting DismantleNode")
 
     def visit_LenNode(self, node, parent):
         print(f"Visiting LenNode: {node.name}")
+        self.visit_children(node)
         len_value = node.name
 
         if isinstance(len_value, IdNode):
             symbol = self.symbol_table.get(len_value.name)
-            if not symbol:
-                self.unresolved_cases.append((node, parent))
-            else:
+            if symbol:
                 symbol_type = self.symbol_table.get_type(node.name.name)
                 if isinstance(symbol, ClanDecNode):
                     pass
@@ -1394,11 +1282,11 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(len_value, StringNode):
             pass
 
-        self.visit_children(node)
         print(f"Exiting LenNode")
 
     def visit_RecallNode(self, node, parent):
         print(f"Visiting RecallNode")
+        self.visit_children(node)
 
         true_parent = parent
         while parent and not isinstance(true_parent, (CurseDecNode, CurseDomainNode)):
@@ -1422,28 +1310,18 @@ class MyASTVisitor(ASTVisitor):
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 15: Expected '{true_parent.datatype}', got '{curse_return_type}'"))
                 elif isinstance(node.value, ClanAccessNode):
                     symbol_type = self.symbol_table.get_type(node.value.name)
-                    if symbol_type is None:
-                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Undefined clan '{node.value.name}'"))
-                    else:
+                    if symbol_type:
                         if true_parent.datatype != symbol_type:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 16: Expected '{true_parent.datatype}', got '{symbol_type}'"))
                 elif isinstance(node.value, IdNode):   
                     symbol_type = self.symbol_table.get_type(node.value.name)
-                    if symbol_type is None:
-                        self.unresolved_cases.append((node, parent))
-                    else:
+                    if symbol_type:
                         if true_parent.datatype != symbol_type:
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 17: Expected '{true_parent.datatype}', got '{symbol_type}'"))
                 elif isinstance(node.value, BinOpNode):
                     symbol_type = self.infer_type(node.value)
-                    if symbol_type == 'unknown':
-                        self.unresolved_cases.append((node, parent))
-                    else: 
-                        if true_parent.datatype == 'string' or symbol_type == 'string':
-                            pass
-                        else:
-                            if true_parent.datatype != symbol_type:
-                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 18: Expected '{true_parent.datatype}', got '{symbol_type}'"))
+                    if true_parent.datatype != symbol_type:
+                        self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 18: Expected '{true_parent.datatype}', got '{symbol_type}'"))
                 else:
                     return_type = self.infer_type(node.value)
                     
@@ -1455,42 +1333,40 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(true_parent, CurseDomainNode):
             if node.value:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, "Recall statement must not return a value in the curse domain"))
-        self.visit_children(node)
         print(f"Exiting RecallNode")
 
     def visit_DismissNode(self, node, parent):
         print(f"Visiting DismissNode")
+        self.visit_children(node)
         true_parent = parent
         while not isinstance(true_parent, (SustainNode, PerformSustainNode, CycleNode, WoogieNode, WoogieTrueNode)):
             if true_parent.parent:
                 true_parent = true_parent.parent
             else: self.errors.append(SemanticError(node.pos_start, node.pos_end, "Dismiss statement not within a loop or boogie"))
-        self.visit_children(node)
         print(f"Exiting DismissNode")
 
     def visit_HopNode(self, node, parent):
         print(f"Visiting HopNode")
+        self.visit_children(node)
         true_parent = parent
         while not isinstance(true_parent, (SustainNode, PerformSustainNode, CycleNode)):
             if true_parent.parent:
                 true_parent = true_parent.parent
             else: self.errors.append(SemanticError(node.pos_start, node.pos_end, "Hop statement not within a loop"))
-        self.visit_children(node)
         print(f"Exiting HopNode")
 
     def visit_VowNode(self, node, parent):
         print(f"Visiting VowNode")
+        self.visit_children(node)
         if isinstance(node.condition, BinOpNode):
             if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
             
         elif isinstance(node.condition, IdNode):
-            if not self.symbol_table.get(node.condition.name):
-                self.unresolved_cases.append((node, parent))
-                return
-            condition_type = self.symbol_table.get_type(node.condition.name)
-            if condition_type != 'bool':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
+            if self.symbol_table.get(node.condition.name):
+                condition_type = self.symbol_table.get_type(node.condition.name)
+                if condition_type != 'bool':
+                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
         elif isinstance(node.condition, CurseCallNode):
             curse_node = self.symbol_table.get(node.condition.name)
             if curse_node is None:
@@ -1512,21 +1388,19 @@ class MyASTVisitor(ASTVisitor):
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        self.visit_children(node)
         print(f"Exiting VowNode")
 
     def visit_ElseVow(self, node, parent):
         print(f"Visiting ElseVow")
+        self.visit_children(node)
         if isinstance(node.condition, BinOpNode):
             if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         elif isinstance(node.condition, IdNode):
-            if not self.symbol_table.get(node.condition.name):
-                self.unresolved_cases.append((node, parent))
-                return
-            condition_type = self.symbol_table.get_type(node.condition.name)
-            if condition_type != 'bool':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
+            if self.symbol_table.get(node.condition.name):
+                condition_type = self.symbol_table.get_type(node.condition.name)
+                if condition_type != 'bool':
+                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
         elif isinstance(node.condition, CurseCallNode):
             curse_node = self.symbol_table.get(node.condition.name)
             if curse_node is None:
@@ -1548,7 +1422,6 @@ class MyASTVisitor(ASTVisitor):
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        self.visit_children(node)
         print(f"Exiting ElseVow")
 
     def visit_ElseNode(self, node, parent):
@@ -1563,16 +1436,15 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_WoogieTrueNode(self, node, parent):
         print(f"Visiting WoogieTrueNode")
+        self.visit_children(node)
         if isinstance(node.condition, BinOpNode):
             if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         elif isinstance(node.condition, IdNode):
-            if not self.symbol_table.get(node.condition.name):
-                self.unresolved_cases.append((node, parent))
-                return
-            condition_type = self.symbol_table.get_type(node.condition.name)
-            if condition_type != 'bool':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
+            if self.symbol_table.get(node.condition.name):
+                condition_type = self.symbol_table.get_type(node.condition.name)
+                if condition_type != 'bool':
+                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
         elif isinstance(node.condition, CurseCallNode):
             curse_node = self.symbol_table.get(node.condition.name)
             if curse_node is None:
@@ -1594,21 +1466,19 @@ class MyASTVisitor(ASTVisitor):
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        self.visit_children(node)
         print(f"Exiting WoogieTrueNode")
 
     def visit_WoogieNode(self, node, parent):
         print(f"Visiting WoogieNode")
+        self.visit_children(node)
         if isinstance(node.condition, BinOpNode):
             if node.condition.op in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Woogie cannot be a boolean expression"))
         elif isinstance(node.condition, IdNode):
-            if not self.symbol_table.get(node.condition.name):
-                self.unresolved_cases.append((node, parent))
-                return
-            condition_type = self.symbol_table.get_type(node.condition.name)
-            if condition_type == 'bool':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Woogie cannot be a boolean value"))
+            if self.symbol_table.get(node.condition.name):
+                condition_type = self.symbol_table.get_type(node.condition.name)
+                if condition_type == 'bool':
+                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Woogie cannot be a boolean value"))
         elif isinstance(node.condition, CurseCallNode):
             curse_node = self.symbol_table.get(node.condition.name)
             if curse_node is None:
@@ -1630,7 +1500,6 @@ class MyASTVisitor(ASTVisitor):
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Woogie cannot be a boolean expression"))
         else:
             pass
-        self.visit_children(node)
         print(f"Exiting WoogieNode")
 
     def visit_DefaultCaseNode(self, node, parent):
@@ -1640,16 +1509,15 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_SustainNode(self, node, parent):
         print(f"Visiting SustainNode")
+        self.visit_children(node)
         if isinstance(node.condition, BinOpNode):
             if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         elif isinstance(node.condition, IdNode):
-            if not self.symbol_table.get(node.condition.name):
-                self.unresolved_cases.append((node, parent))
-                return
-            condition_type = self.symbol_table.get_type(node.condition.name)
-            if condition_type != 'bool':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
+            if self.symbol_table.get(node.condition.name):
+                condition_type = self.symbol_table.get_type(node.condition.name)
+                if condition_type != 'bool':
+                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
         elif isinstance(node.condition, CurseCallNode):
             curse_node = self.symbol_table.get(node.condition.name)
             if curse_node is None:
@@ -1671,21 +1539,19 @@ class MyASTVisitor(ASTVisitor):
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        self.visit_children(node)
         print(f"Exiting SustainNode")
 
     def visit_PerformSustainNode(self, node, parent):
         print(f"Visiting PerformSustainNode")
+        self.visit_children(node)
         if isinstance(node.condition, BinOpNode):
             if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         elif isinstance(node.condition, IdNode):
-            if not self.symbol_table.get(node.condition.name):
-                self.unresolved_cases.append((node, parent))
-                return
-            condition_type = self.symbol_table.get_type(node.condition.name)
-            if condition_type != 'bool':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
+            if self.symbol_table.get(node.condition.name):
+                condition_type = self.symbol_table.get_type(node.condition.name)
+                if condition_type != 'bool':
+                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
         elif isinstance(node.condition, CurseCallNode):
             curse_node = self.symbol_table.get(node.condition.name)
             if curse_node is None:
@@ -1707,7 +1573,6 @@ class MyASTVisitor(ASTVisitor):
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         else:
             self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        self.visit_children(node)
         print(f"Exiting PerformSustainNode")
 
     def visit_CycleNode(self, node, parent):
@@ -1719,15 +1584,14 @@ class MyASTVisitor(ASTVisitor):
 
     def visit_CycleConditionNode(self, node, parent):
         print(f"Visiting CycleConditionNode")
+        self.visit_children(node)
         if isinstance(node.init, VarDecNode):
             init_type = node.init.datatype
             if init_type != 'int':
                 self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
         elif isinstance(node.init, VarAssignNode):
             symbol_node = self.symbol_table.get(node.init.name)
-            if not symbol_node:
-                self.unresolved_cases.append((node.init, node))
-            else:
+            if symbol_node:
                 init_type = symbol_node.datatype
                 if init_type != 'int':
                     self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
@@ -1738,17 +1602,13 @@ class MyASTVisitor(ASTVisitor):
             if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
                 self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         elif isinstance(node.condition, IdNode):
-            if not self.symbol_table.get(node.condition.name):
-                print("I REACHED HERE!!!!!!!")
-                self.unresolved_cases.append((node.condition, node))
-            else:
+            if self.symbol_table.get(node.condition.name):
                 condition_type = self.symbol_table.get_type(node.condition.name)
                 if condition_type != 'bool':
                     self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
         elif isinstance(node.condition, CurseCallNode):
             curse_node = self.symbol_table.get(node.condition.name)
             if curse_node is None:
-                print("I REACHED HERE!!!!!!! 2")
                 self.unresolved_cases.append((node.condition, node))
             else:
                 curse_return_type = curse_node.datatype
@@ -1775,15 +1635,12 @@ class MyASTVisitor(ASTVisitor):
         elif isinstance(node.iteration, (VarAssignNode)):
             symbol_node = self.symbol_table.get(node.iteration.name)
             print(f'Symbol Table: {self.symbol_table.scopes}\nIteration node name: {node.iteration.name}')
-            if not symbol_node:
-                self.unresolved_cases.append((node.iteration, node))
-            else:
+            if symbol_node:
                 iteration_type = symbol_node.datatype
                 if iteration_type != 'int':
                     self.errors.append(SemanticError(node.iteration.pos_start, node.iteration.pos_end, "Cycle iteration must be an integer"))
         else:
             self.errors.append(SemanticError(node.iteration.pos_start, node.iteration.pos_end, "Invalid cycle iteration"))
-        self.visit_children(node)
         print(f"Exiting CycleConditionNode")
 
     def evaluate_node(self, node):
