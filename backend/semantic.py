@@ -735,12 +735,15 @@ class MyASTVisitor(ASTVisitor):
     def visit_UnaryOpNode(self, node, parent):
         print(f"Visiting UnaryOpNode with operator: {node.op.op}")
         self.visit_children(node)
+        true_parent = parent
+        while true_parent.parent and not isinstance(true_parent, (RecallNode)):
+            true_parent = true_parent.parent
         if node.op.op in ['++', '--']:
             if not isinstance(node.expr, IdNode):
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Invalid unary operation '{node.op.op}' on non-variable"))
             else: 
                 symbol = self.symbol_table.get(node.expr.name)
-                if symbol and not isinstance(symbol, VarDecNode):
+                if symbol and not isinstance(symbol, VarDecNode) and not isinstance(true_parent, RecallNode):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Invalid unary operation '{node.op.op}' on non-variable"))
                 if hasattr(symbol, 'restrict') and symbol.restrict:
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot modify restricted variable '{node.expr.name}'"))
@@ -767,7 +770,7 @@ class MyASTVisitor(ASTVisitor):
         print(f"Visiting VarDecNode with type: {node.datatype}")
         
         if not self.symbol_table.get_local(node.name):
-            self.symbol_table.set(node.name, node)  # Store the VarDecNode object itself
+            self.symbol_table.set_local(node.name, node)  # Store the VarDecNode object itself
         else: 
             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Variable '{node.name}' already declared"))
 
