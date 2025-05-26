@@ -1088,7 +1088,16 @@ class CodeRunner(DOMInterpreter):
             
             if not isinstance(node, ExponentNode):
                 try:
-                    if left_value is not None and right_value is not None:
+                    def to_bool(val):
+                                if isinstance(val, str):
+                                    return True if val != "" else False
+                                if isinstance(val, (int, float)):
+                                    return val != 0
+                                if isinstance(val, bool):
+                                    return val
+                                return bool(val)
+                    
+                    if left_value is not None and right_value is not None: 
                         # Convert True/False to 1/0 for arithmetic and comparison
                         if isinstance(left_value, bool):
                             left_value = 1 if left_value else 0
@@ -1122,34 +1131,33 @@ class CodeRunner(DOMInterpreter):
                         elif node.op == '!=':
                             return left_value != right_value, None
                         elif node.op == '<':
+                            # Convert string operands to bool (1/0) for comparison
+                            if isinstance(left_value, str):
+                                left_value = 1 if left_value != "" else 0
+                            if isinstance(right_value, str):
+                                right_value = 1 if right_value != "" else 0
                             return left_value < right_value, None
                         elif node.op == '>':
+                            if isinstance(left_value, str):
+                                left_value = 1 if left_value != "" else 0
+                            if isinstance(right_value, str):
+                                right_value = 1 if right_value != "" else 0
                             return left_value > right_value, None
                         elif node.op == '<=':
+                            if isinstance(left_value, str):
+                                left_value = 1 if left_value != "" else 0
+                            if isinstance(right_value, str):
+                                right_value = 1 if right_value != "" else 0
                             return left_value <= right_value, None
                         elif node.op == '>=':
+                            if isinstance(left_value, str):
+                                left_value = 1 if left_value != "" else 0
+                            if isinstance(right_value, str):
+                                right_value = 1 if right_value != "" else 0
                             return left_value >= right_value, None
                         elif node.op == '&&':
-                            # For logical AND, treat numbers: 0 is False, non-zero is True
-                            def to_bool(val):
-                                if isinstance(val, str):
-                                    return True if val != "" else False
-                                if isinstance(val, (int, float)):
-                                    return val != 0
-                                if isinstance(val, bool):
-                                    return val
-                                return bool(val)
                             return to_bool(left_value) and to_bool(right_value), None
                         elif node.op == '||':
-                            # For logical OR, treat numbers: 0 is False, non-zero is True
-                            def to_bool(val):
-                                if isinstance(val, str):
-                                    return True if val != "" else False
-                                if isinstance(val, (int, float)):
-                                    return val != 0
-                                if isinstance(val, bool):
-                                    return val
-                                return bool(val)
                             return to_bool(left_value) or to_bool(right_value), None
                         else:
                             return None, RTError(node.pos_start, node.pos_end, f"Unknown operator '{node.op}'")
@@ -1215,7 +1223,7 @@ class CodeRunner(DOMInterpreter):
                     value = value.value - 1
                 elif isinstance(value, (float, int)):
                     value = value - 1
-                value, None
+                return value, None
                 
         elif isinstance(node, ClanAccessNode):
             clan = self.symbol_table.get(node.name)
