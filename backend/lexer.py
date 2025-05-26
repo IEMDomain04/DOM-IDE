@@ -56,7 +56,7 @@ delim_map = {
     'plus_delim':       set(ALPHA_NUMERIC + '"' + '-' + '(' + ',' + ' ' + '\t' + '\n' + '#' + '!'),
     'para_delim':       {'(', ' ', '\n', '\t' , '#'},
     'recall_delim':     set(ALPHA + ' ' + '\n' + '\t' + ';' + '(' + '#'), 
-    'str_delim':        {'+', ')',  ']', '\n', '\t', ',', ';', ' ', ':', '}', '#'},
+    'str_delim':        {'+', ')',  ']', '\n', '\t', ',', ';', ' ', ':', '}', '#', '<', '>', '=', '!', '&', '|'},
     'white_delim':      set(ASCII + ALL_OPERATOR + ' ' + '\n' + '\t' + '\0' + '#'),
     'woogie_delim':     set(NUMERIC + '(' + ' ' + '\n' + '\t' + '#'),
 }
