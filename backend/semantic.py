@@ -587,7 +587,7 @@ class MyASTVisitor(ASTVisitor):
                 if left_type == 'null' or right_type == 'null':
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on 'null'"))
                 elif left_type == 'bool' or right_type == 'bool':
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type Error: Cannot perform arithmetic operation on 'bool' type"))
+                    pass
                 elif left_type == 'int' and right_type == 'float':
                     pass
                 elif left_type == 'float' and right_type == 'int':
@@ -617,7 +617,7 @@ class MyASTVisitor(ASTVisitor):
                 if node.op != '+':
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type Error: Cannot perform operation '{node.op}' on strings"))
             elif left_type == 'bool' or right_type == 'bool':
-                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type Error: Cannot perform arithmetic operation on boolean values"))
+                pass
 
         if isinstance(binop_parent, (VarDecNode)):
             if binop_type == 'unknown':
@@ -714,9 +714,7 @@ class MyASTVisitor(ASTVisitor):
         left_type = self.infer_type(node.left)
         right_type = self.infer_type(node.right)
 
-        if left_type == 'bool' or right_type == 'bool':
-            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on 'bool' type"))
-        elif left_type == 'null' or right_type == 'null':
+        if left_type == 'null' or right_type == 'null':
             self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on 'null'"))
         print(f"Exiting RelOpNode")
 
@@ -726,9 +724,7 @@ class MyASTVisitor(ASTVisitor):
         left_type = self.infer_type(node.left)
         right_type = self.infer_type(node.right)
 
-        if left_type in ['int', 'float'] or right_type in ['int', 'float']:
-            self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform logical operation on numeric values"))
-        elif left_type == 'null' or right_type == 'null':
+        if left_type == 'null' or right_type == 'null':
             self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform logical operation on 'null'"))
         print(f"Exiting LogOpNode")
 
@@ -1797,7 +1793,7 @@ class MyASTVisitor(ASTVisitor):
                             elif left_type == 'null' or right_type == 'null':
                                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on Null value"))
                             elif left_type == 'bool' or right_type == 'bool':
-                                self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform arithmetic operation on boolean values"))
+                                pass
                             elif left_type == 'int' and right_type == 'float':
                                 pass
                             elif left_type == 'float' and right_type == 'int':
@@ -1906,10 +1902,8 @@ class MyASTVisitor(ASTVisitor):
                 left_type = self.infer_type(node.left)
                 right_type = self.infer_type(node.right)
 
-                if left_type == 'bool' or right_type == 'bool':
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on boolean values"))
                 if left_type == 'null' or right_type == 'null':
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on numeric values"))
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform relational operation on 'null'"))
                 if isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
                     self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undeclared variable 12: '{node.left.name}'"))
                 if isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
@@ -1922,11 +1916,9 @@ class MyASTVisitor(ASTVisitor):
             elif isinstance(node, LogOpNode):
                 left_type = self.infer_type(node.left)
                 right_type = self.infer_type(node.right)
-
-                if left_type in ['int', 'float'] or right_type in ['int', 'float']:
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform logical operation on numeric values"))
+                
                 if left_type == 'null' or right_type == 'null':
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform logical operation on Null values"))
+                    self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform logical operation on 'null'"))
                 if isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
                     self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undeclared variable 26: '{node.left.name}'"))
                 if isinstance(node.right, IdNode) and not self.symbol_table.get(node.right.name):
