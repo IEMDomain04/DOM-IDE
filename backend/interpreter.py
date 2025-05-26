@@ -177,8 +177,12 @@ class CodeRunner(DOMInterpreter):
                 return
 
             if var_dec_node.datatype == 'int' and isinstance(value, float):
-                value = int(value)  # Convert float to integer
-                print(f"Converted float value to integer for variable '{node.name}'")
+                value = int(value)  
+            elif var_dec_node.datatype == 'float' and isinstance(value, int):
+                value = float(value)
+            elif var_dec_node.datatype == 'bool' and not isinstance(value, bool):
+                value = self.to_bool(value)  
+
 
             value_node = None
             if isinstance(value, int):
@@ -224,7 +228,10 @@ class CodeRunner(DOMInterpreter):
         # Check if the variable is of integer type
         if var_dec_node.datatype == 'int' and isinstance(value, float):
             value = int(value)  # Convert float to integer
-            print(f"Converted float value to integer for variable '{node.name}'")
+        elif var_dec_node.datatype == 'float' and isinstance(value, int):
+            value = float(value)
+        elif var_dec_node.datatype == 'bool' and not isinstance(value, bool):
+            value = self.to_bool(value)
 
         value_node = None
         if isinstance(value, (int, float)):
@@ -307,7 +314,6 @@ class CodeRunner(DOMInterpreter):
                                 new_clan.values.append(BoolNode(False))
                         node.initial_values = new_clan
                 elif isinstance(node.initial_values, DismantleNode):
-                    print(f'I REACHED HEREEEEEEEEE')
                     new_clan, error = self.evaluate_node(node.initial_values)
                     if error:
                         self.error = error
@@ -1088,15 +1094,6 @@ class CodeRunner(DOMInterpreter):
             
             if not isinstance(node, ExponentNode):
                 try:
-                    def to_bool(val):
-                                if isinstance(val, str):
-                                    return True if val != "" else False
-                                if isinstance(val, (int, float)):
-                                    return val != 0
-                                if isinstance(val, bool):
-                                    return val
-                                return bool(val)
-                    
                     if left_value is not None and right_value is not None: 
                         # Convert True/False to 1/0 for arithmetic and comparison
                         if isinstance(left_value, bool):
@@ -1156,9 +1153,9 @@ class CodeRunner(DOMInterpreter):
                                 right_value = 1 if right_value != "" else 0
                             return left_value >= right_value, None
                         elif node.op == '&&':
-                            return to_bool(left_value) and to_bool(right_value), None
+                            return self.to_bool(left_value) and self.to_bool(right_value), None
                         elif node.op == '||':
-                            return to_bool(left_value) or to_bool(right_value), None
+                            return self.to_bool(left_value) or self.to_bool(right_value), None
                         else:
                             return None, RTError(node.pos_start, node.pos_end, f"Unknown operator '{node.op}'")
                     else:
@@ -1565,3 +1562,12 @@ class CodeRunner(DOMInterpreter):
         
         else:
             return None, None
+        
+    def to_bool(self, val):
+        if isinstance(val, str):
+            return True if val != "" else False
+        if isinstance(val, (int, float)):
+            return val != 0
+        if isinstance(val, bool):
+            return val
+        return bool(val)
