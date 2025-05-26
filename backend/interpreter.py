@@ -1144,7 +1144,7 @@ class CodeRunner(DOMInterpreter):
                             # For logical OR, treat numbers: 0 is False, non-zero is True
                             def to_bool(val):
                                 if isinstance(val, str):
-                                    return True if val == "" else False
+                                    return True if val != "" else False
                                 if isinstance(val, (int, float)):
                                     return val != 0
                                 if isinstance(val, bool):
