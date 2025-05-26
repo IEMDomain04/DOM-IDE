@@ -1089,6 +1089,12 @@ class CodeRunner(DOMInterpreter):
             if not isinstance(node, ExponentNode):
                 try:
                     if left_value is not None and right_value is not None:
+                        # Convert True/False to 1/0 for arithmetic and comparison
+                        if isinstance(left_value, bool):
+                            left_value = 1 if left_value else 0
+                        if isinstance(right_value, bool):
+                            right_value = 1 if right_value else 0
+
                         if node.op == '+':
                             return left_value + right_value, None
                         elif node.op == '-':
@@ -1102,7 +1108,7 @@ class CodeRunner(DOMInterpreter):
                             if right_value == 0 or right_value == 0.0:
                                 return None, RTError(node.pos_start, node.pos_end, "Division by zero")
                             result = left_value / right_value
-                            if result>999999999:
+                            if result > 999999999:
                                 return None, RTError(node.pos_start, node.pos_end, "Float significant values exceeded limit of 9 digits")
                             if isinstance(result, float):
                                 decimal_part = str(result).split('.')[-1]
@@ -1124,12 +1130,31 @@ class CodeRunner(DOMInterpreter):
                         elif node.op == '>=':
                             return left_value >= right_value, None
                         elif node.op == '&&':
-                            return left_value and right_value, None
+                            # For logical AND, treat numbers: 0 is False, non-zero is True
+                            def to_bool(val):
+                                if isinstance(val, str):
+                                    return True if val != "" else False
+                                if isinstance(val, (int, float)):
+                                    return val != 0
+                                if isinstance(val, bool):
+                                    return val
+                                return bool(val)
+                            return to_bool(left_value) and to_bool(right_value), None
                         elif node.op == '||':
-                            return left_value or right_value, None
+                            # For logical OR, treat numbers: 0 is False, non-zero is True
+                            def to_bool(val):
+                                if isinstance(val, str):
+                                    return True if val == "" else False
+                                if isinstance(val, (int, float)):
+                                    return val != 0
+                                if isinstance(val, bool):
+                                    return val
+                                return bool(val)
+                            return to_bool(left_value) or to_bool(right_value), None
                         else:
                             return None, RTError(node.pos_start, node.pos_end, f"Unknown operator '{node.op}'")
-                    else: return None, RTError(node.pos_start, node.pos_end, "Invalid operation on 'null'")
+                    else:
+                        return None, RTError(node.pos_start, node.pos_end, "Invalid operation on 'null'")
 
                 except Exception as e:
                     return None, RTError(node.pos_start, node.pos_end, f"Error during operation '{node.op}': {str(e)}")

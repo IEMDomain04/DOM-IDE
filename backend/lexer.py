@@ -47,7 +47,7 @@ delim_map = {
     'incdec_delim':     set(ALPHA_NUMERIC + ')' + ' ' + '\n' + '\t' + ';' + '#' + ']' + '-' + '+' + ','),
     'kword_delim':      {' ', '\n', '\t', '#'},
     'lend_delim':       set(ALPHA_NUMERIC + '#' + '\n' + '\t' + ' ' + '}'),
-    'logic_delim':      set(ALPHA + ' ' + '(' + '#' + '!' + '\n' + '\t'),
+    'logic_delim':      set(ALPHA + ' ' + '(' + '#' + '!' + '\n' + '\t' + '"'),
     'minus_delim':      set(ALPHA_NUMERIC + '-' + '(' + ' ' + '\n' + '\t' + ' ' + '#' + '!'),
     'num_delim':        set(ARITH_OP + '>' + '<' + '=' + ' ' + '\n' + '\t' + ')' + ',' + ';' + ':' + ']' + '}' + '#'),
     'opnbrace_delim':   set(ALPHA_NUMERIC + '\n' + '\t' + '"' + ' ' + '{' + '#' + '}'),

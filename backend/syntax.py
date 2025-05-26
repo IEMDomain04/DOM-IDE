@@ -139,8 +139,6 @@ CFG = {
     "<value>": [
         ["<literal>"],
         ["id", "<curse_or_clan>"],
-        ["invoke", "(","<arguments>",")"],
-        ["capture", "(", "id", "<clan_call>", ")"],
         ["cleave", "(", "<arguments>", ")"],
         ["dismantle", "(", "<arguments>", ")"],
         ["len", "(", "<arguments>", ")"],
@@ -590,11 +588,9 @@ PREDICT_SET = {
         "bool_literal": ["<value>", 0],
         "int_literal": ["<value>", 0],
         "id": ["<value>", 1],
-        "invoke": ["<value>", 2],
-        "capture": ["<value>", 3],
-        "cleave": ["<value>", 4],
-        "dismantle": ["<value>", 5],
-        "len": ["<value>", 6],
+        "cleave": ["<value>", 2],
+        "dismantle": ["<value>", 3],
+        "len": ["<value>", 4],
     },
 
     "<curse_or_clan>": { ############# verified
