@@ -618,19 +618,8 @@ class MyASTVisitor(ASTVisitor):
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type Error: Cannot perform operation '{node.op}' on strings"))
             elif left_type == 'bool' or right_type == 'bool':
                 pass
-
-        if isinstance(binop_parent, (VarDecNode)):
-            if binop_type == 'unknown':
-                pass
-            elif binop_type != binop_parent.datatype:
-                if binop_parent.datatype == 'int' and binop_type == 'float':
-                    pass
-                elif binop_parent.datatype == 'float' and binop_type == 'int':
-                    pass
-                else:
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 2: Expected '{binop_parent.datatype}', got '{binop_type}'"))
         
-        elif isinstance(binop_parent, (RecallNode)):
+        if isinstance(binop_parent, (RecallNode)):
             parent_function = binop_parent.parent
             while not isinstance(parent_function, CurseDecNode):
                 if parent_function.parent:
@@ -788,6 +777,8 @@ class MyASTVisitor(ASTVisitor):
                 if var_type != value_type:
                     if isinstance(node.value, CurseCallNode):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 4: Expected '{var_type}' curse, got '{value_type}'"))
+                    elif (var_type == 'int' or var_type == 'float') and value_type == 'bool' and isinstance(node.value, BinOpNode) :
+                        pass
                     else: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 5: Expected '{var_type}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting VarDecNode")
@@ -809,6 +800,8 @@ class MyASTVisitor(ASTVisitor):
                 if isinstance (node.value, NullNode):
                     pass
                 elif isinstance(node.value, CurseCallNode) and value_type == 'unknown':
+                    pass
+                elif (var_type == 'int' or var_type == 'float') and value_type == 'bool' and isinstance(node.value, BinOpNode) :
                     pass
                 else:
                     if var_type != value_type:
@@ -1916,7 +1909,7 @@ class MyASTVisitor(ASTVisitor):
             elif isinstance(node, LogOpNode):
                 left_type = self.infer_type(node.left)
                 right_type = self.infer_type(node.right)
-                
+
                 if left_type == 'null' or right_type == 'null':
                     self.errors.append(SemanticError(node.pos_start, node.pos_end, "Cannot perform logical operation on 'null'"))
                 if isinstance(node.left, IdNode) and not self.symbol_table.get(node.left.name):
