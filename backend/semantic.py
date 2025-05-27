@@ -788,11 +788,15 @@ class MyASTVisitor(ASTVisitor):
         else:
             if value_type == 'unknown':
                 pass
+            elif var_type == 'int' and value_type == 'float':
+                pass
+            elif var_type == 'float' and value_type == 'int':
+                pass
             else:
                 if var_type != value_type:
                     if isinstance(node.value, CurseCallNode):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 4: Expected '{var_type}' curse, got '{value_type}'"))
-                    else: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 5: Expected '{var_type}', got '{value_type}'"))
+                    else: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 5.1: Expected '{var_type}', got '{value_type}'"))
         self.visit_children(node)
         print(f"Exiting VarDecNode")
 
@@ -813,6 +817,10 @@ class MyASTVisitor(ASTVisitor):
                 if isinstance (node.value, NullNode):
                     pass
                 elif isinstance(node.value, CurseCallNode) and value_type == 'unknown':
+                    pass
+                elif var_type == 'int' and value_type == 'float':
+                    pass
+                elif var_type == 'float' and value_type == 'int':
                     pass
                 else:
                     if var_type != value_type:
@@ -1157,7 +1165,7 @@ class MyASTVisitor(ASTVisitor):
                         param_type = param.datatype  # Use param.datatype directly
                         arg_type = self.infer_type(arg)
                         if param_type != arg_type:
-                            self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch 5: Expected '{param_type}', got '{arg_type}'"))
+                            self.errors.append(SemanticError(arg.pos_start, arg.pos_end, f"Type mismatch 5.2: Expected '{param_type}', got '{arg_type}'"))
             else:
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"'{node.name}' is not a curse"))
 
