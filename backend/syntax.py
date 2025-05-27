@@ -574,8 +574,6 @@ PREDICT_SET = {
         "bool_literal": ["<operand>", 0],
         "int_literal": ["<operand>", 0],
         "dismantle": ["<operand>", 0],
-        "capture": ["<operand>", 0],
-        "invoke": ["<operand>", 0],
         "cleave": ["<operand>", 0],
         "len": ["<operand>", 0],
         "!": ["<operand>", 1],
