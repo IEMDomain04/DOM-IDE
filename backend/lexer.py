@@ -30,7 +30,7 @@ keywords = [
 
 # FROM THE DELIMITERS 
 delim_map = {
-    'arith_delim':      set(ALPHA_NUMERIC + ' ' + '-' + '(' + '#' + '\n' + '\t' + '!'),
+    'arith_delim':      set(ALPHA_NUMERIC + ' ' + '-' + '(' + '#' + '\n' + '\t' + '!' + '"'),
     'assign_delim':     set(ALPHA_NUMERIC + ' ' + '"' + '-' + '(' + '\n' + '\t' + '!' + '#' + "{"),
     'boogie_delim':     {'(', ' ', '\n', '\t', '{', '#'},
     'bool_delim':       {')', ']', ',', ' ', ';', '#', '&', '|', '}', '\n', '\t', ' ', '<', '>', '=', '+', '-', '*', '/', '%'},
@@ -48,12 +48,12 @@ delim_map = {
     'kword_delim':      {' ', '\n', '\t', '#'},
     'lend_delim':       set(ALPHA_NUMERIC + '#' + '\n' + '\t' + ' ' + '}'),
     'logic_delim':      set(ALPHA_NUMERIC + ' ' + '(' + '#' + '!' + '\n' + '\t' + '"'),
-    'minus_delim':      set(ALPHA_NUMERIC + '-' + '(' + ' ' + '\n' + '\t' + ' ' + '#' + '!'),
+    'minus_delim':      set(ALPHA_NUMERIC + '-' + '(' + ' ' + '\n' + '\t' + ' ' + '#' + '!' + '"'),
     'num_delim':        set(ARITH_OP + '>' + '<' + '=' + ' ' + '\n' + '\t' + ')' + ',' + ';' + ':' + ']' + '}' + '#' + '|' + '&'),
     'opnbrace_delim':   set(ALPHA_NUMERIC + '\n' + '\t' + '"' + ' ' + '{' + '#' + '}'),
     'opnparen_delim':   set(ALPHA_NUMERIC + '"' + '-' + '+' + '(' + ')' + '\n' + '\t' + ' ' + '!' + '#'),
     'opnsquare_delim':  set(ALPHA_NUMERIC + '"' + '-' + '+' + '(' + '[' + ']' + ' ' + '\n' + '\t' + '#'),
-    'plus_delim':       set(ALPHA_NUMERIC + '"' + '-' + '(' + ',' + ' ' + '\t' + '\n' + '#' + '!'),
+    'plus_delim':       set(ALPHA_NUMERIC + '"' + '-' + '(' + ',' + ' ' + '\t' + '\n' + '#' + '!' + '"'),
     'para_delim':       {'(', ' ', '\n', '\t' , '#'},
     'recall_delim':     set(ALPHA + ' ' + '\n' + '\t' + ';' + '(' + '#'), 
     'str_delim':        {'+', ')',  ']', '\n', '\t', ',', ';', ' ', ':', '}', '#', '<', '>', '=', '!', '&', '|'},
