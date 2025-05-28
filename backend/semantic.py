@@ -592,6 +592,14 @@ class MyASTVisitor(ASTVisitor):
                     pass
                 elif left_type == 'float' and right_type == 'int':
                     pass
+                elif left_type == 'string' and right_type == 'int':
+                    pass
+                elif left_type == 'int' and right_type == 'string':
+                    pass
+                elif left_type == 'string' and right_type == 'float':
+                    pass
+                elif left_type == 'float' and right_type == 'string':
+                    pass
                 else:
                     self.errors.append(SemanticError(parent.pos_start, parent.pos_end, f"Type Mismatch: Cannot perform operation between '{left_type}' and '{right_type}'"))
         else:
@@ -613,11 +621,7 @@ class MyASTVisitor(ASTVisitor):
                             self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Division by zero"))
             if left_type == 'null' or right_type == 'null':
                 self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Cannot perform binary operation on 'null'"))
-            elif left_type == 'string' and right_type == 'string':
-                if node.op != '+':
-                    self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type Error: Cannot perform operation '{node.op}' on strings"))
-            elif left_type == 'bool' or right_type == 'bool':
-                pass
+
         
         if isinstance(binop_parent, (RecallNode)):
             parent_function = binop_parent.parent
@@ -777,7 +781,9 @@ class MyASTVisitor(ASTVisitor):
                 if var_type != value_type:
                     if isinstance(node.value, CurseCallNode):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 4: Expected '{var_type}' curse, got '{value_type}'"))
-                    elif (var_type == 'int' or var_type == 'float') and value_type == 'bool' and isinstance(node.value, BinOpNode) :
+                    elif (var_type == 'int' or var_type == 'float') and (value_type == 'bool' or value_type == 'string') and isinstance(node.value, (BinOpNode, RelOpNode, LogOpNode)) :
+                        pass
+                    elif var_type == 'bool' and value_type == 'string' and isinstance(node.value, BinOpNode) :
                         pass
                     else: self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 5: Expected '{var_type}', got '{value_type}'"))
         self.visit_children(node)
@@ -801,7 +807,9 @@ class MyASTVisitor(ASTVisitor):
                     pass
                 elif isinstance(node.value, CurseCallNode) and value_type == 'unknown':
                     pass
-                elif (var_type == 'int' or var_type == 'float') and value_type == 'bool' and isinstance(node.value, BinOpNode) :
+                elif (var_type == 'int' or var_type == 'float') and (value_type == 'bool' or value_type == 'string') and isinstance(node.value, (BinOpNode, RelOpNode, LogOpNode)) :
+                    pass
+                elif var_type == 'bool' and value_type == 'string' and isinstance(node.value, BinOpNode) :
                     pass
                 else:
                     if var_type != value_type:
@@ -1350,70 +1358,11 @@ class MyASTVisitor(ASTVisitor):
     def visit_VowNode(self, node, parent):
         print(f"Visiting VowNode")
         self.visit_children(node)
-        if isinstance(node.condition, BinOpNode):
-            if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-            
-        elif isinstance(node.condition, IdNode):
-            if self.symbol_table.get(node.condition.name):
-                condition_type = self.symbol_table.get_type(node.condition.name)
-                if condition_type != 'bool':
-                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
-        elif isinstance(node.condition, CurseCallNode):
-            curse_node = self.symbol_table.get(node.condition.name)
-            if curse_node is None:
-                self.unresolved_cases.append((node, parent))
-                return
-            curse_return_type = curse_node.datatype
-            if curse_return_type is None:
-                curse_return_type = 'void'
-            if curse_return_type != 'bool':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        elif isinstance(node.condition, RelOpNode):
-            pass
-        elif isinstance(node.condition, LogOpNode):
-            pass
-        elif isinstance(node.condition, BoolNode):
-            pass
-        elif isinstance(node.condition, UnaryOpNode):
-            if not node.condition.op.op == '!':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        else:
-            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         print(f"Exiting VowNode")
 
     def visit_ElseVow(self, node, parent):
         print(f"Visiting ElseVow")
         self.visit_children(node)
-        if isinstance(node.condition, BinOpNode):
-            if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        elif isinstance(node.condition, IdNode):
-            if self.symbol_table.get(node.condition.name):
-                condition_type = self.symbol_table.get_type(node.condition.name)
-                if condition_type != 'bool':
-                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
-        elif isinstance(node.condition, CurseCallNode):
-            curse_node = self.symbol_table.get(node.condition.name)
-            if curse_node is None:
-                self.unresolved_cases.append((node, parent))
-                return
-            curse_return_type = curse_node.datatype
-            if curse_return_type is None:
-                curse_return_type = 'void'
-            if curse_return_type != 'bool':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        elif isinstance(node.condition, RelOpNode):
-            pass
-        elif isinstance(node.condition, LogOpNode):
-            pass
-        elif isinstance(node.condition, BoolNode):
-            pass
-        elif isinstance(node.condition, UnaryOpNode):
-            if not node.condition.op.op == '!':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        else:
-            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         print(f"Exiting ElseVow")
 
     def visit_ElseNode(self, node, parent):
@@ -1429,35 +1378,6 @@ class MyASTVisitor(ASTVisitor):
     def visit_WoogieTrueNode(self, node, parent):
         print(f"Visiting WoogieTrueNode")
         self.visit_children(node)
-        if isinstance(node.condition, BinOpNode):
-            if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        elif isinstance(node.condition, IdNode):
-            if self.symbol_table.get(node.condition.name):
-                condition_type = self.symbol_table.get_type(node.condition.name)
-                if condition_type != 'bool':
-                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
-        elif isinstance(node.condition, CurseCallNode):
-            curse_node = self.symbol_table.get(node.condition.name)
-            if curse_node is None:
-                self.unresolved_cases.append((node, parent))
-                return
-            curse_return_type = curse_node.datatype
-            if curse_return_type is None:
-                curse_return_type = 'void'
-            if curse_return_type != 'bool':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        elif isinstance(node.condition, RelOpNode):
-            pass
-        elif isinstance(node.condition, LogOpNode):
-            pass
-        elif isinstance(node.condition, BoolNode):
-            pass
-        elif isinstance(node.condition, UnaryOpNode):
-            if not node.condition.op.op == '!':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        else:
-            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         print(f"Exiting WoogieTrueNode")
 
     def visit_WoogieNode(self, node, parent):
@@ -1502,69 +1422,11 @@ class MyASTVisitor(ASTVisitor):
     def visit_SustainNode(self, node, parent):
         print(f"Visiting SustainNode")
         self.visit_children(node)
-        if isinstance(node.condition, BinOpNode):
-            if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        elif isinstance(node.condition, IdNode):
-            if self.symbol_table.get(node.condition.name):
-                condition_type = self.symbol_table.get_type(node.condition.name)
-                if condition_type != 'bool':
-                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
-        elif isinstance(node.condition, CurseCallNode):
-            curse_node = self.symbol_table.get(node.condition.name)
-            if curse_node is None:
-                self.unresolved_cases.append((node, parent))
-                return
-            curse_return_type = curse_node.datatype
-            if curse_return_type is None:
-                curse_return_type = 'void'
-            if curse_return_type != 'bool':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        elif isinstance(node.condition, RelOpNode):
-            pass
-        elif isinstance(node.condition, LogOpNode):
-            pass
-        elif isinstance(node.condition, BoolNode):
-            pass
-        elif isinstance(node.condition, UnaryOpNode):
-            if not node.condition.op.op == '!':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        else:
-            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         print(f"Exiting SustainNode")
 
     def visit_PerformSustainNode(self, node, parent):
         print(f"Visiting PerformSustainNode")
         self.visit_children(node)
-        if isinstance(node.condition, BinOpNode):
-            if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        elif isinstance(node.condition, IdNode):
-            if self.symbol_table.get(node.condition.name):
-                condition_type = self.symbol_table.get_type(node.condition.name)
-                if condition_type != 'bool':
-                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
-        elif isinstance(node.condition, CurseCallNode):
-            curse_node = self.symbol_table.get(node.condition.name)
-            if curse_node is None:
-                self.unresolved_cases.append((node, parent))
-                return
-            curse_return_type = curse_node.datatype
-            if curse_return_type is None:
-                curse_return_type = 'void'
-            if curse_return_type != 'bool':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        elif isinstance(node.condition, RelOpNode):
-            pass
-        elif isinstance(node.condition, LogOpNode):
-            pass
-        elif isinstance(node.condition, BoolNode):
-            pass
-        elif isinstance(node.condition, UnaryOpNode):
-            if not node.condition.op.op == '!':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        else:
-            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
         print(f"Exiting PerformSustainNode")
 
     def visit_CycleNode(self, node, parent):
@@ -1589,36 +1451,6 @@ class MyASTVisitor(ASTVisitor):
                     self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Cycle initialization must be an integer"))
         else: 
             self.errors.append(SemanticError(node.init.pos_start, node.init.pos_end, "Invalid cycle initialization"))
-
-        if isinstance(node.condition, BinOpNode):
-            if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        elif isinstance(node.condition, IdNode):
-            if self.symbol_table.get(node.condition.name):
-                condition_type = self.symbol_table.get_type(node.condition.name)
-                if condition_type != 'bool':
-                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
-        elif isinstance(node.condition, CurseCallNode):
-            curse_node = self.symbol_table.get(node.condition.name)
-            if curse_node is None:
-                self.unresolved_cases.append((node.condition, node))
-            else:
-                curse_return_type = curse_node.datatype
-                if curse_return_type is None:
-                    curse_return_type = 'void'
-                if curse_return_type != 'bool':
-                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        elif isinstance(node.condition, RelOpNode):
-            pass
-        elif isinstance(node.condition, LogOpNode):
-            pass
-        elif isinstance(node.condition, BoolNode):
-            pass
-        elif isinstance(node.condition, UnaryOpNode):
-            if not node.condition.op.op == '!':
-                self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-        else:
-            self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
 
         if isinstance(node.iteration, (BinOpNode)) and node.iteration.op in ['+=', '-=', '*=', '/=', '%=']:
             pass
@@ -1920,36 +1752,6 @@ class MyASTVisitor(ASTVisitor):
                     self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undeclared variable 28: '{node.left.name}'"))
                 if isinstance(node.right, CurseCallNode) and not self.symbol_table.get(node.right.name):
                     self.errors.append(SemanticError(node.left.pos_start, node.left.pos_end, f"Undeclared variable 29: '{node.left.name}'"))
-
-            elif isinstance(node, VowNode):
-                if isinstance(node.condition, BinOpNode):
-                    if node.condition.op not in ['<', '<=', '>', '>=', '==', '!=', '&&', '||']:
-                        self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-                elif isinstance(node.condition, IdNode):
-                    if not self.symbol_table.get(node.condition.name):
-                        self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, f"Undeclared variable 14: '{node.condition.name}'"))
-                        return
-                    condition_type = self.symbol_table.get_type(node.condition.name)
-                    if condition_type != 'bool':
-                        self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must return a boolean value"))
-                elif isinstance(node.condition, CurseCallNode):
-                    curse_node = self.symbol_table.get(node.condition.name)
-                    if curse_node is None:
-                        self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, f"Undefined curse 8 '{node.condition.name}'"))
-                        return
-                    curse_return_type = curse_node.datatype
-                    if curse_return_type is None:
-                        curse_return_type = 'void'
-                    if curse_return_type != 'bool':
-                        self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
-                elif isinstance(node.condition, RelOpNode):
-                    pass
-                elif isinstance(node.condition, LogOpNode):
-                    pass
-                elif isinstance(node.condition, BoolNode):
-                    pass
-                else:
-                    self.errors.append(SemanticError(node.condition.pos_start, node.condition.pos_end, "Condition must be a boolean expression"))
 
             elif isinstance(node, CycleConditionNode):
                 node_init = node.init

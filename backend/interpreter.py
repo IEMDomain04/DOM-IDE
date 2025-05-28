@@ -178,8 +178,18 @@ class CodeRunner(DOMInterpreter):
 
             if var_dec_node.datatype == 'int' and isinstance(value, float):
                 value = int(value)  
+            elif var_dec_node.datatype == 'int' and isinstance(value, bool):
+                if value:
+                    value = 1
+                else:
+                    value = 0
             elif var_dec_node.datatype == 'float' and isinstance(value, int):
                 value = float(value)
+            elif var_dec_node.datatype == 'float' and isinstance(value, bool):
+                if value:
+                    value = 1.0
+                else:
+                    value = 0.0
             elif var_dec_node.datatype == 'bool' and not isinstance(value, bool):
                 value = self.to_bool(value)  
 
@@ -228,8 +238,18 @@ class CodeRunner(DOMInterpreter):
         # Check if the variable is of integer type
         if var_dec_node.datatype == 'int' and isinstance(value, float):
             value = int(value)  # Convert float to integer
+        elif var_dec_node.datatype == 'int' and isinstance(value, bool):
+            if value:
+                value = 1
+            else:
+                value = 0
         elif var_dec_node.datatype == 'float' and isinstance(value, int):
             value = float(value)
+        elif var_dec_node.datatype == 'float' and isinstance(value, bool):
+            if value:
+                value = 1.0
+            else:
+                value = 0.0
         elif var_dec_node.datatype == 'bool' and not isinstance(value, bool):
             value = self.to_bool(value)
 
@@ -1102,17 +1122,30 @@ class CodeRunner(DOMInterpreter):
                             right_value = 1 if right_value else 0
 
                         if node.op == '+':
+                            # If either operand is a string, convert both to bool (int) before operation
+                            if isinstance(left_value, str) and isinstance(right_value, str):
+                                return left_value + right_value, None
+                            elif isinstance(left_value, str) or isinstance(right_value, str):
+                                return self.to_bool(left_value) + self.to_bool(right_value), None
                             return left_value + right_value, None
                         elif node.op == '-':
+                            # If either operand is a string, convert both to bool (int) before operation
+                            if isinstance(left_value, str) or isinstance(right_value, str):
+                                return self.to_bool(left_value) - self.to_bool(right_value), None
                             result = left_value - right_value
-                            print(f"Evaluating subtraction: {left_value} - {right_value} = {result}")
                             return result, None
                         elif node.op == '*':
+                            # If either operand is a string, convert both to bool (int) before operation
+                            if isinstance(left_value, str) or isinstance(right_value, str):
+                                return self.to_bool(left_value) * self.to_bool(right_value), None
                             return left_value * right_value, None
                         elif node.op == '/':
-                            print(f"\n\n\n\nI REACHED HERE, RIGHT VALUE: {right_value}\n\n\n\n")
                             if right_value == 0 or right_value == 0.0:
                                 return None, RTError(node.pos_start, node.pos_end, "Division by zero")
+                            if isinstance(left_value, str) and isinstance(right_value, str):
+                                if self.to_bool(right_value) == 0:
+                                    return None, RTError(node.pos_start, node.pos_end, "Division by zero")
+                                return self.to_bool(left_value) / self.to_bool(right_value), None
                             result = left_value / right_value
                             if result > 999999999:
                                 return None, RTError(node.pos_start, node.pos_end, "Float significant values exceeded limit of 9 digits")
@@ -1122,6 +1155,12 @@ class CodeRunner(DOMInterpreter):
                                     result = round(result, 7)
                             return result, None
                         elif node.op == '%':
+                            if right_value == 0 or right_value == 0.0:
+                                return None, RTError(node.pos_start, node.pos_end, "Division by zero")
+                            if isinstance(left_value, str) and isinstance(right_value, str):
+                                if self.to_bool(right_value) == 0:
+                                    return None, RTError(node.pos_start, node.pos_end, "Division by zero")
+                                return self.to_bool(left_value) % self.to_bool(right_value), None
                             return left_value % right_value, None
                         elif node.op == '==':
                             return left_value == right_value, None
@@ -1175,6 +1214,16 @@ class CodeRunner(DOMInterpreter):
                     value = value.value * -1
                 elif isinstance(value, (float, int)):
                     value = value * -1
+                elif isinstance(value, str):
+                    if value == "":
+                        value = 0
+                    else:
+                        value = -1
+                elif isinstance(value, bool):
+                    if value:
+                        value = -1
+                    else:
+                        value = 0
                 return value, None
             if node.op.op == '!' and node.pre is True:
                 value, error = self.evaluate_node(node.expr)
@@ -1184,6 +1233,11 @@ class CodeRunner(DOMInterpreter):
                     value = not value.value
                 elif isinstance(value, bool):
                     value = not value
+                elif isinstance(value, str):
+                    if value == "":
+                        value = not False
+                    else: 
+                        value = not True
                 return value, None
             if node.op.op == '++' and node.pre is False:
                 value, error = self.evaluate_node(node.expr)
