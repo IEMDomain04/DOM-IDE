@@ -178,8 +178,18 @@ class CodeRunner(DOMInterpreter):
 
             if var_dec_node.datatype == 'int' and isinstance(value, float):
                 value = int(value)  
+            elif var_dec_node.datatype == 'int' and isinstance(value, bool):
+                if value:
+                    value = 1
+                else:
+                    value = 0
             elif var_dec_node.datatype == 'float' and isinstance(value, int):
                 value = float(value)
+            elif var_dec_node.datatype == 'float' and isinstance(value, bool):
+                if value:
+                    value = 1.0
+                else:
+                    value = 0.0
             elif var_dec_node.datatype == 'bool' and not isinstance(value, bool):
                 value = self.to_bool(value)  
 
@@ -228,8 +238,18 @@ class CodeRunner(DOMInterpreter):
         # Check if the variable is of integer type
         if var_dec_node.datatype == 'int' and isinstance(value, float):
             value = int(value)  # Convert float to integer
+        elif var_dec_node.datatype == 'int' and isinstance(value, bool):
+            if value:
+                value = 1
+            else:
+                value = 0
         elif var_dec_node.datatype == 'float' and isinstance(value, int):
             value = float(value)
+        elif var_dec_node.datatype == 'float' and isinstance(value, bool):
+            if value:
+                value = 1.0
+            else:
+                value = 0.0
         elif var_dec_node.datatype == 'bool' and not isinstance(value, bool):
             value = self.to_bool(value)
 

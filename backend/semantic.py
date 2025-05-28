@@ -781,7 +781,7 @@ class MyASTVisitor(ASTVisitor):
                 if var_type != value_type:
                     if isinstance(node.value, CurseCallNode):
                         self.errors.append(SemanticError(node.pos_start, node.pos_end, f"Type mismatch 4: Expected '{var_type}' curse, got '{value_type}'"))
-                    elif (var_type == 'int' or var_type == 'float') and value_type == 'bool' and isinstance(node.value, BinOpNode) :
+                    elif (var_type == 'int' or var_type == 'float') and (value_type == 'bool' or value_type == 'string') and isinstance(node.value, (BinOpNode, RelOpNode, LogOpNode)) :
                         pass
                     elif var_type == 'bool' and value_type == 'string' and isinstance(node.value, BinOpNode) :
                         pass
@@ -807,7 +807,7 @@ class MyASTVisitor(ASTVisitor):
                     pass
                 elif isinstance(node.value, CurseCallNode) and value_type == 'unknown':
                     pass
-                elif (var_type == 'int' or var_type == 'float') and value_type == 'bool' and isinstance(node.value, BinOpNode) :
+                elif (var_type == 'int' or var_type == 'float') and (value_type == 'bool' or value_type == 'string') and isinstance(node.value, (BinOpNode, RelOpNode, LogOpNode)) :
                     pass
                 elif var_type == 'bool' and value_type == 'string' and isinstance(node.value, BinOpNode) :
                     pass
