@@ -1,9 +1,14 @@
-# Web App IDE - DOMAIN Compiler
+# DOMAIN Compiler
 
 Access the Web App
 [DOM COMPILER](https://dom-ide.vercel.app/)
 
-<br>
+### 👥 Team Members
+- **Jason William Almendra**   
+- **Edrill Bilan**   
+- **Fredrick Habla**   
+- **Kryztine Igaya**   
+- **Emman Manduriaga**  
 
 ## To run the IDE on your local machine
 
